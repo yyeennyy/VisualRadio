@@ -107,5 +107,3 @@ def find_contents(radio_name, date):
 def storage_path(radio_name, radio_date):
     return os.getcwd() + '\\VisualRadio\\radio_storage\\' + radio_name + '\\' + radio_date
 
-
-stt('brunchcafe', '230226')

@@ -6,7 +6,8 @@
 from flask import Flask, request, jsonify, send_file
 from flask_sqlalchemy import SQLAlchemy
 import json
-
+import os
+import time
 import services
 
 app = Flask(__name__)
@@ -105,30 +106,30 @@ def get_program_info():
 # 지정된 회차의 스크립트 요청 ㅇ
 @app.route('/<string:radio_name>/<string:date>/script', methods=['GET'])
 def get_script(radio_name, date):
-    json_data = read_json_file(storage_path(radio_name, date) + '/result/script.json')
+    json_data = read_json_file(storage_path(radio_name, date) + '\\result\\script.json')
     return jsonify(json_data)
 
 
 # 지정된 회차의 섹션 정보 리턴 ㅇ
 @app.route('/<string:radio_name>/<string:date>/section', methods=['GET'])
 def get_sections(radio_name, date):
-    json_data = read_json_file(storage_path(radio_name, date) + '/result/sction_time.json')
+    json_data = read_json_file(storage_path(radio_name, date) + '\\result\\sction_time.json')
     return jsonify(json_data)
 
 
 # 지정된 회차의 이미지들 리턴 ㅇ
 @app.route('/<string:radio_name>/<string:date>/images', methods=['GET'])
 def get_images(radio_name, date):
-    # services.py에게 요청
-    json_data = read_json_file(storage_path(radio_name, date) + '/result/images.json')
+    json_data = read_json_file(storage_path(radio_name, date) + '\\result\\images.json')
     return jsonify(json_data)
 
 
 # 지정된 회차의 음성 데이터 리턴 ㅇ
 @app.route('/<string:radio_name>/<string:date>/wave', methods=['GET'])
 def get_wave(radio_name, date):
-    wav = open(storage_path(radio_name, date) + '/raw.wav')
-    return send_file(wav, mimetype="audio/wav", as_attachment=False)
+    wav = open(storage_path(radio_name, date) + '\\raw.wav', 'rb')
+    response = send_file(wav, mimetype="audio/wav", as_attachment=False)
+    return response
 
 
 # TODO: 지정된 회차의 전체 text
@@ -150,7 +151,7 @@ def get_ad():
 ###################################################################################
 
 def storage_path(radio_name, radio_date):
-    return './radio_storage/' + radio_name + '/' + radio_date
+    return os.getcwd() + '\\VisualRadio\\radio_storage\\' + radio_name + '\\' + radio_date
 
 def read_json_file(file_path):
     with open(file_path, 'r') as f:
