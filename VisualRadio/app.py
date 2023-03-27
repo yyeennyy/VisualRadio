@@ -4,6 +4,7 @@
 
 
 from flask import Flask, request, jsonify, send_file
+from flask_cors import CORS
 
 import json
 import os
@@ -12,6 +13,7 @@ from models import db;
 
 
 app = Flask(__name__)
+CORS(app)  # 모든 라우트에 대해 CORS 허용
 
 # DB세팅
 # 주의! create database radioDB; 먼저 
