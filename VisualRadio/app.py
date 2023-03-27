@@ -11,7 +11,6 @@ import os
 import services
 from models import db;
 
-
 app = Flask(__name__)
 CORS(app)  # 모든 라우트에 대해 CORS 허용
 
@@ -152,7 +151,7 @@ def get_txt(radio_name, date):
 @app.route('/ad', methods=['GET'])
 def get_ad():
     # (프로토타입) 고정된 광고 컨텐츠 리턴
-    return open('./templates/ad.html')
+    return open('./VisualRadio/templates/ad.html', encoding='utf-8')
 
 
 ###################################################################################
@@ -164,6 +163,7 @@ def read_json_file(file_path):
     with open(file_path, 'r') as f:
         data = json.load(f)
     return data
+
 
 ########################
 
