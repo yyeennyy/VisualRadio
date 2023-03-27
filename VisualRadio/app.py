@@ -4,17 +4,23 @@
 
 
 from flask import Flask, request, jsonify, send_file
-from flask_sqlalchemy import SQLAlchemy
+from flask_cors import CORS
+
 import json
 import os
-import time
 import services
+from models import db;
+
 
 app = Flask(__name__)
+CORS(app)  # 모든 라우트에 대해 CORS 허용
 
-# db 객체 생성 (SQLAlchemy 객체를 전역 변수로 두기)
+# DB세팅
+# 주의! create database radioDB; 먼저 
 app.config.from_pyfile('config.py')
-db = SQLAlchemy(app)
+db.init_app(app)
+with app.app_context():
+    db.create_all()  # 테이블이 자동으로 생성되는 명령
 
 
 
@@ -113,15 +119,16 @@ def get_script(radio_name, date):
 # 지정된 회차의 섹션 정보 리턴 ㅇ
 @app.route('/<string:radio_name>/<string:date>/section', methods=['GET'])
 def get_sections(radio_name, date):
-    json_data = read_json_file(storage_path(radio_name, date) + '\\result\\sction_time.json')
+    json_data = read_json_file(storage_path(radio_name, date) + '\\result\\section_time.json')
     return jsonify(json_data)
 
 
 # 지정된 회차의 이미지들 리턴 ㅇ
 @app.route('/<string:radio_name>/<string:date>/images', methods=['GET'])
 def get_images(radio_name, date):
-    json_data = read_json_file(storage_path(radio_name, date) + '\\result\\images.json')
-    return jsonify(json_data)
+    file_path = storage_path(radio_name, date) + '\\result\\images.json'
+    data = read_json_file(file_path)
+    return jsonify(data)
 
 
 # 지정된 회차의 음성 데이터 리턴 ㅇ
@@ -136,7 +143,7 @@ def get_wave(radio_name, date):
 @app.route('/<string:radio_name>/<string:date>/txt', methods=['GET'])
 def get_txt(radio_name, date):
     # time, text 키를 가진 json데이터를, text만 있는 문자열로 바꾼다.
-    script_path = storage_path(radio_name, date) + '/result/script.json'
+    script_path = storage_path(radio_name, date) + '\\result\\script.json'
     txt = ''
     return jsonify(txt)
 
@@ -159,6 +166,8 @@ def read_json_file(file_path):
     return data
 
 ########################
+
+
 
 if __name__ == '__main__':
     app.run()

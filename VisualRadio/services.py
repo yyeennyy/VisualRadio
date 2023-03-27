@@ -4,6 +4,19 @@
 
 
 import os
+from models import db, Wav
+from app import app
+
+###################### db접근 예제 #######################
+
+def service_logic():
+    with app.app_context():
+        # 컨텍스트 내에서 SQLAlchemy 코드 실행
+        wav = Wav.query.filter_by(radio_name='radio1').first()
+        print(f"radio name: {wav.radio_name}, radio date: {wav.radio_date}")
+
+
+
 ########################## 수집기 관련 로직 ##########################
 
 # 저장 로직
@@ -102,8 +115,19 @@ def find_contents(radio_name, date):
     target_list = ['stt_2', 'stt_3']  # 예시 : stt_2, stt_3는 컨텐츠화 가능한 stt결과
     return target_list  
 
+###################################### 서비스 로직 ###################################
 
-#####################
+def get_all_radio_programs():
+    with app.app_context():
+        # wav 테이블의 pk값을 가져온다.
+        # pk는 복합키로 있음
+        all_wavs = Wav.query.all()
+        all_wavs_json = [{'radio_name':wav.radio_name, 'date':wav.radio_date} for wav in all_wavs]
+    return all_wavs_json
+
+
+
+###################################### tools ###################################
 def storage_path(radio_name, radio_date):
     return os.getcwd() + '\\VisualRadio\\radio_storage\\' + radio_name + '\\' + radio_date
 
