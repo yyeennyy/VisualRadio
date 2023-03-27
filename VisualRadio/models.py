@@ -9,30 +9,37 @@
 # 이는 Django에서도 흔히 사용되는 네이밍 컨벤션 중 하나입니다.
 
 
+# 데이터베이스 모델을 정의해두는 곳이.ㅁ
+
 # SQLAlchemy 라이브러리를 사용하여 ORM(Object Relational Mapping)을 구현
 
 
 
-from app import db
+from flask_sqlalchemy import SQLAlchemy
+
+
+# db 객체 생성 (SQLAlchemy 객체를 전역 변수로 두기)
+db = SQLAlchemy()
+
 
 
 
 #  Flask 애플리케이션에서 데이터를 다루기 위해서는,
 #  데이터베이스 테이블과 매핑되는 모델 클래스가 필요
-
 # 예시 : 
-class User(db.Model):
-    __tablename__ = 'user'
-    id = db.Column(db.Integer, primary_key=True)
-    username = db.Column(db.String(50), unique=True, nullable=False)
-    password = db.Column(db.String(50), nullable=False)
+class Wav(db.Model):
+    radio_name = db.Column(db.String(50), primary_key=True)
+    radio_date = db.Column(db.String(50), primary_key=True)
+    section = db.Column(db.Integer, nullable=False)
+    done = db.Column(db.Boolean, nullable=False, default=False)
 
-    # 생성자
-    def __init__(self, username, password):
-        self.username = username
-        self.password = password
+    def __init__(self, radio_name, radio_date, section, done):
+        self.radio_name = radio_name
+        self.radio_date = radio_date
+        self.section = section
+        self.done = done
 
-    # 문자열 표현식은 객체를 문자열로 변환할 때 사용된다. (print() 구현인 듯)
-    # __repr__
     def __repr__(self):
-        return f'<User {self.username}>'
+        return f"<Wav {self.radio_name} - {self.radio_date}>"
+
+

@@ -1,2 +1,2 @@
-SQLALCHEMY_DATABASE_URI = 'mysql+pymysql://root:iscp5481*@localhost/radio'
+SQLALCHEMY_DATABASE_URI = 'mysql+pymysql://root:1234@localhost:3306/radioDB'
 SQLALCHEMY_TRACK_MODIFICATIONS = False
