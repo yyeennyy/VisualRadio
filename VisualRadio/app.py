@@ -2,10 +2,12 @@
 # 웹 페이지, API 엔드포인트 등을 담당하는 계층입니다.
 # 주로 Flask의 @app.route() 데코레이터를 이용하여 구현합니다.
 
+import sys
+sys.path.append("d:\jp\env\lib\site-packages")
 
 from flask import Flask, request, jsonify, send_file
 from flask_cors import CORS
-
+import logging
 import json
 import os
 import services
@@ -14,12 +16,16 @@ from models import db;
 app = Flask(__name__)
 CORS(app)  # 모든 라우트에 대해 CORS 허용
 
+# 로거
+# app.logger.setLevel(logging.DEBUG)
+
 # DB세팅
 # 주의! create database radioDB; 먼저 
 app.config.from_pyfile('config.py')
 db.init_app(app)
 with app.app_context():
     db.create_all()  # 테이블이 자동으로 생성되는 명령
+
 
 
 
@@ -137,6 +143,13 @@ def get_wave(radio_name, date):
     response = send_file(wav, mimetype="audio/wav", as_attachment=False)
     return response
 
+# 고정음성 요청 
+@app.route('/<string:radio_name>/<string:date>/fixed/<string:name>', methods=['GET'])
+def get_fixed_wave(radio_name, date, name):
+    wav = open(storage_path(radio_name, date) + '\\fixed_wav\\' + name, 'rb')
+    response = send_file(wav, mimetype="audio/wav", as_attachment=False)
+    return response
+
 
 # TODO: 지정된 회차의 전체 text
 @app.route('/<string:radio_name>/<string:date>/txt', methods=['GET'])
@@ -152,6 +165,12 @@ def get_txt(radio_name, date):
 def get_ad():
     # (프로토타입) 고정된 광고 컨텐츠 리턴
     return open('./VisualRadio/templates/ad.html', encoding='utf-8')
+
+
+@app.route('/test')
+def test():
+    services.split('brunchcafe','230226')
+    return 'test'
 
 
 ###################################################################################
@@ -170,4 +189,14 @@ def read_json_file(file_path):
 
 
 if __name__ == '__main__':
-    app.run()
+    app.run(debug=False)
+
+
+# 예은 가상환경 활성화  .\env\Scripts\activate
+# 정보 보기 (활성화되었는지 확인) : pip show flask
+# export 명령어를 사용하여 환경 변수를 설정할 때, 해당 환경 변수는 현재 쉘 세션에서만 유효합니다. 따라서, 해당 환경 변수는 쉘 세션이 종료되면 사라지게 됩니다.
+# 환경변수 등록
+# set FLASK_APP='app.py'
+# set FLASK_ENV=development
+# set FLASK_DEBUG=true
+# deactivate
