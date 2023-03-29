@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RADIO_SUB2</title>
+    <script type="module" src="../js/sub2.js"></script>
+    <link rel="stylesheet" href="../css/sub2.css">
+</head>
+<body>
+    <div id = "wrap">
+        <div id = "logo">로고</div>
+        <div class = "data">
+            <div id = "info">라디오 이름 + 날짜</div>
+            <div id = "search">검색</div>
+        </div>
+        <div class="episode">
+            <div id = "section1">
+                <div id = "imgContainer">
+                    <img alt="안불발생" id="main_img">
+                </div>
+
+            </div>
+            <div id = "section2">
+                <div id = "subtitleContainer"></div>
+            </div>
+        </div>
+        <audio hidden id="audio" src='' autoplay controls>오디오 지원되지 않는 브라우저</audio>
+        <p>
+            <span id="currentTime"></span> / <span id="duration"></span>
+            <div class="progress-bar">
+                <div class="progress"></div>
+            </div>
+        </p>
+        <button id="play-pause-btn">일시정지<i class="fa fa-play"></i></button>
+    </body>
+</html>
+
