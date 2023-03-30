@@ -14,6 +14,8 @@ import torchaudio
 import torch
 import requests
 import io
+from scipy.io import wavfile
+import numpy as np
 
 # 로그 생성 및 설정
 import logging
@@ -71,10 +73,9 @@ def split(radio_name, date):
     radio_url = get_storage_path(radio_name, date)
     print("라디오 스토리지 경로 : " + radio_url)
 
-    raw_path = f'{radio_url}\\raw.wav'
     fixed_path = f'{radio_url}\\fixed_wav\\'
-    url = "http://localhost:5000/%s/%s/split_wav" % (radio_name, date)
-    save_path = url
+    url = "http://localhost:5000/radio_storage/%s/%s/split_wav" % (radio_name, date)
+    save_url = url
 
     # fixed_wav 폴더에 있는 고정음성을 이용하여 분할한다.
     # 분할 로직 ##############
@@ -83,54 +84,52 @@ def split(radio_name, date):
     print(data.shape)
 
     data_list = data[0].tolist()
-    # fix_sound_idx = []
-    # # load fix sound
-    # fix_file_list = get_file_list(fixed_path)  #<=...................................
-    # for idx, name in enumerate(fix_file_list):
-    #     print('===============================================')
-    #     tmp, _ = torchaudio.load(get_request_url_fixed(radio_name, date, name))
-    #     tmp = tmp[0].tolist()
-    #     globals()[f'fixed_{idx}'] = tmp
-    #     # print('%d 번째 고정음성 로드 완료 ! 길이는 %d입니다.' % (idx, len(eval('fixed_{}'.format(idx)))))
-    #     print('%d 번째 고정음성 로드 완료 !' % idx)
+    fix_sound_idx = []
+    # load fix sound
+    fix_file_list = get_file_list(fixed_path)  #<=...................................
+    for idx, name in enumerate(fix_file_list):
+        print('===============================================')
+        tmp, _ = torchaudio.load(get_request_url_fixed(radio_name, date, name))
+        tmp = tmp[0].tolist()
+        globals()[f'fixed_{idx}'] = tmp
+        # print('%d 번째 고정음성 로드 완료 ! 길이는 %d입니다.' % (idx, len(eval('fixed_{}'.format(idx)))))
+        print('%d 번째 고정음성 로드 완료 !' % idx)
 
         
-    #     print('%d 번째 고정음성과 일치하는 부분 탐색 시작' % idx)
-    #     if len(fix_sound_idx)==0:
-    #         start = 0
-    #     else:
-    #         start = fix_sound_idx[-1]+length
+        print('%d 번째 고정음성과 일치하는 부분 탐색 시작' % idx)
+        if len(fix_sound_idx)==0:
+            start = 0
+        else:
+            start = fix_sound_idx[-1]+length
         
-    #     for i in range(start, len(data_list)):
-    #         start_point = eval(f'fixed_{idx}')[0]
+        for i in range(start, len(data_list)):
+            start_point = eval(f'fixed_{idx}')[0]
 
-    #         if data_list[i] == start_point:
-    #             length = len(eval(f'fixed_{idx}'))
-    #             if eval(f'fixed_{idx}') == data_list[i: i+length]:
-    #                 print('%s 번째 고정음성 찾았음!' % idx)
-    #                 fix_sound_idx.append(i)
-    #                 break
-    #     print('')
-        
+            if data_list[i] == start_point:
+                length = len(eval(f'fixed_{idx}'))
+                if eval(f'fixed_{idx}') == data_list[i: i+length]:
+                    print('%s 번째 고정음성 찾았음!' % idx)
+                    fix_sound_idx.append(i)
+                    break
+        print('')
+    print('분할 지점 탐색 완료 - by 고정음성')    
 
+    return split_by_index(radio_name, date, sr, data_list, fix_sound_idx)
+
+
+def split_by_index(radio_name, date, sr, data_list, fix_sound_idx):
     print('split 시작')
-    fix_sound_idx = [1234566, 2345678, 3456789, 9999999]
     saved_list = []
     for i in range(len(fix_sound_idx)-1):
         split = data_list[fix_sound_idx[i]:fix_sound_idx[i+1]]
         split_tensor = torch.Tensor(split)
         split_tensor = split_tensor.reshape(1, -1)
 
-        # wav 파일을 메모리에 저장합니다.
-        buffer = io.BytesIO()
-        torchaudio.save(buffer, split_tensor, sr, format="wav")
-        buffer.seek(0)
+        filepath = os.path.join('D:/JP/Server/VisualRadio/radio_storage/%s/%s/split_wav/' % (radio_name, date), 'sec_%d.wav' % (i+1))
+        print(filepath)
+        torchaudio.save(filepath, split_tensor, sr)
 
-        # 저장된 wav 파일을 서버에 업로드합니다.
-        result_url = save_path + f'/sec_{i+1}.wav'
-        response = requests.post(result_url, data=buffer.read(), headers={"Content-Type": "audio/wav"})
-
-        saved_list.append("{'url':" + f" '{result_url}'" + '}')
+        saved_list.append("{'저장 경로 :  %s" % (filepath))
         print('%d 번째 파일 저장 완료' % i)
 
     n = len(saved_list)  # section 개수
@@ -152,6 +151,7 @@ def split(radio_name, date):
     # 분할 결과를 검증한다.
     # 분할 개수를 리턴한다.    
     return n
+
 
 def get_request_url_raw(radio_name, date):
     url = "http://localhost:5000/%s/%s/wave" % (radio_name, date)
