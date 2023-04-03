@@ -169,7 +169,9 @@ def get_ad():
 
 @app.route('/test')
 def test():
-    services.split('brunchcafe','230226')
+    # services.split('brunchcafe','230226')
+    services.wavToFlac()
+    services.stt('brunchcafe','230226')
     return 'test'
 
 

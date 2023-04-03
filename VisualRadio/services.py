@@ -1,11 +1,5 @@
-# Business Logic Layer(비즈니스 로직 계층)
-# 애플리케이션의 비즈니스 로직을 담당하는 계층입니다.
-# Presentation Layer에서 전달된 데이터를 처리하고, 필요한 데이터를 데이터 저장 계층에서 조회합니다.
-
-
 import os
 from models import db, Wav
-from flask import Flask
 from app import app
 import glob
 
@@ -14,10 +8,21 @@ import torchaudio
 import torch
 import requests
 import io
-from scipy.io import wavfile
-import numpy as np
 
-# 로그 생성 및 설정
+# for stt
+import speech_recognition as sr
+from google.oauth2 import service_account # 구글 클라우드 인증설정
+from google.cloud import storage, speech_v1
+from google.oauth2 import service_account
+import threading
+import datetime
+import json
+
+# for audio process
+import wave
+from pydub import AudioSegment
+
+# 아직 미사용 : logging
 import logging
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
@@ -42,21 +47,7 @@ def service_logic():
 
 
 ########################## 수집기 관련 로직 ##########################
-
-# 저장 로직
-def save_wav(wav, radio_url):
-    # wav 검증
-    # 
-
-    # wav를 radio_url에 저장
-    with open(radio_url, 'wb') as f:
-        f.write(wav)
-
-    # 처리 결과 리턴
-    #
-
-
-# 로직 1 : raw.wav를 분할한다.
+# ★
 def split(radio_name, date):
     # 이미 분할 정보가 있는지 확인
     with app.app_context():
@@ -116,7 +107,6 @@ def split(radio_name, date):
 
     return split_by_index(radio_name, date, sr, data_list, fix_sound_idx)
 
-
 def split_by_index(radio_name, date, sr, data_list, fix_sound_idx):
     print('split 시작')
     saved_list = []
@@ -152,7 +142,6 @@ def split_by_index(radio_name, date, sr, data_list, fix_sound_idx):
     # 분할 개수를 리턴한다.    
     return n
 
-
 def get_request_url_raw(radio_name, date):
     url = "http://localhost:5000/%s/%s/wave" % (radio_name, date)
     print("요청 경로: " + url)
@@ -170,71 +159,17 @@ def get_request_url_fixed(radio_name, date, filename):
         return io.BytesIO(response.content)
 
 
-# 일단 예정 없음
-# def find_target():
-    # stt 대상을 찾는다 (멘트)
-    # 이 라디오 포맷 정보를 참고한다.
-
-
-import speech_recognition as sr
-from pydub import AudioSegment
-import wave
-import os
-import wave
-from pydub import AudioSegment
-import torch
-import torchaudio
-import speech_recognition as sr
-
-# TODO: 로직2
-# def stt(radio_name, date):
-#     # 모든 section 결과를 무조건 stt한다.
-#     storage_path = get_storage_path(radio_name, date)
-#     section_dir = f'{storage_path}\\split_wav'
-#     section_list = os.listdir(section_dir)
-
-#     # TODO: 섹션마다 stt 처리하기
-#     for section in section_list:
-#         print("stt할 wav파일 : " + section)
-
-#         # stt 로직 ############# 
-#         # 'time'다음줄에 'text'가 오도록 결과물 만들기
-#         file_path = section_dir + "\\" + section
-
-#         # STT 시작
-
-
-            
-#         # 'time'다음줄에 'text'가 오도록 결과물 만들기
-
-
-
-#         print(f'stt완료 (섹션: {section})')
-#         #######################
-#     # # stt가 완료되어, section마다 stt_1, stt_2, stt_3, ...이 만들어진 상태다.
-
-
-
-
-
-# TODO: wav to flac (google stt 권장 포맷)
+# wav to flac (google stt 권장 포맷)
 def wavToFlac():
-    import services
     wav_loc = "D:\\JP\\Server\\VisualRadio\\radio_storage\\brunchcafe\\230226\\split_wav"
     flac_loc = "D:\\JP\\Server\\VisualRadio\\radio_storage\\brunchcafe\\230226\\split_flac"
-
-    from pydub import AudioSegment
-    wav_path = services.get_file_path_list(wav_loc)
+    wav_path = get_file_path_list(wav_loc)
     for order, wav in enumerate(wav_path):
         song = AudioSegment.from_wav(wav)
         song.export(flac_loc + "\\sec_%d.flac" % (order+1), format = "flac")
 
 
-# 구글 클라우드 인증 설정
-from google.oauth2 import service_account
-from google.cloud import speech_v1
-from google.cloud import speech_v1p1beta1 as speech
-
+# ★
 def stt(radio_name, date):
     # 모든 section 결과를 무조건 stt한다.
     storage_path = get_storage_path(radio_name, date)
@@ -249,29 +184,21 @@ def stt(radio_name, date):
     # storage_credentials = 
     storage_client = storage.Client(project=project_id, credentials=credentials)
 
-
-
     # 섹션마다 stt 처리하기
+    threads = []
     for order, section in enumerate(section_list):
         print("stt할 wav파일 : " + section)
         # STT 수행
         file_path = os.path.join(section_dir, section)
+
         print("stt대상 파일" + file_path)
-        run_quickstart_in_thread(file_path, client, storage_client, order)
+        thread = threading.Thread(target=run_quickstart_in_thread, args=(file_path, client, storage_client, order))
+        threads.append(thread)
+        thread.start()
 
-
-
-import os
-from google.cloud import storage, speech_v1
-from google.oauth2 import service_account
-import wave
-
-# def get_sample_rate(file_path):
-#     sample_rate, _ = wavfile.read(file_path)
-#     return sample_rate
-
-
-import threading
+    # 모든 스레드가 종료될 때까지 대기
+    for thread in threads:
+        thread.join()
 
 # Define a function to run the quickstart function in a separate thread
 def run_quickstart_in_thread(file_path, client, storage_client, order):
@@ -279,29 +206,25 @@ def run_quickstart_in_thread(file_path, client, storage_client, order):
     t.start()
     t.join()
 
-
 def run_quickstart(file_path, client, storage_client, order):
-
-    # Cloud Storage 버킷 이름
-    bucket_name = 'radio_bucket'
-
-    # Cloud Storage에 WAV 파일 업로드
-    bucket = storage_client.bucket(bucket_name)
-    blob = bucket.blob(os.path.basename(file_path))
-    # blob._MAX_MULTIPART_SIZE = 5 * 1024 * 1024 # ??? timeout문제 때문에 추가함
-    # blob._DEFAULT_CHUNKSIZE = 10485760  # 1024 * 1024 B * 10 = 10 MB
-
-    blob.upload_from_filename(file_path)
-
-    # Cloud Storage에 업로드된 WAV 파일 경로
-    storage_file_path = f'gs://{bucket_name}/{blob.name}'
-
+    # 참고: wav가 아닌 flac 기반 stt 진행
     # Speech-to-Text API는 다양한 인코딩을 지원합니다. 아래 표에는 지원되는 오디오 코덱이 나열되어 있습니다.
     # ㄴ> 여기에 wav는 없다
     # https://cloud.google.com/speech-to-text/docs/encoding?hl=ko#compressed_audio
 
+    # Cloud Storage 버킷 이름
+    bucket_name = 'radio_bucket'
+
+    # Cloud Storage에 flac 파일 업로드
+    bucket = storage_client.bucket(bucket_name)
+    blob = bucket.blob(os.path.basename(file_path))
+
+    blob.upload_from_filename(file_path)
+
+    # Cloud Storage에 업로드된 flac 파일 경로
+    storage_file_path = f'gs://{bucket_name}/{blob.name}'
+
     # STT 요청 생성
-    import soundfile as sf
     audio = speech_v1.RecognitionAudio(uri=storage_file_path)
     config = speech_v1.RecognitionConfig(
         # encoding=speech_v1.RecognitionConfig.AudioEncoding.LINEAR16, 지정하면 google.api_core.exceptions.InvalidArgument: 400 Specify FLAC encoding to match audio file.
@@ -309,15 +232,13 @@ def run_quickstart(file_path, client, storage_client, order):
         # WAV 또는 FLAC 파일에 인코딩 및 샘플링 레이트를 지정할 필요가 없습니다. 이를 생략하면 Speech-to-Text가 파일 헤더를 바탕으로 WAV 또는 FLAC 파일의 인코딩과 샘플링 레이트를 자동으로 결정합니다. 파일 헤더의 값과 일치하지 않는 인코딩 또는 샘플링 레이트 값을 지정하면 Speech-to-Text가 오류를 반환합니다.
         # sample_rate_hertz=sf.read(file_path)[1],
         language_code='ko-KR',
-        enable_word_time_offsets=True
+        # enable_word_time_offsets=True
         # audio_channel_count = 1
     )
 
     operation = client.long_running_recognize(config=config, audio=audio)
-    response = operation.result(timeout=999999)
-    # request = speech_v1.RecognizeRequest(audio=audio, config=config)
     # STT 수행
-    # response = client.recognize(request=request)
+    response = operation.result(timeout=999999)
 
     # STT 결과 출력
     # for result in response.results:
@@ -326,28 +247,57 @@ def run_quickstart(file_path, client, storage_client, order):
     #         f.write(f'Transcript: {result.alternatives[0].transcript}' + '\n')
     #         print(result)
 
-    import datetime
+    # stt 결과 가져오기
     results = response.results
+
+    # stt 결과 가져오기 - time format 지정해두기
     start_time_delta = datetime.timedelta(hours=0, minutes=0, seconds=0, microseconds=0)
+    m, s = divmod(start_time_delta.seconds, 60)
+    start_time_formatted = "{:d}:{:02d}.{:03d}".format(m, s, start_time_delta.microseconds)
+
+
+    # 이미 json이 있으면 삭제 후 다시 stt 진행
+    filename = get_storage_path('brunchcafe', '230226') + '\\raw_stt\\stt_%d.json' % (order+1)
+    if os.path.exists(filename):
+        os.remove(filename)
+
+    # stt 결과 가져오기 - text, time에 대한 json 만들기
     for result in results:
-        # 각 음성 인식 결과에서 가장 가능성이 높은 대안을 사용합니다.
-        print("result_start_time: " + str(start_time_delta))
-        print("result_end_time: " + str(result.result_end_time))
+        # 각 음성 인식 결과에서 가장 가능성이 높은 대안을 사용
+        alternative = result.alternatives[0]  
+        new_data = {'time': start_time_formatted, 'text': alternative.transcript}
+
+        # 유의 : json.dump는 비었거나 존재하지 않는 json파일을 dump하지 못한다.
+        #        따라서 다음과 같이 파일존재 여부에 따른 조건문으로 처리
+        if os.path.exists(filename):
+            with open(filename, 'a', encoding='utf-8') as f:
+                json.dump(new_data, f, ensure_ascii=False)
+                f.write('\n')
+        else:
+            with open(filename, 'w', encoding='utf-8') as f:
+                json.dump(new_data, f, ensure_ascii=False)
+                f.write('\n')
+
+        # start time 갱신
         start_time_delta = result.result_end_time
-        # Time offset of the end of this result relative to the beginning of the audio.
-        # A duration in seconds with up to nine fractional digits, ending with 's'. Example: "3.5s".
-        
-        alternative = result.alternatives[0]
-        print(f"Transcription: {alternative.transcript}")
-        # for word_info in alternative.words:
-            # print(word_info.word)
-            # print("단어 start_time: " + word_info.start_time)
-            # print("단어 end_time:" + word_info.end_time)
-        print("-")
+        m, s = divmod(start_time_delta.seconds, 60)
+        start_time_formatted = "{:d}:{:02d}.{:03d}".format(m, s, start_time_delta.microseconds)
+        print("stt_%d.json에 쓰기 완료" % (order+1))
+    # 파일에 추가해둔 json요소들을 json리스트로 바꾼다.
+    with open(filename, 'r', encoding='utf-8') as f:
+        data = f.read()
+    json_list = []
+    for line in data.split('\n'):
+        if line.strip():
+            json_list.append(json.loads(line))
+    with open(filename, 'w', encoding='utf-8') as f:
+        f.write(str(json_list))
+    print("stt_%d.json 최종 처리 완료" % (order+1))
 
 
 
-# 로직3
+
+# 계획 없음
 def make_txt(radio_name, date):
     # raw_txt 폴더에 stt결과가 있는지 검증
     # 존재하는 stt_1, stt_2, ... 중에서 컨텐츠화 가능한 것들
@@ -360,6 +310,7 @@ def make_txt(radio_name, date):
     ##########################
 
 
+# 계획 없음
 def find_contents(radio_name, date):
     storage_path = get_storage_path(radio_name, date)
     stt_list = os.listdir(storage_path + '\\raw_stt')
@@ -379,8 +330,9 @@ def find_contents(radio_name, date):
     target_list = ['stt_2', 'stt_3']  # 예시 : stt_2, stt_3는 컨텐츠화 가능한 stt결과
     return target_list  
 
-###################################### 서비스 로직 ###################################
 
+
+###################################### 서비스 로직 ###################################
 def get_all_radio_programs():
     with app.app_context():
         # wav 테이블의 pk값을 가져온다.
