@@ -5,13 +5,14 @@
 import sys
 sys.path.append("d:\jp\env\lib\site-packages")
 
-from flask import Flask, request, jsonify, send_file
+from flask import Flask, request, jsonify, send_file, make_response
 from flask_cors import CORS
 import logging
 import json
 import os
 import services
 from models import db;
+
 
 app = Flask(__name__)
 CORS(app)  # 모든 라우트에 대해 CORS 허용
@@ -109,7 +110,7 @@ def get_program_info():
     # 임시로 박아두자 (sub2 페이지 하나니까)
     program_info = {
         'radio_name': 'brunchcafe',
-        'date': '23/02/26'
+        'date': '230226'
     }
     return jsonify(program_info)
 
@@ -125,23 +126,29 @@ def get_script(radio_name, date):
 @app.route('/<string:radio_name>/<string:date>/section', methods=['GET'])
 def get_sections(radio_name, date):
     json_data = read_json_file(storage_path(radio_name, date) + '\\result\\section_time.json')
-    return jsonify(json_data)
-
+    return json_data
 
 # 지정된 회차의 이미지들 리턴 ㅇ
 @app.route('/<string:radio_name>/<string:date>/images', methods=['GET'])
 def get_images(radio_name, date):
-    file_path = storage_path(radio_name, date) + '\\result\\images.json'
+    file_path = storage_path(radio_name, date) + '\\result\\section_image.json'
     data = read_json_file(file_path)
-    return jsonify(data)
+    response = jsonify(data)
+    response.headers.add('Access-Control-Allow-Origin', '*')
+    # # JSON 응답 생성
+    # response = make_response(data)
+    # response.headers['Content-Type'] = 'application/json'  
+    # response.headers['Access-Control-Allow-Origin'] = '*'
+    return response
 
 
 # 지정된 회차의 음성 데이터 리턴 ㅇ
+# 이렇게 코드를 변경하면, send_file 함수가 파일을 열고 전송한 후 파일 객체를 닫기 때문에 net::ERR_CONNECTION_RESET 200 (OK) <- 이 문제 해결 가능
 @app.route('/<string:radio_name>/<string:date>/wave', methods=['GET'])
 def get_wave(radio_name, date):
-    wav = open(storage_path(radio_name, date) + '\\raw.wav', 'rb')
-    response = send_file(wav, mimetype="audio/wav", as_attachment=False)
-    return response
+    filepath = storage_path(radio_name, date) + '\\raw.wav'
+    return send_file(filepath, mimetype="audio/wav", as_attachment=False)
+    # return jsonify({'wave':"/VisualRadio/radio_storage/%s/%s/raw.wav"%(radio_name, date)})
 
 # 고정음성 요청 
 @app.route('/<string:radio_name>/<string:date>/fixed/<string:name>', methods=['GET'])
@@ -170,9 +177,10 @@ def get_ad():
 @app.route('/test')
 def test():
     # services.split('brunchcafe','230226')
-    services.wavToFlac()
-    services.stt('brunchcafe','230226')
-    return 'test'
+    # services.wavToFlac()
+    # services.stt('brunchcafe','230226')
+    services.make_txt('brunchcafe','230226')
+    return 'test완료! html로 가서 결과를 테스트하세요'
 
 
 ###################################################################################
@@ -181,14 +189,21 @@ def storage_path(radio_name, radio_date):
     return os.getcwd() + '\\VisualRadio\\radio_storage\\' + radio_name + '\\' + radio_date
 
 def read_json_file(file_path):
-    with open(file_path, 'r') as f:
+    with open(file_path, 'r', encoding='utf-8') as f:
         data = json.load(f)
     return data
 
 
 ########################
+from flask import Flask, send_from_directory
 
 
+# brunchcafe라디오의 230226날짜로 고정된 화면이 보여진다.
+@app.route('/brunchcafe/230226')
+def send_static():
+    return send_from_directory('../VisualRadio/static/html/', 'sub2.html')
+
+########################
 
 if __name__ == '__main__':
     app.run(debug=True)

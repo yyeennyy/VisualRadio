@@ -749,3 +749,5 @@ pyrightconfig.json
 # Personal Settings
 *.wav
 *.txt
+credentials.json
+*.flac
