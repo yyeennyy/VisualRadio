@@ -261,53 +261,107 @@ def run_quickstart(file_path, client, storage_client, order):
     if os.path.exists(filename):
         os.remove(filename)
 
+    scripts = []
     # stt 결과 가져오기 - text, time에 대한 json 만들기
     for result in results:
         # 각 음성 인식 결과에서 가장 가능성이 높은 대안을 사용
         alternative = result.alternatives[0]  
-        new_data = {'time': start_time_formatted, 'text': alternative.transcript}
+        new_data = {'time': start_time_formatted, 'txt': alternative.transcript}
 
-        # 유의 : json.dump는 비었거나 존재하지 않는 json파일을 dump하지 못한다.
-        #        따라서 다음과 같이 파일존재 여부에 따른 조건문으로 처리
-        if os.path.exists(filename):
-            with open(filename, 'a', encoding='utf-8') as f:
-                json.dump(new_data, f, ensure_ascii=False)
-                f.write('\n')
-        else:
-            with open(filename, 'w', encoding='utf-8') as f:
-                json.dump(new_data, f, ensure_ascii=False)
-                f.write('\n')
+        scripts.append(json.dumps(new_data, ensure_ascii=False))
 
         # start time 갱신
         start_time_delta = result.result_end_time
         m, s = divmod(start_time_delta.seconds, 60)
         start_time_formatted = "{:d}:{:02d}.{:03d}".format(m, s, start_time_delta.microseconds)
-        print("stt_%d.json에 쓰기 완료" % (order+1))
-    # 파일에 추가해둔 json요소들을 json리스트로 바꾼다.
-    with open(filename, 'r', encoding='utf-8') as f:
-        data = f.read()
-    json_list = []
-    for line in data.split('\n'):
-        if line.strip():
-            json_list.append(json.loads(line))
+        print("stt_%d.json 처리중" % (order+1))
+    
+    end_time = str(get_flac_duration(file_path))
+    data = {'end_time':end_time, 'scripts':[json.loads(s) for s in scripts]}
     with open(filename, 'w', encoding='utf-8') as f:
-        f.write(str(json_list))
+        json.dump(data, f,  ensure_ascii=False)
+
     print("stt_%d.json 최종 처리 완료" % (order+1))
 
 
+def get_flac_duration(filepath):
+    audio = AudioSegment.from_file(filepath, format="flac")
+    duration_micros = int(audio.duration_seconds * 1000000)
+    minutes, seconds = divmod(duration_micros / 1000000, 60)
+    microseconds = duration_micros % 1000
+    return "{:d}:{:02d}.{:03d}".format(int(minutes), int(seconds), microseconds)
 
 
-# 계획 없음
+# 최종 script.json을 생성한다
 def make_txt(radio_name, date):
-    # raw_txt 폴더에 stt결과가 있는지 검증
-    # 존재하는 stt_1, stt_2, ... 중에서 컨텐츠화 가능한 것들
-    target_list = find_contents(radio_name, date)
+    print("전체 script.json 생성 시작")
+    # stt_n.json 각각을 처리
+    # end_time을 고려하여 제작
+    storage_path = get_storage_path(radio_name, date)
+    stt_dir = f'{storage_path}\\raw_stt'
+    stt_list = os.listdir(stt_dir)
+    file_path = [os.path.join(stt_dir, name) for name in stt_list]
 
-    # 컨텐츠화 로직 ###########
-    #
-    #
-    # txt_contents에 저장
-    ##########################
+    script_path = "D:\\JP\\Server\\VisualRadio\\radio_storage\\brunchcafe\\230226\\result\\script.json"
+    # 파일이 존재하면 삭제
+    if os.path.exists(script_path):
+        os.remove(script_path)
+    # 빈 파일 생성
+    with open(script_path, 'w') as f:
+        f.write('')
+
+    new_data = []
+    section_start = []
+    prev_end_time = "0:00.000"
+    for file in file_path:
+        section_start.append(prev_end_time)
+        with open(file, 'r', encoding='utf-8') as f:
+            data = json.load(f)
+        scripts = data['scripts']
+        for text in scripts:
+            dic_data = {'time':add_time(prev_end_time, text['time']),
+                        'txt':text['txt'].strip()}
+            new_data.append(dic_data)
+        prev_end_time = add_time(prev_end_time, data['end_time'])
+    
+    
+    print("script.json 생성 완료!!!")
+    with open(script_path, 'a', encoding='utf-8') as f:
+        json.dump(new_data, f, ensure_ascii=False)
+
+
+    img_url_1 = "https://img.hankyung.com/photo/202203/01.29353881.1-1200x.jpg"
+    img_url_2 = "https://pbs.twimg.com/ext_tw_video_thumb/1514084683608309764/pu/img/1ihM-03RUgNtJqcs.jpg"
+    img_url_3 = "https://static.inews24.com/v1/4815fc2c7e522d.jpg"
+    img_url_4 = "https://cdn.litt.ly/images/NEpLQ6zpkVRqKo0EzVy3kg1wzlR68XYL?s=1200x630&m=inside"
+    
+    sec_img_data = []
+    img_url_data = [img_url_1, img_url_2, img_url_3, img_url_4]
+
+    with open(file, 'r') as f:
+        for idx, time in enumerate(section_start):
+            dic_data = {
+                'time': time,
+                'img_url': img_url_data[idx]
+            }
+            sec_img_data.append(dic_data)
+
+    with open("D:\\JP\\Server\\VisualRadio\\radio_storage\\brunchcafe\\230226\\result\\section_image.json", 'w', encoding='utf-8') as f:
+        json.dump(sec_img_data, f, ensure_ascii=False)
+    print("section_image.json 생성 완료!!!")
+
+
+def add_time(time1, time2):
+    time1 = datetime.datetime.strptime(time1, "%M:%S.%f").time()
+    time2 = datetime.datetime.strptime(time2, "%M:%S.%f").time()
+
+    delta = datetime.timedelta(hours=time1.hour, minutes=time1.minute, seconds=time1.second, microseconds=time1.microsecond) + \
+            datetime.timedelta(hours=time2.hour, minutes=time2.minute, seconds=time2.second, microseconds=time2.microsecond)
+
+    m, s = divmod(delta.seconds, 60)
+    time_formatted = "{:d}:{:02d}.{:03d}".format(m, s, delta.microseconds // 1000)
+    print(time_formatted)
+    return time_formatted
 
 
 # 계획 없음
@@ -329,7 +383,6 @@ def find_contents(radio_name, date):
 
     target_list = ['stt_2', 'stt_3']  # 예시 : stt_2, stt_3는 컨텐츠화 가능한 stt결과
     return target_list  
-
 
 
 ###################################### 서비스 로직 ###################################

@@ -14,9 +14,6 @@ public class Client {
 
         // 파라미터
         // String radio_name = args[0];
-        // String radio_date = args[1];
-        // String record_url = args[2];
-        // String sampleRate = args[3];
 
         // 가장 먼저 수집기 작동
         // 배치파일 실행
