@@ -70,6 +70,12 @@
     margin: -150px 0 0 -150px;
 }
 
+
+#main_img {
+    max-width: 100%;
+    height: auto;
+  }
+  
 #subtitleContainer {
     overflow-y: scroll;
 }

@@ -2,7 +2,6 @@ window.onload = function() {
     getInfo().then(() => {
         getScript().then(() => startSubtitles());
         getWave();
-        getImg();
     });
     const progress = document.querySelector('.progress');
     const progressBar = document.querySelector('.progress-bar')
@@ -31,6 +30,7 @@ window.onload = function() {
         const newTime = (clickedPosition / barWidth) * audio.duration;
         audio.currentTime = newTime;
         progressBar.value = audio.duration;
+        showImageAtCurrentTime();
       });
     }
 
@@ -60,7 +60,7 @@ function getScript() {
       .then((data) => {
         subtitlesObj = data;
         
-        console.log(data);
+        // console.log(data);
         return data;
       });
   }
@@ -84,6 +84,8 @@ function startSubtitles() {
       block.innerText = subtitle.txt;
       block.addEventListener('click', () => {
         audio.currentTime = subtitle.time;
+        showImageAtCurrentTime();
+
       });
       subtitleContainer.appendChild(block);
     });
@@ -125,7 +127,7 @@ function startSubtitles() {
             const containerHeight = subtitleContainer.getBoundingClientRect().height;
             const scrollAmount = highlightedSubtitleTop - containerTop;
             subtitleContainer.scrollTo({
-                top: subtitleContainer.scrollTop + scrollAmount+subtitleHeight*4,
+                top: subtitleContainer.scrollTop + scrollAmount+subtitleHeight*2,
                 behavior: 'smooth',
             });
         }
@@ -144,12 +146,106 @@ function getWave() {
         document.getElementById('audio').src =  data.wave)
 }
 
+
+function parseTime(timeString) {
+  const [min, secMillisec] = timeString.split(':');
+  const [sec, millisec] = secMillisec.split('.');
+  return (+min * 60 + +sec) * 1000 + +millisec;
+}
+
+let audioCurrentTime = 0;
+
+audio.addEventListener('timeupdate', () => {
+  audioCurrentTime = audio.currentTime;
+});
+
+let currentIndex=0;
+const mainImg = document.getElementById('main_img');
+
 function getImg() {
-    fetch(`${source}/${radio_name}/${date}/images`)
+  fetch(`${source}/${radio_name}/${date}/images`)
     .then(response => response.json())
     .then(data => {
-        document.getElementById('main_img').src = data.img_url
+      // console.log(currentIndex);
+      const { img_url, time } = data[currentIndex];
+      var nextImgTime;
+
+      // preload the next image
+      if (currentIndex < data.length - 1) {
+        const nextImg = new Image();
+        const nextImgUrl = `${data[currentIndex + 1].img_url}`;
+        nextImgTime = parseTime(data[currentIndex + 1].time) / 1000;
+        nextImg.src = nextImgUrl;
+      }
+
+      // display the current image
+      mainImg.src = img_url;
+      const timeDiff = Math.abs(audioCurrentTime - nextImgTime);
+      console.log(timeDiff);
+
+      // check if it's time to switch to the next image
+      // if (timeDiff < 0.1 && timeDiff > 0) {
+      if (timeDiff > 0 && timeDiff < 0.08) {
+        currentIndex = (currentIndex + 1) % data.length;
+        const nextImgUrl = `${data[currentIndex].img_url}`;
+        // preload the image after the next image
+        if (currentIndex < data.length - 1) {
+          const nextNextImg = new Image();
+          const nextNextImgUrl = `${data[currentIndex + 1].img_url}`;
+          nextNextImg.src = nextNextImgUrl;
+        }
+        mainImg.src = nextImgUrl;
+      }
+
     })
+    .catch(error => {
+      console.error('Error fetching image:', error);
+    });
+}
+
+function preload(url) {
+  const img = new Image();
+  img.src = url;
+}
+
+function startImageChecking() {
+  // console.log('반복 시작')
+  setInterval(() => {
+      getImg();
+    }, 1);
+  }
+
+startImageChecking();
+
+function showImageAtCurrentTime() {
+  fetch(`${source}/${radio_name}/${date}/images`)
+    .then(response => response.json())
+    .then(data => {
+      const audioCurrentTime = audio.currentTime;
+      let closestTimeDiff = Number.MAX_SAFE_INTEGER;
+      let closestImgUrl = '';
+      let i = -1;
+      let closetIndex;
+      data.forEach(({ img_url, time }) => {
+        i++;
+        const timeInMillisec = time ? parseTime(time) : 0;
+        const imgTime = timeInMillisec / 1000;
+        const timeDiff = Math.abs(audioCurrentTime - imgTime);
+
+        if (timeDiff < closestTimeDiff && imgTime < audioCurrentTime) {
+          closetIndex = i;
+          closestTimeDiff = timeDiff;
+          closestImgUrl = img_url;
+        }
+      });
+
+      mainImg.src = closestImgUrl;
+      currentIndex = closetIndex;
+      startImageChecking();
+    })
+    .catch(error => {
+      console.error('Error fetching image:', error);
+    });
 }
 
 const playPauseBtn = document.getElementById("play-pause-btn");
@@ -164,21 +260,4 @@ playPauseBtn.addEventListener("click", function() {
     playPauseBtn.innerHTML = '<i class="fa fa-play"></i>';
     playPauseBtn.innerText = "재생";
   }
-});
-
-const SCROLL_PAUSE_TIME = 200; // 일시 중지할 시간 (200ms)
-
-const pauseSubtitleHighlighting = () => {
-  audio.pause(); // audio 일시 정지
-};
-
-const resumeSubtitleHighlighting = () => {
-  audio.play(); // audio 재생
-};
-
-// 스크롤 이벤트 리스너 등록
-subtitleContainer.addEventListener('scroll', () => {
-  pauseSubtitleHighlighting();
-  // SCROLL_PAUSE_TIME(ms) 후 다시 자막 강조 재개
-  setTimeout(resumeSubtitleHighlighting, SCROLL_PAUSE_TIME);
 });
