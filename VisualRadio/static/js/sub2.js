@@ -1,3 +1,39 @@
+window.onload = function() {
+    getInfo().then(() => {
+        getScript().then(() => startSubtitles());
+        getWave();
+        getImg();
+    });
+    const progress = document.querySelector('.progress');
+    const progressBar = document.querySelector('.progress-bar')
+    const currentTimeText = document.getElementById('currentTime');
+    const durationText = document.getElementById('duration');
+    
+    audio.addEventListener('timeupdate', () => {
+        const currentTime = audio.currentTime;
+        const duration = audio.duration;
+        const progress_time = currentTime / duration;
+        progress.style.width = `${progress_time * 100}%`;
+        const minutes = Math.floor(audio.currentTime / 60);
+        const seconds = Math.floor(audio.currentTime % 60).toString().padStart(2, '0');
+        currentTimeText.innerText = `${minutes}:${seconds}`;
+    });
+    
+      audio.addEventListener('loadedmetadata', () => {
+        const minutes = Math.floor(audio.duration / 60);
+        const seconds = Math.floor(audio.duration % 60).toString().padStart(2, '0');
+        durationText.innerText = `${minutes}:${seconds}`;
+      });
+    
+      progressBar.addEventListener('click', (event) => {
+        const barWidth = progressBar.clientWidth;
+        const clickedPosition = event.clientX - progressBar.getBoundingClientRect().left;
+        const newTime = (clickedPosition / barWidth) * audio.duration;
+        audio.currentTime = newTime;
+        progressBar.value = audio.duration;
+        showImageAtCurrentTime();
+      });
+    }
 
 var radio_name = '';
 var date = '';
@@ -6,68 +42,28 @@ const audio = document.getElementById("audio");
 const subtitleContainer = document.getElementById("subtitleContainer");
 var subtitles = [];
 let highlightedSubtitleIndex = -1;
-// const source = "http://localhost:8080"
 const source = "http://localhost:5000"
-
-window.onload = function() {
-  getInfo().then(() => {
-      getScript().then(() => startSubtitles());
-      getWave();
-  });
-  
-  const progress = document.querySelector('.progress');
-  const progressBar = document.querySelector('.progress-bar')
-  const currentTimeText = document.getElementById('currentTime');
-  const durationText = document.getElementById('duration');
-  
-  audio.addEventListener('timeupdate', () => {
-      const currentTime = audio.currentTime;
-      const duration = audio.duration;
-      const progress_time = currentTime / duration;
-      progress.style.width = `${progress_time * 100}%`;
-      const minutes = Math.floor(audio.currentTime / 60);
-      const seconds = Math.floor(audio.currentTime % 60).toString().padStart(2, '0');
-      currentTimeText.innerText = `${minutes}:${seconds}`;
-  });
-  
-    audio.addEventListener('loadedmetadata', () => {
-      const minutes = Math.floor(audio.duration / 60);
-      const seconds = Math.floor(audio.duration % 60).toString().padStart(2, '0');
-      durationText.innerText = `${minutes}:${seconds}`;
-    });
-  
-    progressBar.addEventListener('click', (event) => {
-      const barWidth = progressBar.clientWidth;
-      const clickedPosition = event.clientX - progressBar.getBoundingClientRect().left;
-      const newTime = (clickedPosition / barWidth) * audio.duration;
-      audio.currentTime = newTime;
-      progressBar.value = audio.duration;
-      showImageAtCurrentTime();
-    });
-  }
-
 
 
 function getInfo() {
-  return fetch(`${source}/program_info`)
-  .then((response) => response.json())
-  .then((data) => 
-      {radio_name = data.radio_name;
-       date       = data.date;
-       document.getElementById('info').innerHTML = `${radio_name}  ${date}`})
+    return fetch(`${source}/program_info`)
+    .then((response) => response.json())
+    .then((data) => 
+        {radio_name = data.radio_name;
+         date       = data.date;
+         document.getElementById('info').innerHTML = `${radio_name}  ${date}`})
 }
 
 function getScript() {
-  return fetch(`${source}/${radio_name}/${date}/script`)
-    .then((response) => response.json())
-    .then((data) => {
-      subtitlesObj = data;
-      
-      // console.log(data);
-      return data;
-    });
-}
-
+    return fetch(`${source}/${radio_name}/${date}/script`)
+      .then((response) => response.json())
+      .then((data) => {
+        subtitlesObj = data;
+        
+        // console.log(data);
+        return data;
+      });
+  }
 
 function timeStringToFloat(time) {
     const [minutes, seconds] = time.split(':');
@@ -144,12 +140,10 @@ function sleep(ms) {
 }
   
 function getWave() {
-  fetch(`${source}/${radio_name}/${date}/wave`)
-  .then((response) => response.blob())
-  .then((blob) => {
-      const audioURL = URL.createObjectURL(blob); // 오디오 파일의 URL 생성
-      document.getElementById('audio').src = audioURL; // <audio> 태그의 src 속성 설정
-  })
+    fetch(`${source}/${radio_name}/${date}/wave`)
+    .then((response) => response.json())
+    .then((data) =>
+        document.getElementById('audio').src =  data.wave)
 }
 
 
@@ -167,12 +161,18 @@ audio.addEventListener('timeupdate', () => {
 
 let currentIndex=0;
 const mainImg = document.getElementById('main_img');
+var data = [];
 
 function getImg() {
   fetch(`${source}/${radio_name}/${date}/images`)
     .then(response => response.json())
-    .then(data => {
-      // console.log(currentIndex);
+    .then(imgUrl => {
+        data = imgUrl;
+        // console.log(data);
+    })}
+
+function showImg(){
+
       const { img_url, time } = data[currentIndex];
       var nextImgTime;
 
@@ -187,7 +187,7 @@ function getImg() {
       // display the current image
       mainImg.src = img_url;
       const timeDiff = Math.abs(audioCurrentTime - nextImgTime);
-      console.log(timeDiff);
+      // console.log(timeDiff);
 
       // check if it's time to switch to the next image
       // if (timeDiff < 0.1 && timeDiff > 0) {
@@ -203,11 +203,7 @@ function getImg() {
         mainImg.src = nextImgUrl;
       }
 
-    })
-    .catch(error => {
-      console.error('Error fetching image:', error);
-    });
-}
+    }
 
 function preload(url) {
   const img = new Image();
@@ -215,10 +211,9 @@ function preload(url) {
 }
 
 function startImageChecking() {
-  // console.log('반복 시작')
   setInterval(() => {
-      getImg();
-    }, 1000);
+      showImg();
+    }, 1);
   }
 
 startImageChecking();
@@ -250,9 +245,11 @@ function showImageAtCurrentTime() {
       startImageChecking();
     })
     .catch(error => {
-      console.error('Error fetching image:', error);
+      // console.error('Error fetching image:', error);
     });
 }
+
+
 
 const playPauseBtn = document.getElementById("play-pause-btn");
 
