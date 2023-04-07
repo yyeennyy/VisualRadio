@@ -2,6 +2,7 @@ window.onload = function() {
     getInfo().then(() => {
         getScript().then(() => startSubtitles());
         getWave();
+        getImg();
     });
     const progress = document.querySelector('.progress');
     const progressBar = document.querySelector('.progress-bar')
@@ -161,12 +162,18 @@ audio.addEventListener('timeupdate', () => {
 
 let currentIndex=0;
 const mainImg = document.getElementById('main_img');
+var data = [];
 
 function getImg() {
   fetch(`${source}/${radio_name}/${date}/images`)
     .then(response => response.json())
-    .then(data => {
-      // console.log(currentIndex);
+    .then(imgUrl => {
+        data = imgUrl;
+        // console.log(data);
+    })}
+
+function showImg(){
+
       const { img_url, time } = data[currentIndex];
       var nextImgTime;
 
@@ -181,7 +188,7 @@ function getImg() {
       // display the current image
       mainImg.src = img_url;
       const timeDiff = Math.abs(audioCurrentTime - nextImgTime);
-      console.log(timeDiff);
+      // console.log(timeDiff);
 
       // check if it's time to switch to the next image
       // if (timeDiff < 0.1 && timeDiff > 0) {
@@ -197,11 +204,7 @@ function getImg() {
         mainImg.src = nextImgUrl;
       }
 
-    })
-    .catch(error => {
-      console.error('Error fetching image:', error);
-    });
-}
+    }
 
 function preload(url) {
   const img = new Image();
@@ -209,9 +212,8 @@ function preload(url) {
 }
 
 function startImageChecking() {
-  // console.log('반복 시작')
   setInterval(() => {
-      getImg();
+      showImg();
     }, 1);
   }
 
@@ -244,9 +246,11 @@ function showImageAtCurrentTime() {
       startImageChecking();
     })
     .catch(error => {
-      console.error('Error fetching image:', error);
+      // console.error('Error fetching image:', error);
     });
 }
+
+
 
 const playPauseBtn = document.getElementById("play-pause-btn");
 
