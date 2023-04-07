@@ -43,7 +43,6 @@ const subtitleContainer = document.getElementById("subtitleContainer");
 var subtitles = [];
 let highlightedSubtitleIndex = -1;
 const source = "http://localhost:8080"
-// const source = "http://localhost:5000"
 
 
 function getInfo() {
@@ -60,8 +59,6 @@ function getScript() {
       .then((response) => response.json())
       .then((data) => {
         subtitlesObj = data;
-        
-        // console.log(data);
         return data;
       });
   }
@@ -169,7 +166,6 @@ function getImg() {
     .then(response => response.json())
     .then(imgUrl => {
         data = imgUrl;
-        // console.log(data);
     })}
 
 function showImg(){
@@ -188,7 +184,6 @@ function showImg(){
       // display the current image
       mainImg.src = img_url;
       const timeDiff = Math.abs(audioCurrentTime - nextImgTime);
-      // console.log(timeDiff);
 
       // check if it's time to switch to the next image
       // if (timeDiff < 0.1 && timeDiff > 0) {
@@ -246,7 +241,7 @@ function showImageAtCurrentTime() {
       startImageChecking();
     })
     .catch(error => {
-      // console.error('Error fetching image:', error);
+      console.error('Error fetching image:', error);
     });
 }
 
