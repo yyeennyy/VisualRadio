@@ -1,7 +1,3 @@
-# Presentation Layer(표현 계층)
-# 웹 페이지, API 엔드포인트 등을 담당하는 계층입니다.
-# 주로 Flask의 @app.route() 데코레이터를 이용하여 구현합니다.
-
 import sys
 sys.path.append("d:\jp\env\lib\site-packages")
 
@@ -21,50 +17,17 @@ CORS(app)  # 모든 라우트에 대해 CORS 허용
 # app.logger.setLevel(logging.DEBUG)
 
 # DB세팅
-# 주의! create database radioDB; 먼저 
+# 주의! create database radioDB; 까지는 되어있어야 함
 app.config.from_pyfile('config.py')
 db.init_app(app)
 with app.app_context():
     db.create_all()  # 테이블이 자동으로 생성되는 명령
-
-
-
 
 @app.route('/')
 def index():
     return 'Hello!'
 
 
-############################################## 수집기 요청 ##################
-
-# 가정 : 컨텐츠화하는 포맷은 "멘트" 하나뿐이다.
-
-# 수집기의 요청 목록
-# 1. wav를 저장하는 요청
-# 2. 저장된 wav를 처리하는 요청 
-
-# ▼ 볼 필요 X
-# # 수집기 요청 1 : 저장
-# # json : {'radio_name', 'radio_date', 'wav': - }
-# @app.route('/save', methods=['POST'])
-# def request_save():
-#     global radio_url
-#     # 넘어온 json 데이터 처리
-#     json = request.get_json
-#     r_name = json.get('radio_name')
-#     r_date = json.get('radio_date')
-#     wav = request.json.get('wav');
-#     global_setting(r_name, r_date)
-#     # 서비스 호출 & 응답결과 반환
-#     try:
-#         # 데이터 저장
-#         user = services.save_wav(wav, radio_url)
-#         return jsonify({'message': 'wav를 성공적으로 저장'}), 200
-#     except ValueError as e:
-#         return jsonify({'error': str(e)}), 400
-
-
-# 수집기 요청 2 : 처리 
 @app.route('/start', methods=['POST'])
 def start(wav):
     # 넘어온 json 데이터 처리
@@ -176,9 +139,9 @@ def get_ad():
 
 @app.route('/test')
 def test():
-    # services.split('brunchcafe','230226')
-    # services.wavToFlac()
-    # services.stt('brunchcafe','230226')
+    services.split('brunchcafe','230226')
+    services.wavToFlac()
+    services.stt('brunchcafe','230226')
     services.make_txt('brunchcafe','230226')
     return 'test완료! html로 가서 결과를 테스트하세요'
 
@@ -208,12 +171,3 @@ def send_static():
 if __name__ == '__main__':
     app.run(debug=True)
 
-
-# 예은 가상환경 활성화  .\env\Scripts\activate
-# 정보 보기 (활성화되었는지 확인) : pip show flask
-# export 명령어를 사용하여 환경 변수를 설정할 때, 해당 환경 변수는 현재 쉘 세션에서만 유효합니다. 따라서, 해당 환경 변수는 쉘 세션이 종료되면 사라지게 됩니다.
-# 환경변수 등록
-# set FLASK_APP='app.py'
-# set FLASK_ENV=development
-# set FLASK_DEBUG=true
-# deactivate
