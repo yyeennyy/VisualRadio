@@ -1,6 +1,6 @@
 import uuid
 import numpy as np
-import settings
+import split.settings as settings
 from pydub import AudioSegment
 from scipy.signal import spectrogram
 from scipy.ndimage import maximum_filter

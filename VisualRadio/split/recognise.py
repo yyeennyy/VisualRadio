@@ -2,8 +2,8 @@ import os
 import logging
 from multiprocessing import Pool, Lock, current_process
 import numpy as np
-import settings
-from fingerprint import fingerprint_file
+import split.settings as settings
+from split.fingerprint import fingerprint_file
 import uuid
 import sqlite3
 from collections import defaultdict

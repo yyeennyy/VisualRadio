@@ -139,10 +139,13 @@ def get_ad():
 
 @app.route('/test')
 def test():
-    services.split('brunchcafe','230226')
-    services.wavToFlac()
-    services.stt('brunchcafe','230226')
-    services.make_txt('brunchcafe','230226')
+    song_path = r"D:\JP\Server\VisualRadio\radio_storage\brunchcafe\230226\raw.wav"
+    program_name = "이석훈의 브런치카페"
+    save_path = r"D:\JP\Server\VisualRadio\radio_storage\brunchcafe\230226\split_wav"
+    services.split(song_path, program_name, save_path)
+    # services.wavToFlac()
+    # services.stt('brunchcafe','230226')
+    # services.make_txt('brunchcafe','230226')
     return 'test완료! html로 가서 결과를 테스트하세요'
 
 
