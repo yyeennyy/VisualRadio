@@ -11,10 +11,8 @@ from app import app # 문제
 import split_module.split as splitpath
 
 # for stt
-import speech_recognition as sr
 from google.oauth2 import service_account  # 구글 클라우드 인증설정
 from google.cloud import storage, speech_v1
-from google.oauth2 import service_account
 import threading
 from datetime import datetime
 from datetime import timedelta
@@ -139,7 +137,7 @@ def stt(broadcast, name, date):
 
     # STT 클라이언트 생성
     project_id = 'RadioProject'
-    credentials = service_account.Credentials.from_service_account_file('D:\JP\Server\VisualRadio\credentials.json')
+    credentials = service_account.Credentials.from_service_account_file('VisualRadio\credentials.json')
     client = speech_v1.SpeechClient(credentials=credentials)
     storage_client = storage.Client(project=project_id, credentials=credentials)
 
@@ -346,7 +344,7 @@ def get_all_radio_programs():
         # wav 테이블의 pk값을 가져온다.
         # pk는 복합키로 있음
         all_wavs = Wav.query.all()
-        all_wavs_json = [{'radio_name': wav.radio_name, 'date': wav.radio_date} for wav in all_wavs]
+        all_wavs_json = [{'broadcast':wav.broadcast, 'radio_name': wav.radio_name, 'date': wav.radio_date} for wav in all_wavs]
     return all_wavs_json
 
 

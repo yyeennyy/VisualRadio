@@ -1,9 +1,9 @@
+
 window.onload = function() {
-    getInfo().then(() => {
-        getScript().then(() => startSubtitles());
-        getWave();
-        getImg();
-    });
+    console.log(broadcast + ' ' + radio_name + ' ' + date)
+    getScript().then(() => startSubtitles());
+    getWave();
+    getImg();
     const progress = document.querySelector('.progress');
     const progressBar = document.querySelector('.progress-bar')
     const currentTimeText = document.getElementById('currentTime');
@@ -35,9 +35,6 @@ window.onload = function() {
       });
     }
 
-var broadcast = '';
-var radio_name = '';
-var date = '';
 var subtitlesObj;
 const audio = document.getElementById("audio");
 const subtitleContainer = document.getElementById("subtitleContainer");
@@ -46,16 +43,16 @@ let highlightedSubtitleIndex = -1;
 const source = "http://localhost:5000"
 
 
-function getInfo() {
-    return fetch(`${source}/program_info`)
-    .then((response) => response.json())
-    .then((data) => 
-        {
-         broadcast = data.broadcast;
-         radio_name = data.radio_name;
-         date       = data.date;
-         document.getElementById('info').innerHTML = `${radio_name}  ${date}`})
-}
+// function getInfo() {
+//     return fetch(`${source}/program_info`)
+//     .then((response) => response.json())
+//     .then((data) => 
+//         {
+//          broadcast = data.broadcast;
+//          radio_name = data.radio_name;
+//          date       = data.date;
+//          document.getElementById('info').innerHTML = `${radio_name}  ${date}`})
+// }
 
 function getScript() {
     return fetch(`${source}/${broadcast}/${radio_name}/${date}/script`)
