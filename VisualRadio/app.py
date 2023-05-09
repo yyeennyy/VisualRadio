@@ -1,6 +1,7 @@
 import sys
 sys.path.append("d:\jp\env\lib\site-packages")
-
+sys.path.append("./VisualRadio")
+sys.path.append("./VisualRadio/split_module")
 from flask import Flask, request, jsonify, send_file, make_response
 from flask_cors import CORS
 import logging
@@ -56,11 +57,14 @@ def admin_update():
 
 
 def process_audio_file(broadcast, name, date):
+    semaphore = threading.Semaphore(1)
+    semaphore.acquire()
     services.split(broadcast, name, date)
     services.wavToFlac(broadcast, name, date)
     services.stt(broadcast, name, date)
     services.make_txt(broadcast, name, date)
     print("[업로드] 오디오 처리 완료")
+    semaphore.release()
     return "ok"
 
 
@@ -74,36 +78,6 @@ def audio_save(broadcast, program_name, date, audiofile):
     services.audio_save_db(broadcast, program_name, date)
     print("[업로드] DB반영 완료")
     return "ok"
-
-
-# --------------------------------------------------------------------------------- 미사용
-@app.route('/start', methods=['POST'])
-def start(wav):
-    # 넘어온 json 데이터 처리
-    json_data = request.json  # key = radio_name, radio_date
-    radio_name = json_data[0]
-    date = json_data[1]
-
-    # TODO: 이미 처리한 회차인지 체크하기
-    # - DB에서 완료여부 확인
-    # - ▼ 미처리 회차라면 쭉 진행
-
-    # 서비스 로직 수행
-    try:
-        # 분할
-        services.split(radio_name, date)
-
-        # stt
-        services.stt(radio_name, date)
-
-        # txt 컨텐츠 제작
-        services.make_txt(radio_name, date)
-
-        return jsonify({'message': '컨텐츠화 완료'}), 200
-
-    except ValueError as e:
-        return jsonify({'error': str(e)}), 400
-
 
 # --------------------------------------------------------------------------------- 프론트 요청
 # 전체 라디오 프로그램 정보 요청

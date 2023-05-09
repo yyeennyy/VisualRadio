@@ -8,7 +8,7 @@ import sys
 from app import app # 문제
 
 # for split
-import split.split as splitpath
+import split_module.split as splitpath
 
 # for stt
 import speech_recognition as sr
@@ -16,7 +16,8 @@ from google.oauth2 import service_account  # 구글 클라우드 인증설정
 from google.cloud import storage, speech_v1
 from google.oauth2 import service_account
 import threading
-import datetime
+from datetime import datetime
+from datetime import timedelta
 import json
 
 # for audio process
@@ -29,7 +30,6 @@ import logging
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
 
-semapore = 0
 
 storage_path = ".\\VisualRadio\\radio_storage"
 
@@ -41,7 +41,7 @@ def setup_db():
 
 def audio_save_db(broadcast, name, date):
     with app.app_context():
-        wav = Wav.query.filter_by(radio_name=name, radio_date=date).first()
+        wav = Wav.query.filter_by(radio_name=name, radio_date=str(date)).first()
         if not wav:
             wav = Wav(radio_name=name, radio_date=date, broadcast=broadcast, raw=True, section=0, stt=False,
                       script=False, contnets=False, done=False)
@@ -54,50 +54,45 @@ def audio_save_db(broadcast, name, date):
 # ★
 def split(broadcast, name, date):
 
-
     path = f"./VisualRadio/radio_storage/{broadcast}/{name}/{date}"
     song_path = path + "/raw.wav"
     save_path = path + "/split_wav"
-    global semapore
+    os.makedirs(save_path, exist_ok=True)
 
-    if semapore == 0:
-        semapore += 1
-        # 이미 분할 정보가 있는지 확인
-        with app.app_context():
-            wav = Wav.query.filter_by(radio_name=name, radio_date=date).first()
-            if not wav:
-                print("[split] 해당 라디오 데이터가 없습니다. 먼저 raw.wav를 등록하세요")
-                return
-            if wav.section != 0:
-                print("[split] 분할 정보가 이미 있습니다 - %d 분할" % wav.section)
-                return
-            else:
-                print("[split] 분할 로직을 시작합니다")
+    # 이미 분할 정보가 있는지 확인
+    with app.app_context():
+        # date_obj = datetime.strptime(date, '%Y-%m-%d %H:%M:%S')
+        wav = Wav.query.filter_by(radio_name=name, radio_date=str(date)).first()
+        if not wav:
+            print("[split] 해당 라디오 데이터가 없습니다. 먼저 raw.wav를 등록하세요")
+            return
+        if wav.section != 0:
+            print("[split] 분할 정보가 이미 있습니다 - %d 분할" % wav.section)
+            return
+        else:
+            print("[split] 분할 로직을 시작합니다")
 
-        # 가정: split을 위한 "고정음성"은 fix.db에 등록된 상태다.
-        # 주어진 메인 음성을 split한다.
+    # 가정: split을 위한 "고정음성"은 fix.db에 등록된 상태다.
+    # 주어진 메인 음성을 split한다.
 
-        start_time = time.time()
-        splitpath.split(song_path, name, save_path)
-        end_time = time.time()
-        print("[split] 분할 처리 시간: ", end_time - start_time, "seconds")
-        os.makedirs(save_path, exist_ok=True)
-        wav_files = [f for f in os.listdir(save_path) if f.endswith('.wav')]
+    start_time = time.time()
+    splitpath.split(song_path, name, save_path)
+    end_time = time.time()
+    print("[split] 분할 처리 시간: ", end_time - start_time, "seconds")
+    os.makedirs(save_path, exist_ok=True)
+    wav_files = [f for f in os.listdir(save_path) if f.endswith('.wav')]
 
-        n = len(wav_files)
-        with app.app_context():
-            wav = Wav.query.filter_by(radio_name=name, radio_date=date).first()
-            if wav:
-                wav.section = n
-                db.session.commit()
-            else:
-                pass  # 해당 wav 모델 인스턴스가 없을 경우 처리
+    n = len(wav_files)
+    with app.app_context():
+        wav = Wav.query.filter_by(radio_name=name, radio_date=date).first()
+        if wav:
+            wav.section = n
+            db.session.commit()
+        else:
+            pass  # 해당 wav 모델 인스턴스가 없을 경우 처리
 
-        semapore -= 0
-        return n
-    else:
-        print("[split] 오류")
-        return 0
+
+    return 0
 
 
 def get_request_url_raw(radio_name, date):
@@ -122,16 +117,19 @@ def wavToFlac(broadcast, name, date):
     path = f"./VisualRadio/radio_storage/{broadcast}/{name}/{date}"
     wav_loc = f"{path}/split_wav"
     flac_loc = f"{path}/split_flac"
+    os.makedirs(flac_loc, exist_ok=True)
     wav_path = get_file_path_list(wav_loc)
     for order, wav in enumerate(wav_path):
         song = AudioSegment.from_wav(wav)
-        song.export(flac_loc + "/sec_%d.flac" % (order + 1), format="flac")
+        song.export(flac_loc + "/sec_%d.flac" % (order), format="flac")
     print("-- stt를 하기 위해 wav를 flac으로 변환했습니다 --")
 
 
 # ★
 def stt(broadcast, name, date):
     print("[stt] 시작")
+    start_time = time.time()
+    # start_time 
     # 모든 section 결과를 무조건 stt한다.
     path = f"./VisualRadio/radio_storage/{broadcast}/{name}/{date}"
     section_dir = f'{path}/split_flac'
@@ -156,7 +154,9 @@ def stt(broadcast, name, date):
 
     for thread in threads:
         thread.join()
-    print("[stt] 완료")
+
+    end_time = time.time()
+    print("[stt] 완료 : 소요시간", end_time-start_time)
 
     # DB - stt를 True로 갱신
     with app.app_context():
@@ -172,7 +172,8 @@ def stt(broadcast, name, date):
 def run_quickstart(broadcast, name, date, section, client, storage_client, order):
     # 참고: wav가 아닌 flac 기반 stt 진행
     path = f"./VisualRadio/radio_storage/{broadcast}/{name}/{date}"
-    file_path = f"{path}/{section}"
+    os.makedirs(f"{path}/split_flac", exist_ok=True)
+    file_path = f"{path}/split_flac/{section}"
     bucket_name = 'radio_bucket'
 
     bucket = storage_client.bucket(bucket_name)
@@ -190,18 +191,19 @@ def run_quickstart(broadcast, name, date, section, client, storage_client, order
 
     results = response.results
 
-    start_time_delta = datetime.timedelta(hours=0, minutes=0, seconds=0, microseconds=0)
+    start_time_delta = timedelta(hours=0, minutes=0, seconds=0, microseconds=0)
     m, s = divmod(start_time_delta.seconds, 60)
     start_time_formatted = "{:d}:{:02d}.{:03d}".format(m, s, start_time_delta.microseconds)
 
     # 이미 json이 있으면 삭제 후 다시 stt 진행
-    filename = f"{path}" + '/raw_stt/stt_%d.json' % (order + 1)
+    os.makedirs(f"{path}/raw_stt", exist_ok=True)
+    filename = f"{path}/raw_stt/stt_%d.json" % (order)
     if os.path.exists(filename):
         os.remove(filename)
 
     scripts = []
     # stt 결과 가져오기 - text, time에 대한 json 만들기
-    print("[stt] stt_%d.json 처리중" % (order + 1))
+    print("[stt] stt_%d.json 처리중" % (order))
     for result in results:
         # 각 음성 인식 결과에서 가장 가능성이 높은 대안을 사용
         alternative = result.alternatives[0]
@@ -219,7 +221,7 @@ def run_quickstart(broadcast, name, date, section, client, storage_client, order
     with open(filename, 'w', encoding='utf-8') as f:
         json.dump(data, f, ensure_ascii=False)
 
-    print("[stt] stt_%d.json 최종 처리 완료" % (order + 1))
+    print("[stt] stt_%d.json 처리 완료" % (order))
 
 
 def get_flac_duration(filepath):
