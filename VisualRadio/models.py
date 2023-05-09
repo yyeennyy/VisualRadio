@@ -23,23 +23,30 @@ db = SQLAlchemy()
 
 
 
-
-#  Flask 애플리케이션에서 데이터를 다루기 위해서는,
-#  데이터베이스 테이블과 매핑되는 모델 클래스가 필요
-# 예시 : 
 class Wav(db.Model):
+    broadcast = db.Column(db.String(20), nullable=False, default="None")
     radio_name = db.Column(db.String(50), primary_key=True)
     radio_date = db.Column(db.String(50), primary_key=True)
-    section = db.Column(db.Integer, nullable=False)
+    raw = db.Column(db.Boolean, default=False)
+    section = db.Column(db.Integer, nullable=False, default=0)
+    stt = db.Column(db.Boolean, nullable=False, default=False)
+    script = db.Column(db.Boolean, nullable=False, default=False)
+    contents = db.Column(db.Boolean, nullable=False, default=False)
     done = db.Column(db.Boolean, nullable=False, default=False)
 
-    def __init__(self, radio_name, radio_date, section, done):
+    def __init__(self, broadcast, radio_name, radio_date, raw, section, stt, script, contnets, done):
+        self.broadcast = broadcast
         self.radio_name = radio_name
         self.radio_date = radio_date
+        self.raw = raw
         self.section = section
+        self.stt = stt
+        self.script = script
+        self.contents = contnets
         self.done = done
 
     def __repr__(self):
-        return f"<Wav {self.radio_name} - {self.radio_date}>"
+        return f"<Radio {self.broadcast} {self.radio_name} {self.radio_date} : (raw : {self.raw}), (section, {self.section}), (stt, {self.stt}), (script, {self.script}), (contents, {self.contents}), (done, {self.done}))>\n"
+
 
 

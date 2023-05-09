@@ -2,7 +2,7 @@ import os
 import logging
 from multiprocessing import Pool, Lock, current_process
 import numpy as np
-import settings
+import settings as settings
 from fingerprint import fingerprint_file
 import uuid
 import sqlite3

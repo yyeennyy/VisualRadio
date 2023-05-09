@@ -1,10 +1,7 @@
-# Presentation Layer(표현 계층)
-# 웹 페이지, API 엔드포인트 등을 담당하는 계층입니다.
-# 주로 Flask의 @app.route() 데코레이터를 이용하여 구현합니다.
-
 import sys
 sys.path.append("d:\jp\env\lib\site-packages")
-
+sys.path.append("./VisualRadio")
+sys.path.append("./VisualRadio/split_module")
 from flask import Flask, request, jsonify, send_file, make_response
 from flask_cors import CORS
 import logging
@@ -12,6 +9,7 @@ import json
 import os
 import services
 from models import db;
+import threading
 
 
 app = Flask(__name__)
@@ -21,88 +19,73 @@ CORS(app)  # 모든 라우트에 대해 CORS 허용
 # app.logger.setLevel(logging.DEBUG)
 
 # DB세팅
-# 주의! create database radioDB; 먼저 
+# 주의! create database radioDB; 까지는 되어있어야 함
 app.config.from_pyfile('config.py')
 db.init_app(app)
 with app.app_context():
     db.create_all()  # 테이블이 자동으로 생성되는 명령
 
 
+# --------------------------------------------------------------------------------- 페이지
+@app.route('/admin')
+def adminpage():
+    return send_from_directory('../VisualRadio/static/html/', 'admin.html')
 
 
-@app.route('/')
-def index():
-    return 'Hello!'
+@app.route('/mainpage')
+def mainpage():
+    return send_from_directory('../VisualRadio/static/html/', 'main.html')
 
 
-############################################## 수집기 요청 ##################
+# --------------------------------------------------------------------------------- admin페이지의 업로드 프로세스
+@app.route('/admin-update', methods=['POST'])
+def admin_update():
+    broadcasting_company = request.form.get('broadcasting_company')
+    program_name = request.form.get('program_name')
+    date = request.form.get('date')
+    guest_info = request.form.get('guest_info')
+    audio_file = request.files.get('audio_file')
+    audio_save(broadcasting_company, program_name, date, audio_file)
+    print("[업로드] 등록 완료:", broadcasting_company, program_name, date, guest_info, audio_file)
 
-# 가정 : 컨텐츠화하는 포맷은 "멘트" 하나뿐이다.
-
-# 수집기의 요청 목록
-# 1. wav를 저장하는 요청
-# 2. 저장된 wav를 처리하는 요청 
-
-# ▼ 볼 필요 X
-# # 수집기 요청 1 : 저장
-# # json : {'radio_name', 'radio_date', 'wav': - }
-# @app.route('/save', methods=['POST'])
-# def request_save():
-#     global radio_url
-#     # 넘어온 json 데이터 처리
-#     json = request.get_json
-#     r_name = json.get('radio_name')
-#     r_date = json.get('radio_date')
-#     wav = request.json.get('wav');
-#     global_setting(r_name, r_date)
-#     # 서비스 호출 & 응답결과 반환
-#     try:
-#         # 데이터 저장
-#         user = services.save_wav(wav, radio_url)
-#         return jsonify({'message': 'wav를 성공적으로 저장'}), 200
-#     except ValueError as e:
-#         return jsonify({'error': str(e)}), 400
+    # 다른 프로세스를 백그라운드로 실행시키기
+    print("[업로드] 음성처리 - 백그라운드로 시작")
+    path = f"./VisualRadio/radio_storage/{broadcasting_company}/{program_name}/{date}/"
+    t = threading.Thread(target=process_audio_file, args=(broadcasting_company, program_name, date))
+    t.start()
+    return "ok"
 
 
-# 수집기 요청 2 : 처리 
-@app.route('/start', methods=['POST'])
-def start(wav):
-    # 넘어온 json 데이터 처리
-    json_data = request.json  # key = radio_name, radio_date
-    radio_name = json_data[0]
-    date = json_data[1]
+def process_audio_file(broadcast, name, date):
+    semaphore = threading.Semaphore(1)
+    semaphore.acquire()
+    services.split(broadcast, name, date)
+    services.wavToFlac(broadcast, name, date)
+    services.stt(broadcast, name, date)
+    services.make_txt(broadcast, name, date)
+    print("[업로드] 오디오 처리 완료")
+    semaphore.release()
+    return "ok"
 
 
-    # TODO: 이미 처리한 회차인지 체크하기
-    # - DB에서 완료여부 확인
-    # - ▼ 미처리 회차라면 쭉 진행
+def audio_save(broadcast, program_name, date, audiofile):
+    # 문제점: brunchcafe와 이석훈의브런치카페는 동일한 프로그램임. 추후 이 점 고려해야 할 것임
+    path = f"./VisualRadio/radio_storage/{broadcast}/{program_name}/{date}/"
+    os.makedirs(path, exist_ok=True)
+    audiofile.save(os.path.join(path, 'raw.wav'))
+    print("[업로드] raw.wav 저장 완료")
+    # DB에 업데이트
+    services.audio_save_db(broadcast, program_name, date)
+    print("[업로드] DB반영 완료")
+    return "ok"
 
-    # 서비스 로직 수행
-    try:
-        # 분할
-        services.split(radio_name, date)
-
-        # stt
-        services.stt(radio_name, date)
-
-        # txt 컨텐츠 제작
-        services.make_txt(radio_name, date)
-
-        return jsonify({'message': '컨텐츠화 완료'}), 200
-    
-    except ValueError as e:
-        return jsonify({'error': str(e)}), 400
-
-    
-
-
-############################################## 프론트 요청 ##############################################
-
-# 전체 라디오 프로그램 정보 요청 ㅇ
+# --------------------------------------------------------------------------------- 프론트 요청
+# 전체 라디오 프로그램 정보 요청
 @app.route('/all')
 def get_all():
     all = services.get_all_radio_programs()
     return jsonify(all)
+
 
 # 라디오 프로그램 이름, 날짜 요청 ㅇ (위 메서드 대신 있는 임시 요청)
 @app.route('/program_info', methods=['GET'])
@@ -115,20 +98,21 @@ def get_program_info():
     return jsonify(program_info)
 
 
-# 지정된 회차의 스크립트 요청 ㅇ
+# 지정된 회차의 스크립트 요청
 @app.route('/<string:radio_name>/<string:date>/script', methods=['GET'])
 def get_script(radio_name, date):
     json_data = read_json_file(storage_path(radio_name, date) + '\\result\\script.json')
     return jsonify(json_data)
 
 
-# 지정된 회차의 섹션 정보 리턴 ㅇ
+# 지정된 회차의 섹션 정보 리턴
 @app.route('/<string:radio_name>/<string:date>/section', methods=['GET'])
 def get_sections(radio_name, date):
     json_data = read_json_file(storage_path(radio_name, date) + '\\result\\section_time.json')
     return json_data
 
-# 지정된 회차의 이미지들 리턴 ㅇ
+
+# 지정된 회차의 이미지들 리턴
 @app.route('/<string:radio_name>/<string:date>/images', methods=['GET'])
 def get_images(radio_name, date):
     file_path = storage_path(radio_name, date) + '\\result\\section_image.json'
@@ -137,12 +121,12 @@ def get_images(radio_name, date):
     response.headers.add('Access-Control-Allow-Origin', '*')
     # # JSON 응답 생성
     # response = make_response(data)
-    # response.headers['Content-Type'] = 'application/json'  
+    # response.headers['Content-Type'] = 'application/json'
     # response.headers['Access-Control-Allow-Origin'] = '*'
     return response
 
 
-# 지정된 회차의 음성 데이터 리턴 ㅇ
+# 지정된 회차의 음성 데이터 리턴
 # 이렇게 코드를 변경하면, send_file 함수가 파일을 열고 전송한 후 파일 객체를 닫기 때문에 net::ERR_CONNECTION_RESET 200 (OK) <- 이 문제 해결 가능
 @app.route('/<string:radio_name>/<string:date>/wave', methods=['GET'])
 def get_wave(radio_name, date):
@@ -150,7 +134,8 @@ def get_wave(radio_name, date):
     return send_file(filepath, mimetype="audio/wav", as_attachment=False)
     # return jsonify({'wave':"/VisualRadio/radio_storage/%s/%s/raw.wav"%(radio_name, date)})
 
-# 고정음성 요청 
+
+# 고정음성 요청
 @app.route('/<string:radio_name>/<string:date>/fixed/<string:name>', methods=['GET'])
 def get_fixed_wave(radio_name, date, name):
     wav = open(storage_path(radio_name, date) + '\\fixed_wav\\' + name, 'rb')
@@ -167,7 +152,7 @@ def get_txt(radio_name, date):
     return jsonify(txt)
 
 
-# 광고 컨텐츠
+# 광고 컨텐츠 (미사용)
 @app.route('/ad', methods=['GET'])
 def get_ad():
     # (프로토타입) 고정된 광고 컨텐츠 리턴
@@ -176,10 +161,10 @@ def get_ad():
 
 @app.route('/test')
 def test():
-    # services.split('brunchcafe','230226')
-    # services.wavToFlac()
-    # services.stt('brunchcafe','230226')
-    services.make_txt('brunchcafe','230226')
+    services.split('MBC', 'brunchcafe', '2023-02-26')
+    services.wavToFlac('MBC', 'brunchcafe', '2023-02-26')
+    services.stt('MBC', 'brunchcafe', '2023-02-26')
+    services.make_txt('MBC', 'brunchcafe', '2023-02-26')
     return 'test완료! html로 가서 결과를 테스트하세요'
 
 
@@ -187,6 +172,7 @@ def test():
 
 def storage_path(radio_name, radio_date):
     return os.getcwd() + '\\VisualRadio\\radio_storage\\' + radio_name + '\\' + radio_date
+
 
 def read_json_file(file_path):
     with open(file_path, 'r', encoding='utf-8') as f:
@@ -203,17 +189,11 @@ from flask import Flask, send_from_directory
 def send_static():
     return send_from_directory('../VisualRadio/static/html/', 'sub2.html')
 
+
 ########################
 
 if __name__ == '__main__':
-    app.run(debug=True)
+    app.run(debug=False)
 
 
-# 예은 가상환경 활성화  .\env\Scripts\activate
-# 정보 보기 (활성화되었는지 확인) : pip show flask
-# export 명령어를 사용하여 환경 변수를 설정할 때, 해당 환경 변수는 현재 쉘 세션에서만 유효합니다. 따라서, 해당 환경 변수는 쉘 세션이 종료되면 사라지게 됩니다.
-# 환경변수 등록
-# set FLASK_APP='app.py'
-# set FLASK_ENV=development
-# set FLASK_DEBUG=true
-# deactivate
+

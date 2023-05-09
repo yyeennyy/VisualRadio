@@ -74,67 +74,66 @@ function timeStringToFloat(time) {
     return parseFloat(totalSeconds.toFixed(3));
 }
 
-let subtitlesWithTime;
-
 function startSubtitles() {
-  subtitlesWithTime = subtitlesObj.map(subtitle => ({
-    txt: subtitle.txt,
-    time: timeStringToFloat(subtitle.time)
-  }));
+    const subtitlesWithTime = subtitlesObj.map(subtitle => ({
+      txt: subtitle.txt,
+      time: timeStringToFloat(subtitle.time)
+    }));
+  
+    subtitlesWithTime.forEach(subtitle => {
+      const block = document.createElement('div');
+      block.innerText = subtitle.txt;
+      block.addEventListener('click', () => {
+        audio.currentTime = subtitle.time;
+        showImageAtCurrentTime();
 
-  subtitlesWithTime.forEach(subtitle => {
-    const block = document.createElement('div');
-    block.innerText = subtitle.txt;
-    block.addEventListener('click', () => {
-      audio.currentTime = subtitle.time;
-      showImageAtCurrentTime();
-    });
-    subtitleContainer.appendChild(block);
-  });
-  }
-
-function hilightSubtitle(){
-  const currentTime = audio.currentTime;
-  for (let i = 0; i < subtitlesWithTime.length; i++) {
-    const subtitle = subtitlesWithTime[i];
-    const nextSubtitle = subtitlesWithTime[i + 1];
-    if (nextSubtitle && nextSubtitle.time <= currentTime) {
-      continue;
-    }
-    if (subtitle.time <= currentTime) {
-      // 현재 재생 중인 자막을 강조합니다.
-      subtitleContainer.children[i].style.fontWeight = 'bold';
-      highlightedSubtitleIndex = i;
-    } else {
-      subtitleContainer.children[i].style.fontWeight = 'normal';
-    }
-  }
-  // 나머지 자막들의 스타일을 일괄적으로 normal로 설정합니다.
-  if (highlightedSubtitleIndex !== -1) {
-    for (let i = 0; i < subtitlesWithTime.length; i++) {
-      if (i !== highlightedSubtitleIndex) {
-        subtitleContainer.children[i].style.fontWeight = 'normal';
-      }
-    }
-  }
-
-  // 강조 중인 자막이 항상 중앙에 오도록 스크롤 위치를 조정합니다.
-  if (highlightedSubtitleIndex !== -1) {
-
-      const highlightedSubtitle = subtitleContainer.children[highlightedSubtitleIndex];
-      const containerTop = subtitleContainer.getBoundingClientRect().top;
-      const highlightedSubtitleTop = highlightedSubtitle.getBoundingClientRect().top - containerTop;
-      const subtitleHeight = highlightedSubtitle.getBoundingClientRect().height;
-      const containerHeight = subtitleContainer.getBoundingClientRect().height;
-      const scrollAmount = highlightedSubtitleTop - containerTop;
-      subtitleContainer.scrollTo({
-          top: subtitleContainer.scrollTop + scrollAmount+subtitleHeight,
-          behavior: 'smooth',
       });
-  }
-}
-audio.addEventListener('timeupdate', hilightSubtitle);
+      subtitleContainer.appendChild(block);
+    });
 
+    const containerHeight = subtitleContainer.getBoundingClientRect().height;
+    const subtitleHeight = subtitleContainer.children[0].getBoundingClientRect().height;  
+    audio.addEventListener('timeupdate', () => {
+        const currentTime = audio.currentTime;
+        for (let i = 0; i < subtitlesWithTime.length; i++) {
+          const subtitle = subtitlesWithTime[i];
+          const nextSubtitle = subtitlesWithTime[i + 1];
+          if (nextSubtitle && nextSubtitle.time <= currentTime) {
+            continue;
+          }
+          if (subtitle.time <= currentTime) {
+            // 현재 재생 중인 자막을 강조합니다.
+            subtitleContainer.children[i].style.fontWeight = 'bold';
+            highlightedSubtitleIndex = i;
+          } else {
+            subtitleContainer.children[i].style.fontWeight = 'normal';
+          }
+        }
+        // 나머지 자막들의 스타일을 일괄적으로 normal로 설정합니다.
+        if (highlightedSubtitleIndex !== -1) {
+          for (let i = 0; i < subtitlesWithTime.length; i++) {
+            if (i !== highlightedSubtitleIndex) {
+              subtitleContainer.children[i].style.fontWeight = 'normal';
+            }
+          }
+        }
+      
+        // 강조 중인 자막이 항상 중앙에 오도록 스크롤 위치를 조정합니다.
+        if (highlightedSubtitleIndex !== -1) {
+
+            const highlightedSubtitle = subtitleContainer.children[highlightedSubtitleIndex];
+            const containerTop = subtitleContainer.getBoundingClientRect().top;
+            const highlightedSubtitleTop = highlightedSubtitle.getBoundingClientRect().top - containerTop;
+            const subtitleHeight = highlightedSubtitle.getBoundingClientRect().height;
+            const containerHeight = subtitleContainer.getBoundingClientRect().height;
+            const scrollAmount = highlightedSubtitleTop - containerTop;
+            subtitleContainer.scrollTo({
+                top: subtitleContainer.scrollTop + scrollAmount+subtitleHeight,
+                behavior: 'smooth',
+            });
+        }
+      });
+    }
 
 function sleep(ms) {
     const wakeUpTime = Date.now() + ms;
@@ -170,6 +169,7 @@ function getImg() {
     .then(response => response.json())
     .then(imgUrl => {
         data = imgUrl;
+        // console.log(data);
     })}
 
 function showImg(){
@@ -253,30 +253,16 @@ function showImageAtCurrentTime() {
 
 
 const playPausediv = document.getElementById("play-pause-btn");
+const playPauseBtn = document.getElementById("btn");
 
 playPausediv.addEventListener("click", function() {
   if (audio.paused) {
     audio.play();
-    playPausediv.innerHTML = '<img class="btn" src = "../images/pauseBtn.png" ><i class="fa fa-pause"></i>';
+    playPausediv.innerHTML = '<i class="fa fa-pause"></i>';
+    playPauseBtn.src = "../images/pauseBtn.png";
   } else {
     audio.pause();
-    playPausediv.innerHTML = '<img class="btn" src = "../images/playBtn.png" ><i class="fa fa-play"></i>';
+    playPausediv.innerHTML = '<i class="fa fa-play"></i>';
+    playPauseBtn.src = "../images/playBtn.png";
   }
 });
-
-// let isScrolling = false;
-
-// subtitleContainer.addEventListener('scroll', () => {
-//   if (isScrolling) {
-//     // 일시적으로 timeupdate 이벤트 처리 중지
-//     audio.removeEventListener('timeupdate', hilightSubtitle);
-//     clearTimeout(timeoutId);
-//   }
-//   isScrolling = true;
-
-//   // 1.5초 후에 timeupdate 이벤트 처리 재개
-//   const timeoutId = setTimeout(() => {
-//     isScrolling = false;
-//     audio.addEventListener('timeupdate', hilightSubtitle);
-//   }, 100);
-// });
