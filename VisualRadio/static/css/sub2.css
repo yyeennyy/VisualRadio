@@ -5,7 +5,11 @@
 
 body {
     background-color: rgba(223, 207, 244, 0.2);
+<<<<<<< HEAD
     background-image: url("/static/images/sub2_backgroundImage.png");
+=======
+    background-image: url("../images/sub2_backgroundImage.png");
+>>>>>>> a1d64a4e66d6a457e1e65e315d1dea1d134efb84
     background-size: 1400px 1400px;
     background-position: center center;
     background-repeat: no-repeat;
@@ -19,7 +23,7 @@ body {
     justify-content: center;
     align-items: center;
     flex-direction: column;
-    border: 1px solid black;
+    /* border: 1px solid black; */
 }
 
 #logo {
@@ -48,7 +52,7 @@ body {
     height: 40px;
     text-align: left;
     float: left;
-    border: 1px dashed black;
+    /* border: 1px dashed black; */
     margin-left: 25px;
     color: rgb(154, 48, 174);
     font-size: 20px;
@@ -101,7 +105,7 @@ body {
 #imgContainer, #subtitleContainer {
     width: 450px;
     height: 450px;
-    border: 1px dashed black;
+    /* border: 1px dashed black; */
     position: absolute;
     top: 50%;
     left: 50%;
