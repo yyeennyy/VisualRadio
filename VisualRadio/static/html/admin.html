@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<title>관리자 페이지</title>
+    <script>
+		function submitForm() {
+			var form = document.getElementById("broadcast_form");
+			var formData = new FormData(form);
+			var xhr = new XMLHttpRequest();
+			xhr.open("POST", "http://localhost:5000/admin-update");
+			xhr.send(formData);
+		}
+	</script>
+</head>
+<body>
+	<h1>방송 정보 입력</h1>
+	<form id="broadcast_form" enctype="multipart/form-data" method="POST">
+		<label for="broadcasting_company">방송사:</label>
+		<input type="text" id="broadcasting_company" name="broadcasting_company"><br><br>
+		<label for="program_name">프로그램 이름:</label>
+		<input type="text" id="program_name" name="program_name"><br><br>
+		<label for="date">날짜:</label>
+		<input type="date" id="date" name="date"><br><br>
+		<label for="guest_info">게스트 정보:</label>
+		<input type="text" id="guest_info" name="guest_info"><br><br>
+		<label for="audio_file">음성 파일:</label>
+		<input type="file" id="audio_file" name="audio_file"><br><br>
+		<button type="button" onclick="submitForm()">제출</button>
+	</form>
+
+    <br>
+    <br>
+    <a href="http://localhost:5000/mainpage">홈으로 돌아가기</a>
+</body>
+</html>

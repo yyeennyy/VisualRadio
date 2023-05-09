@@ -1,8 +1,9 @@
+import sys
 import sqlite3
 import os
 from pydub import AudioSegment
-import split.settings as settings
-from split.recognise import find_time
+import settings as settings
+from recognise import find_time
 
 def split_about(path, program_name):
     conn = sqlite3.connect('fix.db')
@@ -13,8 +14,8 @@ def split_about(path, program_name):
     audio = AudioSegment.from_file(path).set_channels(1).set_frame_rate(settings.SAMPLE_RATE)
     real_time = []
     song_info_list = []
-    print(result)
-    temp_file_path = r"D:\JP\Server\VisualRadio\split\tmp.wav"
+    print("result:", result)
+    temp_file_path = "./VisualRadio/split_module/tmp.wav"
     for i in range(len(result)):
         start = int(result[i][0])*1000
         end = int(result[i][1])*1000
@@ -33,10 +34,8 @@ def split_about(path, program_name):
 
 def split(path, program_name, save_path):
     song_info, time = split_about(path, program_name)
-    print(song_info)
-    print(time)
+
     audio = AudioSegment.from_file(path).set_channels(1).set_frame_rate(settings.SAMPLE_RATE)
-    save_path += "/"
     for i in range(len(time)):
         start = time[i]*1000
         if(i!=len(time)-1):
@@ -44,7 +43,7 @@ def split(path, program_name, save_path):
         else:
             end = len(audio)-1
         seg = audio[start:end]
-        seg.export(save_path+"sec_"+str(i)+".wav", format='wav')
+        seg.export(save_path+"/sec_"+str(i)+".wav", format='wav')
 
     
     
