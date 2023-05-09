@@ -31,7 +31,6 @@ logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
 
 
-storage_path = ".\\VisualRadio\\radio_storage"
 
 
 
@@ -127,14 +126,16 @@ def wavToFlac(broadcast, name, date):
 
 # ★
 def stt(broadcast, name, date):
+
     print("[stt] 시작")
     start_time = time.time()
-    # start_time 
     # 모든 section 결과를 무조건 stt한다.
     path = f"./VisualRadio/radio_storage/{broadcast}/{name}/{date}"
     section_dir = f'{path}/split_flac'
     os.makedirs(section_dir, exist_ok=True)
     section_list = os.listdir(section_dir)
+
+
 
     # STT 클라이언트 생성
     project_id = 'RadioProject'
@@ -170,24 +171,35 @@ def stt(broadcast, name, date):
 
 
 def run_quickstart(broadcast, name, date, section, client, storage_client, order):
+
+    import time
+    from google.api_core.exceptions import ServiceUnavailable
+
+
     # 참고: wav가 아닌 flac 기반 stt 진행
     path = f"./VisualRadio/radio_storage/{broadcast}/{name}/{date}"
     os.makedirs(f"{path}/split_flac", exist_ok=True)
     file_path = f"{path}/split_flac/{section}"
     bucket_name = 'radio_bucket'
 
-    bucket = storage_client.bucket(bucket_name)
-    blob = bucket.blob(section)
-    blob.upload_from_filename(file_path)
-    storage_file_path = f'gs://{bucket_name}/{blob.name}'
+    while True:
+        try:
+            bucket = storage_client.bucket(bucket_name)
+            blob = bucket.blob(section)
+            blob.upload_from_filename(file_path)
+            storage_file_path = f'gs://{bucket_name}/{blob.name}'
 
-    audio = speech_v1.RecognitionAudio(uri=storage_file_path)
-    config = speech_v1.RecognitionConfig(
-        language_code='ko-KR',
-    )
+            audio = speech_v1.RecognitionAudio(uri=storage_file_path)
+            config = speech_v1.RecognitionConfig(
+                language_code='ko-KR',
+            )
+            operation = client.long_running_recognize(config=config, audio=audio)
+            response = operation.result(timeout=999999)
+            break  # 성공하면 루프를 빠져나갑니다.
+        except ServiceUnavailable as e:
+            print(f"Error: {e}. Retrying in 1 second...")
+            time.sleep(1)  # 1초 대기 후 다시 시도합니다.
 
-    operation = client.long_running_recognize(config=config, audio=audio)
-    response = operation.result(timeout=999999)
 
     results = response.results
 
@@ -239,7 +251,7 @@ def make_txt(broadcast, name, date):
     # end_time을 고려하여 제작
     path = f"./VisualRadio/radio_storage/{broadcast}/{name}/{date}"
 
-    stt_dir = f'{storage_path}/raw_stt'
+    stt_dir = f'{path}/raw_stt'
     os.makedirs(stt_dir, exist_ok=True)
     stt_list = os.listdir(stt_dir)
     file_path = [os.path.join(stt_dir, name) for name in stt_list]
@@ -281,38 +293,40 @@ def make_txt(broadcast, name, date):
             print(f"[make_txt] [오류] {name} {date} 가 있어야 하는데, DB에서 찾지 못함")
 
     print("[make_txt] script.json 생성 완료!!!")
+#     generate_images_by_section(broadcast, name, date, section_start)
 
 
-def generate_images_by_section(broadcast, name, date, section_start_list):
-    path = f"./VisualRadio/radio_storage/{broadcast}/{name}/{date}"
+# def generate_images_by_section(broadcast, name, date, section_start_list):
+#     path = f"./VisualRadio/radio_storage/{broadcast}/{name}/{date}"
 
-    img_url_1 = "https://img.hankyung.com/photo/202203/01.29353881.1-1200x.jpg"
-    img_url_2 = "https://pbs.twimg.com/ext_tw_video_thumb/1514084683608309764/pu/img/1ihM-03RUgNtJqcs.jpg"
-    img_url_3 = "https://static.inews24.com/v1/4815fc2c7e522d.jpg"
-    img_url_4 = "https://cdn.litt.ly/images/NEpLQ6zpkVRqKo0EzVy3kg1wzlR68XYL?s=1200x630&m=inside"
+#     img_url_1 = "https://img.hankyung.com/photo/202203/01.29353881.1-1200x.jpg"
+#     img_url_2 = "https://pbs.twimg.com/ext_tw_video_thumb/1514084683608309764/pu/img/1ihM-03RUgNtJqcs.jpg"
+#     img_url_3 = "https://static.inews24.com/v1/4815fc2c7e522d.jpg"
+#     img_url_4 = "https://cdn.litt.ly/images/NEpLQ6zpkVRqKo0EzVy3kg1wzlR68XYL?s=1200x630&m=inside"
+#     img_url_5 = "http://img2.sbs.co.kr/img/sbs_cms/CH/2020/06/01/CH59004650_w666_h968.jpg"
 
-    sec_img_data = []
-    img_url_data = [img_url_1, img_url_2, img_url_3, img_url_4]
+#     sec_img_data = []
+#     img_url_data = [img_url_1, img_url_2, img_url_3, img_url_4, img_url_5]
 
-    for idx, time in enumerate(section_start_list):
-        dic_data = {
-            'time': time,
-            'img_url': img_url_data[idx]
-        }
-        sec_img_data.append(dic_data)
+#     for idx, time in enumerate(section_start_list):
+#         dic_data = {
+#             'time': time,
+#             'img_url': img_url_data[idx]
+#         }
+#         sec_img_data.append(dic_data)
 
-    with open(f"{path}/result/section_image.json", 'w', encoding='utf-8') as f:
-        json.dump(sec_img_data, f, ensure_ascii=False)
-    print("[make_txt] section_image.json 생성 완료!!!")
+#     with open(f"{path}/result/section_image.json", 'w', encoding='utf-8') as f:
+#         json.dump(sec_img_data, f, ensure_ascii=False)
+#     print("[make_txt] section_image.json 생성 완료!!!")
 
 
 def add_time(time1, time2):
-    time1 = datetime.datetime.strptime(time1, "%M:%S.%f").time()
-    time2 = datetime.datetime.strptime(time2, "%M:%S.%f").time()
+    time1 = datetime.strptime(time1, "%M:%S.%f").time()
+    time2 = datetime.strptime(time2, "%M:%S.%f").time()
 
-    delta = datetime.timedelta(hours=time1.hour, minutes=time1.minute, seconds=time1.second,
+    delta = timedelta(hours=time1.hour, minutes=time1.minute, seconds=time1.second,
                                microseconds=time1.microsecond) + \
-            datetime.timedelta(hours=time2.hour, minutes=time2.minute, seconds=time2.second,
+            timedelta(hours=time2.hour, minutes=time2.minute, seconds=time2.second,
                                microseconds=time2.microsecond)
 
     m, s = divmod(delta.seconds, 60)
