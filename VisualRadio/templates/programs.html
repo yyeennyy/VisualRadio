@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Button List</title>
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
+</head>
+<body>
+    <div id="button-list"></div>
+    <script>
+        // /all 요청 보내기
+        $.get("/all", function (data) {
+            // 버튼 리스트 생성
+            var buttonList = "";
+            data.forEach(function (element) {
+                buttonList += '<button onclick="onButtonClick(\'' + element.broadcast + '\', \'' + element.radio_name + '\', \'' + element.date + '\')">' + element.broadcast + ' - ' + element.radio_name + ' - ' +  element.date + '</button><br><br>';
+            });
+            $('#button-list').html(buttonList);
+        });
+
+        // 버튼 클릭 이벤트 처리
+        function onButtonClick(broadcast, radio_name, date) {
+            window.location.href = '/sub2?broadcast=' + broadcast + '&radio_name=' + radio_name + '&date=' + date;
+        }
+    </script>
+</body>
+</html>

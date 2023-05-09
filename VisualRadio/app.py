@@ -1,8 +1,8 @@
 import sys
-sys.path.append("d:\jp\env\lib\site-packages")
 sys.path.append("./VisualRadio")
 sys.path.append("./VisualRadio/split_module")
-from flask import Flask, request, jsonify, send_file, make_response
+from flask import Flask, request, jsonify, send_file, make_response, render_template
+from flask import redirect, url_for, request
 from flask_cors import CORS
 import logging
 import json
@@ -29,19 +29,39 @@ with app.app_context():
 # --------------------------------------------------------------------------------- 페이지
 @app.route('/admin')
 def adminpage():
-    return send_from_directory('../VisualRadio/static/html/', 'admin.html')
+    return render_template('admin.html')
 
 @app.route('/mainpage')
 def mainpage():
-    return send_from_directory('../VisualRadio/static/html/', 'main.html')
+    return render_template('main.html')
 
 @app.route('/sub1')
 def sub1():
-    return send_from_directory('../VisualRadio/static/html/', 'sub1.html')
+    return render_template('sub1.html')
 
-@app.route('/sub2')
-def sub2():
-    return send_from_directory('../VisualRadio/static/html/', 'sub2.html')
+
+
+@app.route('/sub2', methods=['GET', 'POST'])
+def get_sub2():
+    if request.method == 'POST':
+        broadcast = request.form['broadcast']
+        radio_name = request.form['radio_name']
+        date = request.form['date']
+        return render_template('sub2.html', broadcast=broadcast, radio_name=radio_name, date=date)
+    else:
+        broadcast = request.args.get('broadcast')
+        radio_name = request.args.get('radio_name')
+        date = request.args.get('date')
+        return render_template('sub2.html', broadcast=broadcast, radio_name=radio_name, date=date)
+
+
+
+
+# 임시 페이지
+@app.route('/programs')
+def progs():
+    return render_template('programs.html')
+
 # --------------------------------------------------------------------------------- admin페이지의 업로드 프로세스
 @app.route('/admin-update', methods=['POST'])
 def admin_update():

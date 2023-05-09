@@ -32,7 +32,7 @@ def split_about(path, program_name):
     
     return song_info_list, real_time
 
-def split(path, program_name, save_path):
+def start_split(path, program_name, save_path):
     song_info, time = split_about(path, program_name)
 
     audio = AudioSegment.from_file(path).set_channels(1).set_frame_rate(settings.SAMPLE_RATE)
