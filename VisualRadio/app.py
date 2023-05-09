@@ -10,7 +10,7 @@ import os
 import services
 from models import db;
 import threading
-
+import time
 
 app = Flask(__name__)
 CORS(app)  # 모든 라우트에 대해 CORS 허용
@@ -31,12 +31,17 @@ with app.app_context():
 def adminpage():
     return send_from_directory('../VisualRadio/static/html/', 'admin.html')
 
-
 @app.route('/mainpage')
 def mainpage():
     return send_from_directory('../VisualRadio/static/html/', 'main.html')
 
+@app.route('/sub1')
+def sub1():
+    return send_from_directory('../VisualRadio/static/html/', 'sub1.html')
 
+@app.route('/sub2')
+def sub2():
+    return send_from_directory('../VisualRadio/static/html/', 'sub2.html')
 # --------------------------------------------------------------------------------- admin페이지의 업로드 프로세스
 @app.route('/admin-update', methods=['POST'])
 def admin_update():
@@ -72,7 +77,7 @@ def audio_save(broadcast, program_name, date, audiofile):
     # 문제점: brunchcafe와 이석훈의브런치카페는 동일한 프로그램임. 추후 이 점 고려해야 할 것임
     path = f"./VisualRadio/radio_storage/{broadcast}/{program_name}/{date}/"
     os.makedirs(path, exist_ok=True)
-    audiofile.save(os.path.join(path, 'raw.wav'))
+    audiofile.save(path + 'raw.wav')
     print("[업로드] raw.wav 저장 완료")
     # DB에 업데이트
     services.audio_save_db(broadcast, program_name, date)
@@ -92,30 +97,34 @@ def get_all():
 def get_program_info():
     # 임시로 박아두자 (sub2 페이지 하나니까)
     program_info = {
+        'broadcast' : 'MBC',
         'radio_name': 'brunchcafe',
-        'date': '230226'
+        'date': '2023-05-09'
     }
     return jsonify(program_info)
 
 
 # 지정된 회차의 스크립트 요청
-@app.route('/<string:radio_name>/<string:date>/script', methods=['GET'])
-def get_script(radio_name, date):
-    json_data = read_json_file(storage_path(radio_name, date) + '\\result\\script.json')
+@app.route('/<string:broadcast>/<string:name>/<string:date>/script', methods=['GET'])
+def get_script(broadcast, name, date):
+    path = f"./VisualRadio/radio_storage/{broadcast}/{name}/{date}"
+    json_data = read_json_file(path + '/result/script.json')
     return jsonify(json_data)
 
 
 # 지정된 회차의 섹션 정보 리턴
-@app.route('/<string:radio_name>/<string:date>/section', methods=['GET'])
-def get_sections(radio_name, date):
-    json_data = read_json_file(storage_path(radio_name, date) + '\\result\\section_time.json')
+@app.route('/<string:broadcast>/<string:name>/<string:date>/section', methods=['GET'])
+def get_sections(broadcast, name, date):
+    path = f"./VisualRadio/radio_storage/{broadcast}/{name}/{date}"
+    json_data = read_json_file(path + '/result/section_time.json')
     return json_data
 
 
 # 지정된 회차의 이미지들 리턴
-@app.route('/<string:radio_name>/<string:date>/images', methods=['GET'])
-def get_images(radio_name, date):
-    file_path = storage_path(radio_name, date) + '\\result\\section_image.json'
+@app.route('/<string:broadcast>/<string:name>/<string:date>/images', methods=['GET'])
+def get_images(broadcast, name, date):
+    path = f"./VisualRadio/radio_storage/{broadcast}/{name}/{date}"
+    file_path = path + '/result/section_image.json'
     data = read_json_file(file_path)
     response = jsonify(data)
     response.headers.add('Access-Control-Allow-Origin', '*')
@@ -128,28 +137,27 @@ def get_images(radio_name, date):
 
 # 지정된 회차의 음성 데이터 리턴
 # 이렇게 코드를 변경하면, send_file 함수가 파일을 열고 전송한 후 파일 객체를 닫기 때문에 net::ERR_CONNECTION_RESET 200 (OK) <- 이 문제 해결 가능
-@app.route('/<string:radio_name>/<string:date>/wave', methods=['GET'])
-def get_wave(radio_name, date):
-    filepath = storage_path(radio_name, date) + '\\raw.wav'
-    return send_file(filepath, mimetype="audio/wav", as_attachment=False)
-    # return jsonify({'wave':"/VisualRadio/radio_storage/%s/%s/raw.wav"%(radio_name, date)})
+@app.route('/<string:broadcast>/<string:name>/<string:date>/wave', methods=['GET'])
+def get_wave(broadcast, name, date):
+    return send_file(f"radio_storage\\{broadcast}\\{name}\\{date}\\raw.wav", mimetype="audio/wav", as_attachment=False)
 
 
-# 고정음성 요청
-@app.route('/<string:radio_name>/<string:date>/fixed/<string:name>', methods=['GET'])
-def get_fixed_wave(radio_name, date, name):
-    wav = open(storage_path(radio_name, date) + '\\fixed_wav\\' + name, 'rb')
-    response = send_file(wav, mimetype="audio/wav", as_attachment=False)
-    return response
+# # 고정음성 요청
+# @app.route('/<string:radio_name>/<string:date>/fixed/<string:name>', methods=['GET'])
+# def get_fixed_wave(broadcast, name, date):
+#     path = f"./VisualRadio/radio_storage/{broadcast}/{name}/{date}"
+#     wav = open(path + '/fixed_wav/' + name, 'rb')
+#     response = send_file(wav, mimetype="audio/wav", as_attachment=False)
+#     return response
 
 
-# TODO: 지정된 회차의 전체 text
-@app.route('/<string:radio_name>/<string:date>/txt', methods=['GET'])
-def get_txt(radio_name, date):
-    # time, text 키를 가진 json데이터를, text만 있는 문자열로 바꾼다.
-    script_path = storage_path(radio_name, date) + '\\result\\script.json'
-    txt = ''
-    return jsonify(txt)
+# # TODO: 지정된 회차의 전체 text
+# @app.route('/<string:radio_name>/<string:date>/txt', methods=['GET'])
+# def get_txt(radio_name, date):
+#     # time, text 키를 가진 json데이터를, text만 있는 문자열로 바꾼다.
+#     script_path = storage_path(radio_name, date) + '\\result\\script.json'
+#     txt = ''
+#     return jsonify(txt)
 
 
 # 광고 컨텐츠 (미사용)
@@ -161,17 +169,14 @@ def get_ad():
 
 @app.route('/test')
 def test():
-    services.split('MBC', 'brunchcafe', '2023-02-26')
-    services.wavToFlac('MBC', 'brunchcafe', '2023-02-26')
-    services.stt('MBC', 'brunchcafe', '2023-02-26')
-    services.make_txt('MBC', 'brunchcafe', '2023-02-26')
+    # services.split('MBC', 'brunchcafe', '2023-02-26')
+    # services.wavToFlac('MBC', 'brunchcafe', '2023-02-26')
+    # services.stt('MBC', 'brunchcafe', '2023-02-26')
+    services.make_txt('MBC', 'brunchcafe', '2023-05-09')
     return 'test완료! html로 가서 결과를 테스트하세요'
 
 
 ###################################################################################
-
-def storage_path(radio_name, radio_date):
-    return os.getcwd() + '\\VisualRadio\\radio_storage\\' + radio_name + '\\' + radio_date
 
 
 def read_json_file(file_path):
@@ -184,10 +189,10 @@ def read_json_file(file_path):
 from flask import Flask, send_from_directory
 
 
-# brunchcafe라디오의 230226날짜로 고정된 화면이 보여진다.
-@app.route('/brunchcafe/230226')
-def send_static():
-    return send_from_directory('../VisualRadio/static/html/', 'sub2.html')
+# # brunchcafe라디오의 230226날짜로 고정된 화면이 보여진다.
+# @app.route('/brunchcafe/230226')
+# def send_static():
+#     return send_from_directory('../VisualRadio/static/html/', 'sub2.html')
 
 
 ########################

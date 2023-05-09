@@ -34,6 +34,7 @@ window.onload = function() {
     });
 }
 
+var broadcast = '';
 var radio_name = '';
 var date = '';
 var subtitlesObj;
@@ -41,21 +42,22 @@ const audio = document.getElementById("audio");
 const subtitleContainer = document.getElementById("subtitleContainer");
 var subtitles = [];
 let highlightedSubtitleIndex = -1;
-const source = "http://localhost:8080"
-// const source = "http://localhost:5000"
+const source = "http://localhost:5000"
 
 
 function getInfo() {
     return fetch(`${source}/program_info`)
     .then((response) => response.json())
     .then((data) => 
-        {radio_name = data.radio_name;
+        {
+         broadcast = data.broadcast;
+         radio_name = data.radio_name;
          date       = data.date;
          document.getElementById('info').innerHTML = `${radio_name}  ${date}`})
 }
 
 function getScript() {
-    return fetch(`${source}/${radio_name}/${date}/script`)
+    return fetch(`${source}/${broadcast}/${radio_name}/${date}/script`)
       .then((response) => response.json())
       .then((data) => {
         subtitlesObj = data;
@@ -138,15 +140,19 @@ function sleep(ms) {
 }
   
 function getWave() {
-    fetch(`${source}/${radio_name}/${date}/wave`)
-    .then((response) => response.json())
-    .then((data) =>
-        document.getElementById('audio').src = data.wave)
+  fetch(`${source}/${broadcast}/${radio_name}/${date}/wave`)
+    .then(response => response.blob())
+    .then(data => {
+      const audio = document.getElementById('audio');
+      audio.src = URL.createObjectURL(data);
+    })
+    .catch(error => console.error(error));
 }
 
 function getImg() {
-    fetch(`${source}/${radio_name}/${date}/images`)
-    .then(response => response.json())
+    console.log(broadcast, radio_name, date)
+    fetch(`${source}/${broadcast}/${radio_name}/${date}/images`)
+    .then(response => response.blob())
     .then(data => {
         document.getElementById('main_img').src = data.img_url
     })
@@ -158,12 +164,12 @@ playPauseBtn.addEventListener("click", function() {
   if (audio.paused) {
     audio.play();
     playPauseBtn.innerHTML = '<i class="fa fa-pause"></i>';
-    playPauseBtn.querySelector("img").src = "../VisualRadio/static/images/pauseBtn.png";
+    playPauseBtn.querySelector("img").src = "/static/images/pauseBtn.png";
     // playPauseBtn.innerText = "일시정지";
   } else {
     audio.pause();
     playPauseBtn.innerHTML = '<i class="fa fa-play"></i>';
-    playPauseBtn.querySelector("img").src = "../VisualRadio/static/images/playBtn.png";
+    playPauseBtn.querySelector("img").src = "/static/images/playBtn.png";
     // playPauseBtn.innerText = "재생";
   }
 });
