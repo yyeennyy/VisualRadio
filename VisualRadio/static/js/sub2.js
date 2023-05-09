@@ -19,20 +19,21 @@ window.onload = function() {
         currentTimeText.innerText = `${minutes}:${seconds}`;
     });
     
-    audio.addEventListener('loadedmetadata', () => {
-      const minutes = Math.floor(audio.duration / 60);
-      const seconds = Math.floor(audio.duration % 60).toString().padStart(2, '0');
-      durationText.innerText = `${minutes}:${seconds}`;
-    });
+      audio.addEventListener('loadedmetadata', () => {
+        const minutes = Math.floor(audio.duration / 60);
+        const seconds = Math.floor(audio.duration % 60).toString().padStart(2, '0');
+        durationText.innerText = `${minutes}:${seconds}`;
+      });
     
-    progressBar.addEventListener('click', (event) => {
-      const barWidth = progressBar.clientWidth;
-      const clickedPosition = event.clientX - progressBar.getBoundingClientRect().left;
-      const newTime = (clickedPosition / barWidth) * audio.duration;
-      audio.currentTime = newTime;
-      progressBar.value = audio.duration;
-    });
-}
+      progressBar.addEventListener('click', (event) => {
+        const barWidth = progressBar.clientWidth;
+        const clickedPosition = event.clientX - progressBar.getBoundingClientRect().left;
+        const newTime = (clickedPosition / barWidth) * audio.duration;
+        audio.currentTime = newTime;
+        progressBar.value = audio.duration;
+        showImageAtCurrentTime();
+      });
+    }
 
 var radio_name = '';
 var date = '';
@@ -60,10 +61,10 @@ function getScript() {
       .then((data) => {
         subtitlesObj = data;
         
-        console.log(data);
+        // console.log(data);
         return data;
       });
-}
+  }
 
 function timeStringToFloat(time) {
     const [minutes, seconds] = time.split(':');
@@ -84,6 +85,8 @@ function startSubtitles() {
       block.innerText = subtitle.txt;
       block.addEventListener('click', () => {
         audio.currentTime = subtitle.time;
+        showImageAtCurrentTime();
+
       });
       subtitleContainer.appendChild(block);
     });
@@ -125,7 +128,7 @@ function startSubtitles() {
             const containerHeight = subtitleContainer.getBoundingClientRect().height;
             const scrollAmount = highlightedSubtitleTop - containerTop;
             subtitleContainer.scrollTo({
-                top: subtitleContainer.scrollTop + scrollAmount+subtitleHeight*4,
+                top: subtitleContainer.scrollTop + scrollAmount+subtitleHeight,
                 behavior: 'smooth',
             });
         }
@@ -141,103 +144,125 @@ function getWave() {
     fetch(`${source}/${radio_name}/${date}/wave`)
     .then((response) => response.json())
     .then((data) =>
-        document.getElementById('audio').src = data.wave)
+        document.getElementById('audio').src =  data.wave)
 }
+
+
+function parseTime(timeString) {
+  const [min, secMillisec] = timeString.split(':');
+  const [sec, millisec] = secMillisec.split('.');
+  return (+min * 60 + +sec) * 1000 + +millisec;
+}
+
+let audioCurrentTime = 0;
+
+audio.addEventListener('timeupdate', () => {
+  audioCurrentTime = audio.currentTime;
+});
+
+let currentIndex=0;
+const mainImg = document.getElementById('main_img');
+var data = [];
 
 function getImg() {
-    fetch(`${source}/${radio_name}/${date}/images`)
+  fetch(`${source}/${radio_name}/${date}/images`)
     .then(response => response.json())
-    .then(data => {
-        document.getElementById('main_img').src = data.img_url
-    })
+    .then(imgUrl => {
+        data = imgUrl;
+        // console.log(data);
+    })}
+
+function showImg(){
+
+      const { img_url, time } = data[currentIndex];
+      var nextImgTime;
+
+      // preload the next image
+      if (currentIndex < data.length - 1) {
+        const nextImg = new Image();
+        const nextImgUrl = `${data[currentIndex + 1].img_url}`;
+        nextImgTime = parseTime(data[currentIndex + 1].time) / 1000;
+        nextImg.src = nextImgUrl;
+      }
+
+      // display the current image
+      mainImg.src = img_url;
+      const timeDiff = Math.abs(audioCurrentTime - nextImgTime);
+      // console.log(timeDiff);
+
+      // check if it's time to switch to the next image
+      // if (timeDiff < 0.1 && timeDiff > 0) {
+      if (timeDiff > 0 && timeDiff < 0.08) {
+        currentIndex = (currentIndex + 1) % data.length;
+        const nextImgUrl = `${data[currentIndex].img_url}`;
+        // preload the image after the next image
+        if (currentIndex < data.length - 1) {
+          const nextNextImg = new Image();
+          const nextNextImgUrl = `${data[currentIndex + 1].img_url}`;
+          nextNextImg.src = nextNextImgUrl;
+        }
+        mainImg.src = nextImgUrl;
+      }
+
+    }
+
+function preload(url) {
+  const img = new Image();
+  img.src = url;
 }
 
-const playPauseBtn = document.getElementById("play-pause-btn");
+function startImageChecking() {
+  setInterval(() => {
+      showImg();
+    }, 1);
+  }
 
-playPauseBtn.addEventListener("click", function() {
+startImageChecking();
+
+function showImageAtCurrentTime() {
+  fetch(`${source}/${radio_name}/${date}/images`)
+    .then(response => response.json())
+    .then(data => {
+      const audioCurrentTime = audio.currentTime;
+      let closestTimeDiff = Number.MAX_SAFE_INTEGER;
+      let closestImgUrl = '';
+      let i = -1;
+      let closetIndex;
+      data.forEach(({ img_url, time }) => {
+        i++;
+        const timeInMillisec = time ? parseTime(time) : 0;
+        const imgTime = timeInMillisec / 1000;
+        const timeDiff = Math.abs(audioCurrentTime - imgTime);
+
+        if (timeDiff < closestTimeDiff && imgTime < audioCurrentTime) {
+          closetIndex = i;
+          closestTimeDiff = timeDiff;
+          closestImgUrl = img_url;
+        }
+      });
+
+      mainImg.src = closestImgUrl;
+      currentIndex = closetIndex;
+      startImageChecking();
+    })
+    .catch(error => {
+      // console.error('Error fetching image:', error);
+    });
+}
+
+
+
+const playPausediv = document.getElementById("play-pause-btn");
+const playPauseBtn = document.getElementById("btn");
+
+playPausediv.addEventListener("click", function() {
   if (audio.paused) {
     audio.play();
-    playPauseBtn.innerHTML = '<i class="fa fa-pause"></i>';
-    playPauseBtn.querySelector("img").src = "../VisualRadio/static/images/pauseBtn.png";
-    // playPauseBtn.innerText = "일시정지";
+    playPausediv.innerHTML = '<i class="fa fa-pause"></i>';
+    playPauseBtn.src = "../images/pauseBtn.png";
   } else {
     audio.pause();
-    playPauseBtn.innerHTML = '<i class="fa fa-play"></i>';
-    playPauseBtn.querySelector("img").src = "../VisualRadio/static/images/playBtn.png";
-    // playPauseBtn.innerText = "재생";
+    playPausediv.innerHTML = '<i class="fa fa-play"></i>';
+    playPauseBtn.src = "../images/playBtn.png";
   }
 });
-
-const SCROLL_PAUSE_TIME = 200; // 일시 중지할 시간 (200ms)
-
-const pauseSubtitleHighlighting = () => {
-  audio.pause(); // audio 일시 정지
-};
-
-const resumeSubtitleHighlighting = () => {
-  audio.play(); // audio 재생
-};
-
-// 스크롤 이벤트 리스너 등록
-subtitleContainer.addEventListener('scroll', () => {
-  pauseSubtitleHighlighting();
-  // SCROLL_PAUSE_TIME(ms) 후 다시 자막 강조 재개
-  setTimeout(resumeSubtitleHighlighting, SCROLL_PAUSE_TIME);
-});
-
-// // 검색 기능
-// function findText() {
-//   // 검색창에 입력한 text
-//   let searchText = document.getElementById('searchBar').value;
-
-//   if (searchText == null) {
-//     alert("검색어를 입력해주세요.");
-//   } else {
-//     // 검색 결과 해당 text와 시간 저장
-//     let matchedText = subtitlesObj.filter(subtitle => subtitle.txt.includes(searchText));
-//     let matchedIndex = matchedText.map(subtitle => subtitlesObj.indexOf(subtitle));
-//     let isStopping = false;
-
-//     // 해당 시간으로 이동 > 엔터 누르면 다음 결과, 재생 버튼 누르면 break
-//     if (matchedText.length != 0) {
-//       for (let i = 0; i < matchedText.length; i++) {
-//         audio.currentTime = matchedIndex[i];
-
-//         if (window.event.keyCode == 13) {
-//           continue;
-//         }
-
-//         document.getElementById("play-pause-btn").onclick = function () {
-//           isStopping = true;
-//         };
-
-//         if (isStopping == true) {
-//           break;
-//         }
-//       }
-
-//     } else {
-//       alert("검색 내용을 찾을 수 없습니다.");
-//     }
-//   }
-// }
-
-// 인덱스 선택
-// 이런 흐름
-// 버튼 클릭 시, 서버에서 시간대 받아서 그 시간부터 재생되게
-// const part1 = document.getElementById('part1');
-// const part2 = document.getElementById('part2');
-// var time = '';
-
-// function part1Play() {
-//   return fetch(``) // 라디오 par1 시간
-//   .then((response) => response.json())
-//   .then((data) => 
-//       {time = data;})
-  
-// }
-// audio.currentTime = timeStringToFloat(time);
-
-
-
-// 서버 확인해보기!!
