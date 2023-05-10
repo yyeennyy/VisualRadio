@@ -14,7 +14,7 @@ app = Flask(__name__)
 CORS(app)  # 모든 라우트에 대해 CORS 허용
 
 # 로거
-# app.logger.setLevel(logging.DEBUG)
+# app.logger.setLevel(print)
 
 # DB세팅
 # 주의! create database radioDB; 까지는 되어있어야 함
@@ -70,6 +70,7 @@ def admin_update():
     audio_file = request.files.get('audio_file')
     audio_save(broadcasting_company, program_name, date, audio_file)
     print("[업로드] 등록 완료:", broadcasting_company, program_name, date, guest_info, audio_file)
+
 
     # 다른 프로세스를 백그라운드로 실행시키기
     print("[업로드] 음성처리 - 백그라운드로 시작")
@@ -216,7 +217,7 @@ from flask import Flask, send_from_directory
 ########################
 
 if __name__ == '__main__':
-    app.run(host='0.0.0.0', port='5000', debug=False)
+    app.run(host='0.0.0.0', port='5000', debug=True)
 
 
 
