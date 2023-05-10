@@ -40,7 +40,7 @@ const audio = document.getElementById("audio");
 const subtitleContainer = document.getElementById("subtitleContainer");
 var subtitles = [];
 let highlightedSubtitleIndex = -1;
-const source = "http://223.130.131.164:5000"
+const source = "visualradio"
 
 
 // function getInfo() {
