@@ -17,10 +17,19 @@
             $('#button-list').html(buttonList);
         });
 
-        // 버튼 클릭 이벤트 처리
         function onButtonClick(broadcast, radio_name, date) {
-            window.location.href = '/sub2?broadcast=' + broadcast + '&radio_name=' + radio_name + '&date=' + date;
+            const xhr = new XMLHttpRequest();
+            xhr.open('POST', 'http://223.130.131.164/admin-update');
+            xhr.setRequestHeader('Content-Type', 'application/json');
+            xhr.onload = function() {
+                if (xhr.status === 200) {
+                    console.log(xhr.responseText);
+                }
+            };
+            xhr.send(JSON.stringify({broadcast: broadcast, radio_name: radio_name, date: date}));
         }
+
+
     </script>
 </body>
 </html>
