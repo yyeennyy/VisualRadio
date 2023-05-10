@@ -2,7 +2,6 @@ import sys
 import sqlite3
 import os
 from pydub import AudioSegment
-import settings
 from recognise import find_time
 
 def split_about(path, program_name):
