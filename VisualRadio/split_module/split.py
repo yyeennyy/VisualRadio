@@ -1,5 +1,5 @@
 import sys
-sys.path.append("VisualRadio/split_module")
+sys.path.insert(0, '/app/VisualRadio/split_module')
 from recognise import find_time
 import settings
 import sqlite3
