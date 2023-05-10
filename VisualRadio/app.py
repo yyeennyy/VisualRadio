@@ -1,6 +1,4 @@
 import sys
-sys.path.append("./VisualRadio")
-sys.path.append("./VisualRadio/split_module")
 from flask import Flask, request, jsonify, send_file, make_response, render_template
 from flask import redirect, url_for, request
 from flask_cors import CORS
@@ -218,7 +216,7 @@ from flask import Flask, send_from_directory
 ########################
 
 if __name__ == '__main__':
-    app.run(debug=False)
+    app.run(host='0.0.0.0', port='5000', debug=False)
 
 
 
