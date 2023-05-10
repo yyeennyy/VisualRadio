@@ -7,7 +7,7 @@
 			var form = document.getElementById("broadcast_form");
 			var formData = new FormData(form);
 			var xhr = new XMLHttpRequest();
-			xhr.open("POST", "http://visualradio/admin-update");
+			xhr.open("POST", "/admin-update");
 			xhr.send(formData);
 		}
 	</script>
@@ -30,6 +30,6 @@
 
     <br>
     <br>
-    <a href="http://localhost:5000/mainpage">홈으로 돌아가기</a>
+    <a href="/mainpage">홈으로 돌아가기</a>
 </body>
 </html>
