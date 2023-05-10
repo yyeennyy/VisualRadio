@@ -132,26 +132,26 @@ def get_script(broadcast, name, date):
 
 
 # 지정된 회차의 섹션 정보 리턴
-@app.route('/<string:broadcast>/<string:name>/<string:date>/section', methods=['GET'])
-def get_sections(broadcast, name, date):
-    path = f"./VisualRadio/radio_storage/{broadcast}/{name}/{date}"
-    json_data = read_json_file(path + '/result/section_time.json')
-    return json_data
+# @app.route('/<string:broadcast>/<string:name>/<string:date>/section', methods=['GET'])
+# def get_sections(broadcast, name, date):
+#     path = f"./VisualRadio/radio_storage/{broadcast}/{name}/{date}"
+#     json_data = read_json_file(path + '/result/section_time.json')
+#     return json_data
 
 
 # 지정된 회차의 이미지들 리턴
-@app.route('/<string:broadcast>/<string:name>/<string:date>/images', methods=['GET'])
-def get_images(broadcast, name, date):
-    path = f"./VisualRadio/radio_storage/{broadcast}/{name}/{date}"
-    file_path = path + '/result/section_image.json'
-    data = read_json_file(file_path)
-    response = jsonify(data)
-    response.headers.add('Access-Control-Allow-Origin', '*')
-    # # JSON 응답 생성
-    # response = make_response(data)
-    # response.headers['Content-Type'] = 'application/json'
-    # response.headers['Access-Control-Allow-Origin'] = '*'
-    return response
+# @app.route('/<string:broadcast>/<string:name>/<string:date>/images', methods=['GET'])
+# def get_images(broadcast, name, date):
+#     path = f"./VisualRadio/radio_storage/{broadcast}/{name}/{date}"
+#     file_path = path + '/result/section_image.json'
+#     data = read_json_file(file_path)
+#     response = jsonify(data)
+#     response.headers.add('Access-Control-Allow-Origin', '*')
+#     # # JSON 응답 생성
+#     # response = make_response(data)
+#     # response.headers['Content-Type'] = 'application/json'
+#     # response.headers['Access-Control-Allow-Origin'] = '*'
+#     return response
 
 
 # 지정된 회차의 음성 데이터 리턴
