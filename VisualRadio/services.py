@@ -8,7 +8,7 @@ import sys
 from app import app # 문제
 
 # for split
-import split_module.split as splitpath
+from split_module.split import start_split
 
 # for stt
 from google.oauth2 import service_account  # 구글 클라우드 인증설정
@@ -25,8 +25,7 @@ from pydub import AudioSegment
 # logging 미사용 상태임
 import logging
 
-logger = logging.getLogger(__name__)
-logger.setLevel(logging.DEBUG)
+# logger = logging.getLogger(__name__)
 
 
 
@@ -73,7 +72,7 @@ def split(broadcast, name, date):
     # 주어진 메인 음성을 split한다.
 
     start_time = time.time()
-    splitpath.split(song_path, name, save_path)
+    start_split(song_path, name, save_path)
     end_time = time.time()
     print("[split] 분할 처리 시간: ", end_time - start_time, "seconds")
     os.makedirs(save_path, exist_ok=True)
@@ -137,7 +136,7 @@ def stt(broadcast, name, date):
 
     # STT 클라이언트 생성
     project_id = 'RadioProject'
-    credentials = service_account.Credentials.from_service_account_file('VisualRadio\credentials.json')
+    credentials = service_account.Credentials.from_service_account_file('VisualRadio/credentials.json')
     client = speech_v1.SpeechClient(credentials=credentials)
     storage_client = storage.Client(project=project_id, credentials=credentials)
 
@@ -360,6 +359,6 @@ def get_file_path_list(file_dir):
     os.makedirs(file_dir, exist_ok=True)
     for file_name in os.listdir(file_dir):
         if os.path.isfile(os.path.join(file_dir, file_name)):
-            file_list.append(file_dir + "\\" + file_name)
+            file_list.append(file_dir + "/" + file_name)
     return file_list
 
