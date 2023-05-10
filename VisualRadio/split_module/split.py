@@ -1,8 +1,11 @@
 import sys
+sys.path.append("VisualRadio/split_module")
+from recognise import find_time
+import settings
 import sqlite3
 import os
 from pydub import AudioSegment
-from recognise import find_time
+
 
 def split_about(path, program_name):
     conn = sqlite3.connect('fix.db')
