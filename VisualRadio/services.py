@@ -136,7 +136,7 @@ def stt(broadcast, name, date):
 
     # STT 클라이언트 생성
     project_id = 'RadioProject'
-    credentials = service_account.Credentials.from_service_account_file('VisualRadio/credentials.json')
+    credentials = service_account.Credentials.from_service_account_file('./VisualRadio/credentials.json')
     client = speech_v1.SpeechClient(credentials=credentials)
     storage_client = storage.Client(project=project_id, credentials=credentials)
 
