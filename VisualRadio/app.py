@@ -14,7 +14,19 @@ app = Flask(__name__)
 CORS(app)  # 모든 라우트에 대해 CORS 허용
 
 # 로거
-# app.logger.setLevel(print)
+logger = logging.getLogger()
+logger.setLevel(logging.DEBUG)
+formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+#
+stream_handler = logging.StreamHandler()
+stream_handler.setFormatter(formatter)
+logger.addHandler(stream_handler)
+#
+file_handler = logging.FileHandler('my.log')
+file_handler.setFormatter(formatter)
+logger.addHandler(file_handler)
+
+
 
 # DB세팅
 # 주의! create database radioDB; 까지는 되어있어야 함
@@ -69,11 +81,12 @@ def admin_update():
     guest_info = request.form.get('guest_info')
     audio_file = request.files.get('audio_file')
     audio_save(broadcasting_company, program_name, date, audio_file)
-    print("[업로드] 등록 완료:", broadcasting_company, program_name, date, guest_info, audio_file)
+    logger.debug(f"[업로드] 등록 완료: {broadcasting_company}, {program_name}, {date}, {guest_info}, {audio_file}")
+
 
 
     # 다른 프로세스를 백그라운드로 실행시키기
-    print("[업로드] 음성처리 - 백그라운드로 시작")
+    logger.debug("[업로드] 음성처리 - 백그라운드로 시작")
     path = f"./VisualRadio/radio_storage/{broadcasting_company}/{program_name}/{date}/"
     t = threading.Thread(target=process_audio_file, args=(broadcasting_company, program_name, date))
     t.start()
@@ -87,7 +100,7 @@ def process_audio_file(broadcast, name, date):
     services.wavToFlac(broadcast, name, date)
     services.stt(broadcast, name, date)
     services.make_txt(broadcast, name, date)
-    print("[업로드] 오디오 처리 완료")
+    logger.debug("[업로드] 오디오 처리 완료")
     semaphore.release()
     return "ok"
 
@@ -97,10 +110,10 @@ def audio_save(broadcast, program_name, date, audiofile):
     path = f"./VisualRadio/radio_storage/{broadcast}/{program_name}/{date}/"
     os.makedirs(path, exist_ok=True)
     audiofile.save(path + 'raw.wav')
-    print("[업로드] raw.wav 저장 완료")
+    logger.debug("[업로드] raw.wav 저장 완료")
     # DB에 업데이트
     services.audio_save_db(broadcast, program_name, date)
-    print("[업로드] DB반영 완료")
+    logger.debug("[업로드] DB반영 완료")
     return "ok"
 
 # --------------------------------------------------------------------------------- 프론트 요청
@@ -140,25 +153,25 @@ def get_script(broadcast, name, date):
 
 
 # 지정된 회차의 이미지들 리턴
-# @app.route('/<string:broadcast>/<string:name>/<string:date>/images', methods=['GET'])
-# def get_images(broadcast, name, date):
-#     path = f"./VisualRadio/radio_storage/{broadcast}/{name}/{date}"
-#     file_path = path + '/result/section_image.json'
-#     data = read_json_file(file_path)
-#     response = jsonify(data)
-#     response.headers.add('Access-Control-Allow-Origin', '*')
-#     # # JSON 응답 생성
-#     # response = make_response(data)
-#     # response.headers['Content-Type'] = 'application/json'
-#     # response.headers['Access-Control-Allow-Origin'] = '*'
-#     return response
+@app.route('/<string:broadcast>/<string:name>/<string:date>/images', methods=['GET'])
+def get_images(broadcast, name, date):
+    path = f"./VisualRadio/radio_storage/{broadcast}/{name}/{date}"
+    file_path = path + '/result/section_image.json'
+    data = read_json_file(file_path)
+    response = jsonify(data)
+    response.headers.add('Access-Control-Allow-Origin', '*')
+    # # JSON 응답 생성
+    # response = make_response(data)
+    # response.headers['Content-Type'] = 'application/json'
+    # response.headers['Access-Control-Allow-Origin'] = '*'
+    return response
 
 
 # 지정된 회차의 음성 데이터 리턴
 # 이렇게 코드를 변경하면, send_file 함수가 파일을 열고 전송한 후 파일 객체를 닫기 때문에 net::ERR_CONNECTION_RESET 200 (OK) <- 이 문제 해결 가능
 @app.route('/<string:broadcast>/<string:name>/<string:date>/wave', methods=['GET'])
 def get_wave(broadcast, name, date):
-    return send_file(f"radio_storage\\{broadcast}\\{name}\\{date}\\raw.wav", mimetype="audio/wav", as_attachment=False)
+    return send_file(f"radio_storage/{broadcast}/{name}/{date}/raw.wav", mimetype="audio/wav", as_attachment=False)
 
 
 # # 고정음성 요청

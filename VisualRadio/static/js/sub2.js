@@ -1,6 +1,7 @@
 
 window.onload = function() {
     console.log(broadcast + ' ' + radio_name + ' ' + date)
+    document.getElementById('info').innerHTML = `${radio_name}  ${date}`
     getScript().then(() => startSubtitles());
     getWave();
     getImg();
@@ -40,11 +41,10 @@ const audio = document.getElementById("audio");
 const subtitleContainer = document.getElementById("subtitleContainer");
 var subtitles = [];
 let highlightedSubtitleIndex = -1;
-const source = "visualradio"
 
 
 // function getInfo() {
-//     return fetch(`${source}/program_info`)
+//     return fetch(`$/program_info`)
 //     .then((response) => response.json())
 //     .then((data) => 
 //         {
@@ -55,7 +55,7 @@ const source = "visualradio"
 // }
 
 function getScript() {
-    return fetch(`${source}/${broadcast}/${radio_name}/${date}/script`)
+    return fetch(`/${broadcast}/${radio_name}/${date}/script`)
       .then((response) => response.json())
       .then((data) => {
         subtitlesObj = data;
@@ -140,7 +140,7 @@ function sleep(ms) {
 }
   
 function getWave() {
-  fetch(`${source}/${broadcast}/${radio_name}/${date}/wave`)
+  fetch(`/${broadcast}/${radio_name}/${date}/wave`)
     .then(response => response.blob())
     .then(data => {
       const audio = document.getElementById('audio');
@@ -160,7 +160,7 @@ const mainImg = document.getElementById('main_img');
 var data = [];
 
 function getImg() {
-  fetch(`${source}/${radio_name}/${date}/images`)
+  fetch(`/${broadcast}/${radio_name}/${date}/images`)
     .then(response => response.json())
     .then(imgUrl => {
         data = imgUrl;
@@ -215,7 +215,7 @@ function startImageChecking() {
 startImageChecking();
 
 function showImageAtCurrentTime() {
-  fetch(`${source}/${radio_name}/${date}/images`)
+  fetch(`$/${radio_name}/${date}/images`)
     .then(response => response.json())
     .then(data => {
       const audioCurrentTime = audio.currentTime;
