@@ -1,0 +1,56 @@
+version: "3.8"
+
+networks:
+  db-net:
+    driver: bridge
+
+services:
+  mysql:
+    container_name: mysql
+    image: yenyeny1/mysql:latest
+    restart: always
+    ports: 
+      - 3306:3306
+    networks:
+      - db-net
+    command:
+      - --default-authentication-plugin=mysql_native_password
+      - --character-set-server=utf8mb4
+      - --collation-server=utf8mb4_unicode_ci
+      - --range_optimizer_max_mem_size=16777216
+    environment:
+      MYSQL_DATABASE : radio
+      MYSQL_USER: visualradio
+      MYSQL_PASSWORD: visualradio
+      MYSQL_ROOT_PASSWORD: visualradio
+  visual-radio:
+    container_name: visual-radio
+    build: .
+    # image: yenyeny1/visual-radio:0.1
+    restart: always
+    ports: 
+      - 5000:5000
+    networks:
+      - db-net
+    volumes:
+      # - ./var/lib/volumes/docker/radio-vol/_data:/app
+      - .:/app
+    depends_on:
+      - mysql
+    environment:
+      - TZ=Asia/Seoul
+  nginx:
+    container_name: nginx
+    image: yenyeny1/nginx:latest
+    restart: always
+    ports: 
+      - "80:80/tcp"
+      - "443:443"
+    volumes:
+      - ./default.conf:/etc/nginx/conf.d/default.conf
+    networks:
+      - db-net
+    environment:
+      - TZ=Asia/Seoul
+    depends_on:
+      - visual-radio
