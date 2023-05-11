@@ -24,12 +24,33 @@ services:
       MYSQL_PASSWORD: visualradio
       MYSQL_ROOT_PASSWORD: visualradio
   visual-radio:
-    image: yenyeny1/visual-radio:0.1
     container_name: visual-radio
+    build: .
+    # image: yenyeny1/visual-radio:0.1
     restart: always
-    expose:
-      - 5000
+    ports: 
+      - 5000:5000
     networks:
       - db-net
+    volumes:
+      # - ./var/lib/volumes/docker/radio-vol/_data:/app
+      - .:/app
     depends_on:
       - mysql
+    environment:
+      - TZ=Asia/Seoul
+  nginx:
+    container_name: nginx
+    image: yenyeny1/nginx:latest
+    restart: always
+    ports: 
+      - "80:80/tcp"
+      - "443:443"
+    volumes:
+      - ./default.conf:/etc/nginx/conf.d/default.conf
+    networks:
+      - db-net
+    environment:
+      - TZ=Asia/Seoul
+    depends_on:
+      - visual-radio
