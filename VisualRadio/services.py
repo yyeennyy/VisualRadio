@@ -22,8 +22,19 @@ import json
 import wave
 from pydub import AudioSegment
 
-# logging 미사용 상태임
+# 로거
 import logging
+logger = logging.getLogger()
+logger.setLevel(logging.DEBUG)
+formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+#
+stream_handler = logging.StreamHandler()
+stream_handler.setFormatter(formatter)
+logger.addHandler(stream_handler)
+#
+file_handler = logging.FileHandler('my.log')
+file_handler.setFormatter(formatter)
+logger.addHandler(file_handler)
 
 # logger = logging.getLogger(__name__)
 
@@ -44,7 +55,7 @@ def audio_save_db(broadcast, name, date):
             db.session.add(wav)
             db.session.commit()
         else:
-            print(f"[업로드][경고] {name} {date}가 이미 있습니다")
+            logger.debug(f"[업로드][경고] {name} {date}가 이미 있습니다")
 
 
 # ★
@@ -60,13 +71,13 @@ def split(broadcast, name, date):
         # date_obj = datetime.strptime(date, '%Y-%m-%d %H:%M:%S')
         wav = Wav.query.filter_by(radio_name=name, radio_date=str(date)).first()
         if not wav:
-            print("[split] 해당 라디오 데이터가 없습니다. 먼저 raw.wav를 등록하세요")
+            logger.debug("[split] 해당 라디오 데이터가 없습니다. 먼저 raw.wav를 등록하세요")
             return
         if wav.section != 0:
-            print("[split] 분할 정보가 이미 있습니다 - %d 분할" % wav.section)
+            logger.debug(f"[split] 분할 정보가 이미 있습니다 - {wav.section} 분할")
             return
         else:
-            print("[split] 분할 로직을 시작합니다")
+            logger.debug("[split] 분할 로직을 시작합니다")
 
     # 가정: split을 위한 "고정음성"은 fix.db에 등록된 상태다.
     # 주어진 메인 음성을 split한다.
@@ -74,7 +85,7 @@ def split(broadcast, name, date):
     start_time = time.time()
     start_split(song_path, name, save_path)
     end_time = time.time()
-    print("[split] 분할 처리 시간: ", end_time - start_time, "seconds")
+    logger.debug(f"[split] 분할 처리 시간: {end_time - start_time} seconds")
     os.makedirs(save_path, exist_ok=True)
     wav_files = [f for f in os.listdir(save_path) if f.endswith('.wav')]
 
@@ -93,7 +104,7 @@ def split(broadcast, name, date):
 
 def get_request_url_raw(radio_name, date):
     url = "http://localhost:5000/%s/%s/wave" % (radio_name, date)
-    print("요청 경로: " + url)
+    logger.debug(f"요청 경로:  {url}")
     response = requests.get(url)
     if response.status_code == 200:
         return io.BytesIO(response.content)
@@ -101,8 +112,7 @@ def get_request_url_raw(radio_name, date):
 
 def get_request_url_fixed(radio_name, date, filename):
     url = "http://localhost:5000/%s/%s/fixed/%s" % (radio_name, date, filename)
-    print("요청 경로: " + url)
-    print(url)
+    logger.debug(f"요청 경로:  {url}")
     response = requests.get(url)
     if response.status_code == 200:
         return io.BytesIO(response.content)
@@ -118,13 +128,13 @@ def wavToFlac(broadcast, name, date):
     for order, wav in enumerate(wav_path):
         song = AudioSegment.from_wav(wav)
         song.export(flac_loc + "/sec_%d.flac" % (order), format="flac")
-    print("-- stt를 하기 위해 wav를 flac으로 변환했습니다 --")
+    logger.debug("-- stt를 하기 위해 wav를 flac으로 변환했습니다 --")
 
 
 # ★
 def stt(broadcast, name, date):
 
-    print("[stt] 시작")
+    logger.debug("[stt] 시작")
     start_time = time.time()
     # 모든 section 결과를 무조건 stt한다.
     path = f"./VisualRadio/radio_storage/{broadcast}/{name}/{date}"
@@ -143,7 +153,7 @@ def stt(broadcast, name, date):
     # 섹션마다 stt 처리하기
     threads = []
     for order, section in enumerate(section_list):
-        print("[stt] stt할 파일 : " + section)
+        logger.debug(f"[stt] stt할 파일 : {section}")
         # STT 수행
         thread = threading.Thread(target=run_quickstart,
                                   args=(broadcast, name, date, section, client, storage_client, order))
@@ -154,7 +164,7 @@ def stt(broadcast, name, date):
         thread.join()
 
     end_time = time.time()
-    print("[stt] 완료 : 소요시간", end_time-start_time)
+    logger.debug(f"[stt] 완료 : 소요시간 {end_time-start_time}")
 
     # DB - stt를 True로 갱신
     with app.app_context():
@@ -164,7 +174,7 @@ def stt(broadcast, name, date):
             db.session.add(wav)
             db.session.commit()
         else:
-            print(f"[stt] [오류] {name} {date} 가 있어야 하는데, DB에서 찾지 못함")
+            logger.debug(f"[stt] [오류] {name} {date} 가 있어야 하는데, DB에서 찾지 못함")
 
 
 def run_quickstart(broadcast, name, date, section, client, storage_client, order):
@@ -194,7 +204,7 @@ def run_quickstart(broadcast, name, date, section, client, storage_client, order
             response = operation.result(timeout=999999)
             break  # 성공하면 루프를 빠져나갑니다.
         except ServiceUnavailable as e:
-            print(f"Error: {e}. Retrying in 1 second...")
+            logger.debug(f"Error: {e}. Retrying in 1 second...")
             time.sleep(1)  # 1초 대기 후 다시 시도합니다.
 
 
@@ -212,7 +222,7 @@ def run_quickstart(broadcast, name, date, section, client, storage_client, order
 
     scripts = []
     # stt 결과 가져오기 - text, time에 대한 json 만들기
-    print("[stt] stt_%d.json 처리중" % (order))
+    logger.debug(f"[stt] stt_{order}.json 처리중")
     for result in results:
         # 각 음성 인식 결과에서 가장 가능성이 높은 대안을 사용
         alternative = result.alternatives[0]
@@ -230,7 +240,7 @@ def run_quickstart(broadcast, name, date, section, client, storage_client, order
     with open(filename, 'w', encoding='utf-8') as f:
         json.dump(data, f, ensure_ascii=False)
 
-    print("[stt] stt_%d.json 처리 완료" % (order))
+    logger.debug(f"[stt] stt_{order}.json 처리 완료")
 
 
 def get_flac_duration(filepath):
@@ -243,7 +253,7 @@ def get_flac_duration(filepath):
 
 # 최종 script.json을 생성한다
 def make_txt(broadcast, name, date):
-    print("[make_txt] 전체 script.json 생성 시작")
+    logger.debug("[make_txt] 전체 script.json 생성 시작")
     # stt_n.json 각각을 처리
     # end_time을 고려하여 제작
     path = f"./VisualRadio/radio_storage/{broadcast}/{name}/{date}"
@@ -287,9 +297,9 @@ def make_txt(broadcast, name, date):
             db.session.add(wav)
             db.session.commit()
         else:
-            print(f"[make_txt] [오류] {name} {date} 가 있어야 하는데, DB에서 찾지 못함")
+            logger.debug(f"[make_txt] [오류] {name} {date} 가 있어야 하는데, DB에서 찾지 못함")
 
-    print("[make_txt] script.json 생성 완료!!!")
+    logger.debug("[make_txt] script.json 생성 완료!!!")
 #     generate_images_by_section(broadcast, name, date, section_start)
 
 
