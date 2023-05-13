@@ -6,6 +6,7 @@ import requests
 import io
 import sys
 from app import app # 문제
+from flask import jsonify
 
 # for split
 from split_module.split import start_split
@@ -39,6 +40,52 @@ logger.addHandler(file_handler)
 # logger = logging.getLogger(__name__)
 
 
+
+# --------------------------------------------- main
+
+
+
+
+def get_all_radio():
+    with app.app_context():
+        all_wavs = Wav.query.all() 
+        wav_list = []
+        
+        for wav in all_wavs:
+            wav_dict = {
+                'broadcast': wav.broadcast,
+                'radio_name': wav.radio_name,
+                'image_url': 'no'
+            }
+            wav_list.append(wav_dict)
+        
+        json_data = json.dumps(wav_list)
+    
+    return json_data
+
+
+
+# --------------------------------------------- sub1
+
+def all_date_of(radio_name, month):
+    with app.app_context():
+        logger.warn(month)
+        # month를 이용하여 시작일과 종료일 계산
+        start_date = datetime.strptime(f'2023-{month}-01', '%Y-%m-%d').date()
+        end_date = datetime.strptime(f'2023-{month}-01', '%Y-%m-%d').replace(day=1, month=start_date.month+1) - timedelta(days=1)
+        
+        # 해당 월의 데이터 조회
+        targets = Wav.query.filter_by(radio_name=radio_name).filter(Wav.radio_date >= start_date, Wav.radio_date <= end_date).all()
+        
+        only_day_list = [wav.radio_date.split('-')[-1] for wav in targets]
+        date_list = [{'date': day} for day in only_day_list]
+        date_json = json.dumps(date_list)
+        logger.warning(date_json)
+
+        return date_json
+
+
+# ----------------------------------------------
 
 
 
@@ -102,20 +149,20 @@ def split(broadcast, name, date):
     return 0
 
 
-def get_request_url_raw(radio_name, date):
-    url = "http://localhost:5000/%s/%s/wave" % (radio_name, date)
-    logger.debug(f"요청 경로:  {url}")
-    response = requests.get(url)
-    if response.status_code == 200:
-        return io.BytesIO(response.content)
+# def get_request_url_raw(radio_name, date):
+#     url = "http://localhost:5000/%s/%s/wave" % (radio_name, date)
+#     logger.debug(f"요청 경로:  {url}")
+#     response = requests.get(url)
+#     if response.status_code == 200:
+#         return io.BytesIO(response.content)
 
 
-def get_request_url_fixed(radio_name, date, filename):
-    url = "http://localhost:5000/%s/%s/fixed/%s" % (radio_name, date, filename)
-    logger.debug(f"요청 경로:  {url}")
-    response = requests.get(url)
-    if response.status_code == 200:
-        return io.BytesIO(response.content)
+# def get_request_url_fixed(radio_name, date, filename):
+#     url = "http://localhost:5000/%s/%s/fixed/%s" % (radio_name, date, filename)
+#     logger.debug(f"요청 경로:  {url}")
+#     response = requests.get(url)
+#     if response.status_code == 200:
+#         return io.BytesIO(response.content)
 
 
 # wav to flac (google stt 권장 포맷)
@@ -300,31 +347,32 @@ def make_txt(broadcast, name, date):
             logger.debug(f"[make_txt] [오류] {name} {date} 가 있어야 하는데, DB에서 찾지 못함")
 
     logger.debug("[make_txt] script.json 생성 완료!!!")
-#     generate_images_by_section(broadcast, name, date, section_start)
+    generate_images_by_section(broadcast, name, date, section_start)
 
 
-# def generate_images_by_section(broadcast, name, date, section_start_list):
-#     path = f"./VisualRadio/radio_storage/{broadcast}/{name}/{date}"
+def generate_images_by_section(broadcast, name, date, section_start_list):
+    path = f"./VisualRadio/radio_storage/{broadcast}/{name}/{date}"
+    
+    img_url_data = []
+    for i in range(len(section_start_list)):
+        img_url_data.append('you have to append img urls')
 
-#     img_url_1 = "https://img.hankyung.com/photo/202203/01.29353881.1-1200x.jpg"
-#     img_url_2 = "https://pbs.twimg.com/ext_tw_video_thumb/1514084683608309764/pu/img/1ihM-03RUgNtJqcs.jpg"
-#     img_url_3 = "https://static.inews24.com/v1/4815fc2c7e522d.jpg"
-#     img_url_4 = "https://cdn.litt.ly/images/NEpLQ6zpkVRqKo0EzVy3kg1wzlR68XYL?s=1200x630&m=inside"
-#     img_url_5 = "http://img2.sbs.co.kr/img/sbs_cms/CH/2020/06/01/CH59004650_w666_h968.jpg"
+    # img_url_1 = "https://img.hankyung.com/photo/202203/01.29353881.1-1200x.jpg"
+    # img_url_2 = "https://pbs.twimg.com/ext_tw_video_thumb/1514084683608309764/pu/img/1ihM-03RUgNtJqcs.jpg"
+    # img_url_3 = "https://static.inews24.com/v1/4815fc2c7e522d.jpg"
+    # img_url_4 = "https://cdn.litt.ly/images/NEpLQ6zpkVRqKo0EzVy3kg1wzlR68XYL?s=1200x630&m=inside"
+    # img_url_5 = "http://img2.sbs.co.kr/img/sbs_cms/CH/2020/06/01/CH59004650_w666_h968.jpg"
+    sec_img_data = []
+    for idx, time in enumerate(section_start_list):
+        dic_data = {
+            'time': time,
+            'img_url': img_url_data[idx]
+        }
+        sec_img_data.append(dic_data)
 
-#     sec_img_data = []
-#     img_url_data = [img_url_1, img_url_2, img_url_3, img_url_4, img_url_5]
-
-#     for idx, time in enumerate(section_start_list):
-#         dic_data = {
-#             'time': time,
-#             'img_url': img_url_data[idx]
-#         }
-#         sec_img_data.append(dic_data)
-
-#     with open(f"{path}/result/section_image.json", 'w', encoding='utf-8') as f:
-#         json.dump(sec_img_data, f, ensure_ascii=False)
-#     print("[make_txt] section_image.json 생성 완료!!!")
+    with open(f"{path}/result/section_image.json", 'w', encoding='utf-8') as f:
+        json.dump(sec_img_data, f, ensure_ascii=False)
+    print("[make_txt] section_image.json 생성 완료!!!")
 
 
 def add_time(time1, time2):
