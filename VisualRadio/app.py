@@ -44,18 +44,9 @@ with app.app_context():
 def adminpage():
     return render_template('admin.html')
 
-@app.route('/mainpage')
+@app.route('/')
 def mainpage():
     return render_template('main.html')
-
-@app.route('/sub1')
-def sub1():
-    return render_template('sub1.html')
-
-
-
-
-
 
 
 # 임시 페이지
