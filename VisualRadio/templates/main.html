@@ -5,29 +5,104 @@
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>RADIO_MAIN</title>
-    <link rel="stylesheet" href="/static/css/main.css">
+    <link rel="stylesheet" href="../static/css/main.css">
+    <script type="module" src="../static/js/main.js"></script>
 </head>
 <body>
     <div id = "wrap">
         <div id = "header">
-            <div id = "logo">로고</div>
-            <div id = "search">검색</div>
+            <div id = "logo">
+                <!-- 로고 -->
+                <img id = "logoImg" src="../images/logo.png">
+            </div>
+            <div id = "menu">
+                <ul>
+                    <li id = "search">검색</li>
+                    <li id = "rank">인기순위</li>
+                    <li id = "myPick">내가 찜한 컨텐츠</li>
+                </ul>
+            </div>
         </div>
-        <div id = "section1">
-            <div class = "radio" onclick="window.location.href='sub1.html'">라디오1</div>
-            <div class = "radio">라디오2</div>
-            <div class = "radio">라디오3</div>
-            <div class = "radio">라디오4</div>
-            <div class = "radio">라디오5</div>
+        <div id = "channels">
+            <div class = "radioBroadcast">
+                <div class = "radioBroadcastName">MBC FM4U</div>
+                <div class = "content mbcFm4u">
+                    <div class = "cover_back">
+                        <div class = "lp">
+                            <!-- 검정 LP -->
+                            <img class="imgControl" src="../images/lp.png"> 
+                        </div>
+                        <div class = "cover">
+                            <!-- 라디오 표지 -->
+                            <img class="imgControl mbcFm4u_img" src="">
+                        </div>
+                        <div class = "like">
+                            <!-- 좋아요 하트 -->
+                            <img class="imgControl" src="../images/before_heart.png">
+                        </div>
+                    </div>
+                    <div class = "program_name" broadcast="" radio_name=""></div>
+                </div>
+                <div class = "content mbcFm4u">
+                    <div class = "cover_back">
+                        <div class = "lp">
+                            <!-- 검정 LP -->
+                            <img class="imgControl" src="../images/lp.png"> 
+                        </div>
+                        <div class = "cover">
+                            <!-- 라디오 표지 -->
+                            <img class="imgControl mbcFm4u_img" src="">
+                        </div>
+                        <div class = "like">
+                            <!-- 좋아요 하트 -->
+                            <img class="imgControl" src="../images/before_heart.png">
+                        </div>
+                    </div>
+                    <div class = "program_name" broadcast="" radio_name=""></div>
+                </div>
+            </div>
+            <div class = "radioBroadcast">
+                <div class = "radioBroadcastName">KBS</div>
+                <div class = "content kbs">
+                    <div class = "cover_back">
+                        <div class = "lp">
+                            <!-- 검정 LP -->
+                            <img class="imgControl" src="../images/lp.png"> 
+                        </div>
+                        <div class = "cover">
+                            <!-- 라디오 표지 -->
+                            <img class="imgControl kbs_img" src="">
+                        </div>
+                        <div class = "like">
+                            <!-- 좋아요 하트 -->
+                            <img class="imgControl" src="../images/before_heart.png">
+                        </div>
+                    </div>
+                    <div class = "program_name" broadcast="" radio_name=""></div>
+                </div>
+                <div class = "content kbs">
+                    <div class = "cover_back">
+                        <div class = "lp">
+                            <!-- 검정 LP -->
+                            <img class="imgControl" src="../images/lp.png"> 
+                        </div>
+                        <div class = "cover">
+                            <!-- 라디오 표지 -->
+                            <img class="imgControl kbs_img" src="">
+                        </div>
+                        <div class = "like">
+                            <!-- 좋아요 하트 -->
+                            <img class="imgControl" src="../images/before_heart.png">
+                        </div>
+                    </div>
+                    <div class = "program_name" broadcast="" radio_name=""></div>
+                </div>
+            </div>
+            
         </div>
-        <div id = "section2">
-            <div class = "radio">라디오6</div>
-            <div class = "radio">라디오7</div>
-            <div class = "radio">라디오8</div>
-            <div class = "radio">라디오9</div>
-            <div class = "radio">라디오10</div>
-        </div>
+        <!-- <div id = "mbc">
+            <div class = "mbc" broadcast="" radio_name=""><img class="mbc_img" src="">이석훈의 브런치 카페</div>
+        </div> -->
     </div>
-    <div id = "footer">COPYRIGHT</div>
 </body>
 </html>

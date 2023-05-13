@@ -1,10 +1,12 @@
-
 window.onload = function() {
-    console.log(broadcast + ' ' + radio_name + ' ' + date)
-    document.getElementById('info').innerHTML = `${radio_name}  ${date}`
-    getScript().then(() => startSubtitles());
-    getWave();
-    getImg();
+  const urlParams = new URLSearchParams(window.location.search);
+  radio_name = urlParams.get('radio_name');
+  let date = urlParams.get('date');
+    getInfo(radio_name, date).then(() => {
+        getScript(radio_name, date).then(() => startSubtitles());
+        getWave(radio_name, date);
+        getImg(radio_name, date);
+    }); 
     const progress = document.querySelector('.progress');
     const progressBar = document.querySelector('.progress-bar')
     const currentTimeText = document.getElementById('currentTime');
@@ -35,27 +37,25 @@ window.onload = function() {
         showImageAtCurrentTime();
       });
     }
-
 var subtitlesObj;
 const audio = document.getElementById("audio");
 const subtitleContainer = document.getElementById("subtitleContainer");
 var subtitles = [];
 let highlightedSubtitleIndex = -1;
+const source = "http://localhost:8080"
+// const source = "http://localhost:5000"
+let radio_name;
+let date;
 
+function getInfo(radio_name, date) {
+    return fetch(`${source}/${radio_name}/${date}/program_info`)
+    .then((response) => response.json())
+    .then((data) => 
+        {document.getElementById('info').innerHTML = `${radio_name}  ${date}`})
+}
 
-// function getInfo() {
-//     return fetch(`$/program_info`)
-//     .then((response) => response.json())
-//     .then((data) => 
-//         {
-//          broadcast = data.broadcast;
-//          radio_name = data.radio_name;
-//          date       = data.date;
-//          document.getElementById('info').innerHTML = `${radio_name}  ${date}`})
-// }
-
-function getScript() {
-    return fetch(`/${broadcast}/${radio_name}/${date}/script`)
+function getScript(radio_name, date) {
+    return fetch(`${source}/${radio_name}/${date}/script`)
       .then((response) => response.json())
       .then((data) => {
         subtitlesObj = data;
@@ -73,80 +73,85 @@ function timeStringToFloat(time) {
     return parseFloat(totalSeconds.toFixed(3));
 }
 
+let subtitlesWithTime;
+
 function startSubtitles() {
-    const subtitlesWithTime = subtitlesObj.map(subtitle => ({
-      txt: subtitle.txt,
-      time: timeStringToFloat(subtitle.time)
-    }));
-  
-    subtitlesWithTime.forEach(subtitle => {
-      const block = document.createElement('div');
-      block.innerText = subtitle.txt;
-      block.addEventListener('click', () => {
-        audio.currentTime = subtitle.time;
-        showImageAtCurrentTime();
+  subtitlesWithTime = subtitlesObj.map(subtitle => ({
+    txt: subtitle.txt,
+    time: timeStringToFloat(subtitle.time)
+  }));
 
-      });
-      subtitleContainer.appendChild(block);
+  subtitlesWithTime.forEach(subtitle => {
+    const block = document.createElement('div');
+    block.innerText = subtitle.txt;
+    block.addEventListener('click', () => {
+      audio.currentTime = subtitle.time;
+      showImageAtCurrentTime();
     });
+    subtitleContainer.appendChild(block);
+  });
+  }
 
-    const containerHeight = subtitleContainer.getBoundingClientRect().height;
-    const subtitleHeight = subtitleContainer.children[0].getBoundingClientRect().height;  
-    audio.addEventListener('timeupdate', () => {
-        const currentTime = audio.currentTime;
-        for (let i = 0; i < subtitlesWithTime.length; i++) {
-          const subtitle = subtitlesWithTime[i];
-          const nextSubtitle = subtitlesWithTime[i + 1];
-          if (nextSubtitle && nextSubtitle.time <= currentTime) {
-            continue;
-          }
-          if (subtitle.time <= currentTime) {
-            // 현재 재생 중인 자막을 강조합니다.
-            subtitleContainer.children[i].style.fontWeight = 'bold';
-            highlightedSubtitleIndex = i;
-          } else {
-            subtitleContainer.children[i].style.fontWeight = 'normal';
-          }
-        }
-        // 나머지 자막들의 스타일을 일괄적으로 normal로 설정합니다.
-        if (highlightedSubtitleIndex !== -1) {
-          for (let i = 0; i < subtitlesWithTime.length; i++) {
-            if (i !== highlightedSubtitleIndex) {
-              subtitleContainer.children[i].style.fontWeight = 'normal';
-            }
-          }
-        }
-      
-        // 강조 중인 자막이 항상 중앙에 오도록 스크롤 위치를 조정합니다.
-        if (highlightedSubtitleIndex !== -1) {
-
-            const highlightedSubtitle = subtitleContainer.children[highlightedSubtitleIndex];
-            const containerTop = subtitleContainer.getBoundingClientRect().top;
-            const highlightedSubtitleTop = highlightedSubtitle.getBoundingClientRect().top - containerTop;
-            const subtitleHeight = highlightedSubtitle.getBoundingClientRect().height;
-            const containerHeight = subtitleContainer.getBoundingClientRect().height;
-            const scrollAmount = highlightedSubtitleTop - containerTop;
-            subtitleContainer.scrollTo({
-                top: subtitleContainer.scrollTop + scrollAmount+subtitleHeight,
-                behavior: 'smooth',
-            });
-        }
-      });
+function hilightSubtitle(){
+  const currentTime = audio.currentTime;
+  for (let i = 0; i < subtitlesWithTime.length; i++) {
+    const subtitle = subtitlesWithTime[i];
+    const nextSubtitle = subtitlesWithTime[i + 1];
+    if (nextSubtitle && nextSubtitle.time <= currentTime) {
+      continue;
     }
+    if (subtitle.time <= currentTime) {
+      // 현재 재생 중인 자막을 강조합니다.
+      subtitleContainer.children[i].style.fontWeight = 'bold';
+      highlightedSubtitleIndex = i;
+    } else {
+      subtitleContainer.children[i].style.fontWeight = 'normal';
+    }
+  }
+  // 나머지 자막들의 스타일을 일괄적으로 normal로 설정합니다.
+  if (highlightedSubtitleIndex !== -1) {
+    for (let i = 0; i < subtitlesWithTime.length; i++) {
+      if (i !== highlightedSubtitleIndex) {
+        subtitleContainer.children[i].style.fontWeight = 'normal';
+      }
+    }
+  }
+
+  // 강조 중인 자막이 항상 중앙에 오도록 스크롤 위치를 조정합니다.
+  if (highlightedSubtitleIndex !== -1) {
+
+      const highlightedSubtitle = subtitleContainer.children[highlightedSubtitleIndex];
+      const containerTop = subtitleContainer.getBoundingClientRect().top;
+      const highlightedSubtitleTop = highlightedSubtitle.getBoundingClientRect().top - containerTop;
+      const subtitleHeight = highlightedSubtitle.getBoundingClientRect().height;
+      const containerHeight = subtitleContainer.getBoundingClientRect().height;
+      const scrollAmount = highlightedSubtitleTop - containerTop;
+      subtitleContainer.scrollTo({
+          top: subtitleContainer.scrollTop + scrollAmount+subtitleHeight,
+          behavior: 'smooth',
+      });
+  }
+}
+audio.addEventListener('timeupdate', hilightSubtitle);
+
 
 function sleep(ms) {
     const wakeUpTime = Date.now() + ms;
     while (Date.now() < wakeUpTime) {}
 }
   
-function getWave() {
-  fetch(`/${broadcast}/${radio_name}/${date}/wave`)
-    .then(response => response.blob())
-    .then(data => {
-      const audio = document.getElementById('audio');
-      audio.src = URL.createObjectURL(data);
-    })
-    .catch(error => console.error(error));
+function getWave(radio_name, date) {
+    fetch(`${source}/${radio_name}/${date}/wave`)
+    .then((response) => response.json())
+    .then((data) =>
+        document.getElementById('audio').src =  data.wave)
+}
+
+
+function parseTime(timeString) {
+  const [min, secMillisec] = timeString.split(':');
+  const [sec, millisec] = secMillisec.split('.');
+  return (+min * 60 + +sec) * 1000 + +millisec;
 }
 
 let audioCurrentTime = 0;
@@ -159,17 +164,15 @@ let currentIndex=0;
 const mainImg = document.getElementById('main_img');
 var data = [];
 
-function getImg() {
-  fetch(`/${broadcast}/${radio_name}/${date}/images`)
+function getImg(radio_name, date) {
+  fetch(`${source}/${radio_name}/${date}/images`)
     .then(response => response.json())
     .then(imgUrl => {
         data = imgUrl;
-        // console.log(data);
     })}
 
 function showImg(){
-
-      const { img_url, time } = data[currentIndex];
+      var { img_url, time } = data[currentIndex];
       var nextImgTime;
 
       // preload the next image
@@ -215,7 +218,7 @@ function startImageChecking() {
 startImageChecking();
 
 function showImageAtCurrentTime() {
-  fetch(`$/${radio_name}/${date}/images`)
+  fetch(`${source}/${radio_name}/${date}/images`)
     .then(response => response.json())
     .then(data => {
       const audioCurrentTime = audio.currentTime;
@@ -248,16 +251,30 @@ function showImageAtCurrentTime() {
 
 
 const playPausediv = document.getElementById("play-pause-btn");
-const playPauseBtn = document.getElementById("btn");
 
 playPausediv.addEventListener("click", function() {
   if (audio.paused) {
     audio.play();
-    playPausediv.innerHTML = '<i class="fa fa-pause"></i>';
-    playPauseBtn.src = "../images/pauseBtn.png";
+    playPausediv.innerHTML = '<img class="btn" src = "../images/pauseBtn.png" ><i class="fa fa-pause"></i>';
   } else {
     audio.pause();
-    playPausediv.innerHTML = '<i class="fa fa-play"></i>';
-    playPauseBtn.src = "../images/playBtn.png";
+    playPausediv.innerHTML = '<img class="btn" src = "../images/playBtn.png" ><i class="fa fa-play"></i>';
   }
 });
+
+// let isScrolling = false;
+
+// subtitleContainer.addEventListener('scroll', () => {
+//   if (isScrolling) {
+//     // 일시적으로 timeupdate 이벤트 처리 중지
+//     audio.removeEventListener('timeupdate', hilightSubtitle);
+//     clearTimeout(timeoutId);
+//   }
+//   isScrolling = true;
+
+//   // 1.5초 후에 timeupdate 이벤트 처리 재개
+//   const timeoutId = setTimeout(() => {
+//     isScrolling = false;
+//     audio.addEventListener('timeupdate', hilightSubtitle);
+//   }, 100);
+// });

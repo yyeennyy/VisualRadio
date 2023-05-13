@@ -5,11 +5,7 @@
 
 body {
     background-color: rgba(223, 207, 244, 0.2);
-<<<<<<< HEAD
-    background-image: url("/static/images/sub2_backgroundImage.png");
-=======
     background-image: url("../images/sub2_backgroundImage.png");
->>>>>>> a1d64a4e66d6a457e1e65e315d1dea1d134efb84
     background-size: 1400px 1400px;
     background-position: center center;
     background-repeat: no-repeat;
@@ -176,6 +172,7 @@ p {
     cursor: pointer;
     margin-top: -30px;
     margin-bottom: 5px;
+
 }
 
 .btn {

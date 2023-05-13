@@ -1,46 +1,136 @@
+* {
+    /* text-align: center; */
+    font-size: 15px;
+}
+
 body {
-    width : 960px ;
-    margin : 0 auto ;
-    text-align: center;
+    background-size: 1400px 1400px;
 }
 
 #wrap {
-    display: inline-block;
-}
-
-#header, #section1, #section2 {
-    overflow: hidden;
-    padding: 30px;
-    margin : 0 auto ;
+    width: 1100px;
+    height: 832px;
+    margin: 0 auto;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    flex-direction: column;
+    /* border: 1px solid black; */
 }
 
 #logo {
-    float: left;
-    width: 100px;
-    height: 100px;
-    border: 1px solid black;
-    margin: 15px;
+    width: 350px;
+    height: 87.5px;
+    position: relative;
+    top: 0px;
+    margin: 0 auto;
 }
 
-#search {
-    float: left;
-    width: 400px;
-    height: 50px;
-    border: 1px solid black;
-    margin: 15px;
-    margin-top: 65px;
+#logoImg {
+    width: 350px;
+    height: 87.5px;            
 }
 
-.radio {
-    float: left;
-    width: 100px;
-    height: 100px;
-    border: 1px solid black;
-    margin: 10px;
-}
-
-#footer {
-    width: 100%;
+#menu {
+    /* width: 100%; */
     height: 30px;
-    border: 1px solid black; 
+    margin-bottom: 40px;
+    margin-left: -400px;
+}
+
+li {
+    list-style: none;
+    color: rgb(154, 48, 174);
+    font-size: 20px;
+    float: left;
+    line-height: 30px;
+    margin-right: 50px;
+}
+
+#channels {
+    width: 100%;
+    height: 800px;
+    /* border: 1px solid black; */
+}
+
+.radioBroadcast {
+    width: 100%;
+    height: 200px;
+    background-color: rgba(223, 207, 244, 0.2);
+    position: relative;
+    margin-bottom: 40px;
+    display: flex;
+}
+
+.radioBroadcastName {
+    text-align: center;
+    font-weight: bolder;
+    color: rgb(154, 48, 174);
+    font-size: 30px;
+    line-height: 40px;
+    background-color: rgb(224, 191, 230);
+    width: 170px;
+    height: 40px;
+    position: absolute;
+    top: -20px;
+    left: 10px;
+}
+
+.content {
+    width: 180px;
+    height: 160px;
+    /* border: 1px solid black; */
+    /* position: absolute; */
+    /* top: 30px; */
+    /* left: 10px; */
+    margin-top: 30px;
+    margin-left: 10px;
+    margin-right: 30px;
+}
+
+.cover_back {
+    width: 135px;
+    height: 135px;
+    background-color: rgb(176, 151, 112);
+    position: relative;
+}
+
+.cover {
+    width: 125px;
+    height: 125px;
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    margin: -62.5px 0 0 -62.5px;
+}
+
+.imgControl {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.like {
+    width: 30px;
+    height: 30px;
+    position: absolute;
+    top: 7px;
+    right: 7px;
+}
+
+.lp {
+    width: 130px;
+    height: 130px;
+    position: absolute;
+    top: 2px;
+    right: -40px;
+}
+
+.program_name {
+    width: 100%;
+    height: 20px;
+    line-height: 20px;
+    color: rgb(154, 48, 174);
+    margin-top: 10px;
+    text-align: left;
 }
