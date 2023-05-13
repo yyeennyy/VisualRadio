@@ -1,61 +1,58 @@
+let broadcast
+let radio_name
+let date
+
 window.onload = function() {
   const urlParams = new URLSearchParams(window.location.search);
+  broadcast = urlParams.get('broadcast');
   radio_name = urlParams.get('radio_name');
-  let date = urlParams.get('date');
-    getInfo(radio_name, date).then(() => {
-        getScript(radio_name, date).then(() => startSubtitles());
-        getWave(radio_name, date);
-        getImg(radio_name, date);
-    }); 
-    const progress = document.querySelector('.progress');
-    const progressBar = document.querySelector('.progress-bar')
-    const currentTimeText = document.getElementById('currentTime');
-    const durationText = document.getElementById('duration');
+  date = urlParams.get('date');
+  document.getElementById('info').innerHTML = `${radio_name}  ${date}`
+
+  getScript(broadcast, radio_name, date).then(() => startSubtitles());
+  getWave(broadcast, radio_name, date);
+  getImg(broadcast, radio_name, date).then(() => {
+    startImageChecking();
+  })
+  const progress = document.querySelector('.progress');
+  const progressBar = document.querySelector('.progress-bar')
+  const currentTimeText = document.getElementById('currentTime');
+  const durationText = document.getElementById('duration');
+  
+  audio.addEventListener('timeupdate', () => {
+      const currentTime = audio.currentTime;
+      const duration = audio.duration;
+      const progress_time = currentTime / duration;
+      progress.style.width = `${progress_time * 100}%`;
+      const minutes = Math.floor(audio.currentTime / 60);
+      const seconds = Math.floor(audio.currentTime % 60).toString().padStart(2, '0');
+      currentTimeText.innerText = `${minutes}:${seconds}`;
+  });
     
-    audio.addEventListener('timeupdate', () => {
-        const currentTime = audio.currentTime;
-        const duration = audio.duration;
-        const progress_time = currentTime / duration;
-        progress.style.width = `${progress_time * 100}%`;
-        const minutes = Math.floor(audio.currentTime / 60);
-        const seconds = Math.floor(audio.currentTime % 60).toString().padStart(2, '0');
-        currentTimeText.innerText = `${minutes}:${seconds}`;
-    });
-    
-      audio.addEventListener('loadedmetadata', () => {
-        const minutes = Math.floor(audio.duration / 60);
-        const seconds = Math.floor(audio.duration % 60).toString().padStart(2, '0');
-        durationText.innerText = `${minutes}:${seconds}`;
-      });
-    
-      progressBar.addEventListener('click', (event) => {
-        const barWidth = progressBar.clientWidth;
-        const clickedPosition = event.clientX - progressBar.getBoundingClientRect().left;
-        const newTime = (clickedPosition / barWidth) * audio.duration;
-        audio.currentTime = newTime;
-        progressBar.value = audio.duration;
-        showImageAtCurrentTime();
-      });
-    }
+  audio.addEventListener('loadedmetadata', () => {
+    const minutes = Math.floor(audio.duration / 60);
+    const seconds = Math.floor(audio.duration % 60).toString().padStart(2, '0');
+    durationText.innerText = `${minutes}:${seconds}`;
+  });
+
+  progressBar.addEventListener('click', (event) => {
+    const barWidth = progressBar.clientWidth;
+    const clickedPosition = event.clientX - progressBar.getBoundingClientRect().left;
+    const newTime = (clickedPosition / barWidth) * audio.duration;
+    audio.currentTime = newTime;
+    progressBar.value = audio.duration;
+    showImageAtCurrentTime();
+  });
+}
 var subtitlesObj;
 const audio = document.getElementById("audio");
 const subtitleContainer = document.getElementById("subtitleContainer");
 var subtitles = [];
 let highlightedSubtitleIndex = -1;
-const source = "http://localhost:8080"
-// const source = "http://localhost:5000"
-let radio_name;
-let date;
 
-function getInfo(radio_name, date) {
-    return fetch(`${source}/${radio_name}/${date}/program_info`)
-    .then((response) => response.json())
-    .then((data) => 
-        {document.getElementById('info').innerHTML = `${radio_name}  ${date}`})
-}
 
-function getScript(radio_name, date) {
-    return fetch(`${source}/${radio_name}/${date}/script`)
+function getScript(broadcast, radio_name, date) {
+    return fetch(`/${broadcast}/${radio_name}/${date}/script`)
       .then((response) => response.json())
       .then((data) => {
         subtitlesObj = data;
@@ -140,12 +137,33 @@ function sleep(ms) {
     while (Date.now() < wakeUpTime) {}
 }
   
-function getWave(radio_name, date) {
-    fetch(`${source}/${radio_name}/${date}/wave`)
-    .then((response) => response.json())
-    .then((data) =>
-        document.getElementById('audio').src =  data.wave)
+function getWave(broadcast, radio_name, date) {
+  const xhr = new XMLHttpRequest();
+  xhr.open('GET', `/${broadcast}/${radio_name}/${date}/wave`, true);
+  xhr.responseType = 'blob';
+  xhr.onprogress = function(event) {
+    if (event.lengthComputable) {
+      const percentComplete = (event.loaded / event.total) * 100;
+      console.log(`Loading... ${percentComplete.toFixed(2)}%`);
+    } else {
+      console.log('Loading...');
+    }
+  };
+  xhr.onload = function(event) {
+    const blob = xhr.response;
+    const audioURL = URL.createObjectURL(blob); // Blob 객체를 URL로 변환
+    document.getElementById('audio').src = audioURL; // audio 엘리먼트에 URL 할당
+  };
+  xhr.send();
 }
+
+
+// function getWave(radio_name, date) {
+//   fetch(`${source}/${radio_name}/${date}/wave`)
+//   .then((response) => response.json())
+//   .then((data) =>
+//       document.getElementById('audio').src =  data.wave)
+// }
 
 
 function parseTime(timeString) {
@@ -164,14 +182,15 @@ let currentIndex=0;
 const mainImg = document.getElementById('main_img');
 var data = [];
 
-function getImg(radio_name, date) {
-  fetch(`${source}/${radio_name}/${date}/images`)
+function getImg(broadcast, radio_name, date) {
+  return fetch(`/${broadcast}/${radio_name}/${date}/images`)
     .then(response => response.json())
     .then(imgUrl => {
         data = imgUrl;
-    })}
+})}
 
 function showImg(){
+      console.log(`showImg idex : ${currentIndex}`)
       var { img_url, time } = data[currentIndex];
       var nextImgTime;
 
@@ -215,10 +234,9 @@ function startImageChecking() {
     }, 1);
   }
 
-startImageChecking();
 
 function showImageAtCurrentTime() {
-  fetch(`${source}/${radio_name}/${date}/images`)
+  fetch(`/${broadcast}/${radio_name}/${date}/images`)
     .then(response => response.json())
     .then(data => {
       const audioCurrentTime = audio.currentTime;
@@ -255,10 +273,10 @@ const playPausediv = document.getElementById("play-pause-btn");
 playPausediv.addEventListener("click", function() {
   if (audio.paused) {
     audio.play();
-    playPausediv.innerHTML = '<img class="btn" src = "../images/pauseBtn.png" ><i class="fa fa-pause"></i>';
+    playPausediv.innerHTML = '<img class="btn" src = "/static/images/pauseBtn.png" ><i class="fa fa-pause"></i>';
   } else {
     audio.pause();
-    playPausediv.innerHTML = '<img class="btn" src = "../images/playBtn.png" ><i class="fa fa-play"></i>';
+    playPausediv.innerHTML = '<img class="btn" src = "/static/images/playBtn.png" ><i class="fa fa-play"></i>';
   }
 });
 

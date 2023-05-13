@@ -36,6 +36,9 @@ with app.app_context():
     db.create_all()  # 테이블이 자동으로 생성되는 명령
 
 
+
+
+
 # --------------------------------------------------------------------------------- 페이지
 @app.route('/admin')
 def adminpage():
@@ -51,18 +54,6 @@ def sub1():
 
 
 
-@app.route('/sub2', methods=['GET', 'POST'])
-def get_sub2():
-    if request.method == 'POST':
-        broadcast = request.form['broadcast']
-        radio_name = request.form['radio_name']
-        date = request.form['date']
-        return render_template('sub2.html', broadcast=broadcast, radio_name=radio_name, date=date)
-    else:
-        broadcast = request.args.get('broadcast')
-        radio_name = request.args.get('radio_name')
-        date = request.args.get('date')
-        return render_template('sub2.html', broadcast=broadcast, radio_name=radio_name, date=date)
 
 
 
@@ -116,24 +107,51 @@ def audio_save(broadcast, program_name, date, audiofile):
     logger.debug("[업로드] DB반영 완료")
     return "ok"
 
-# --------------------------------------------------------------------------------- 프론트 요청
-# 전체 라디오 프로그램 정보 요청
-@app.route('/all')
-def get_all():
-    all = services.get_all_radio_programs()
-    return jsonify(all)
 
 
-# 라디오 프로그램 이름, 날짜 요청 ㅇ (위 메서드 대신 있는 임시 요청)
-@app.route('/program_info', methods=['GET'])
-def get_program_info():
-    # 임시로 박아두자 (sub2 페이지 하나니까)
-    program_info = {
-        'broadcast' : 'MBC',
-        'radio_name': 'brunchcafe',
-        'date': '2023-05-09'
-    }
-    return jsonify(program_info)
+
+# --------------------------------------------------------------------------------- main
+
+# # 전체 라디오 프로그램 정보 요청
+# @app.route('/all')
+# def get_all():
+#     all = services.get_all_radio_programs()
+#     return jsonify(all)
+
+
+@app.route('/radio', methods=['GET'])
+def radio_all():
+    return services.get_all_radio()
+    
+@app.route('/subpage', methods=['GET', 'POST'])
+def to_sub1():
+    return render_template('sub1.html')
+
+
+
+# --------------------------------------------------------------------------------- sub1
+
+
+
+@app.route('/<string:radio_name>/img', methods=['GET'])
+def load_main_img(radio_name):
+    return json.dumps({'main_photo':'https://i.namu.wiki/i/RKqtSpbvglnh3K-vLz1W1ZkrmQW9jJ_3KQU8ui6srOKBRLBD1dlJADFfp5tkWYxhr9IBEAd17x_ZTOVPHd7a8jAbVZ8lmRfO1F9wkHYM7UCUg52YsmpBcphHBj0c4CkRwe27gn_aT8eTjeh6rQr7lQ.webp'})
+
+@app.route('/<string:radio_name>/<string:month>/all', methods=['GET'])
+def load_month_info(radio_name, month):
+    return json.dumps(services.all_date_of(radio_name, month))
+
+@app.route('/<string:radio_name>/radio_info', methods=['GET'])
+def load_radio_info(radio_name):
+    return json.dumps({'info':"일단 띄워지는것좀 보자"})
+
+@app.route('/contents', methods=['GET'])
+def to_sub2():
+    return render_template('sub2.html')
+
+
+
+# --------------------------------------------------------------------------------- sub2
 
 
 # 지정된 회차의 스크립트 요청

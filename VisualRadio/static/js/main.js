@@ -1,13 +1,12 @@
-const source = "http://localhost:8080"
-
 const mbcElements = document.getElementsByClassName("cover");
 const mbcImgElements = document.getElementsByClassName("mbcFm4u_img");
 
 function getInfo() {
-    return fetch(`${source}/radio`)
+    return fetch(`/radio`)
     .then((response) => response.json())
     .then((data) => 
         {
+            console.log(data);
             // 이 부분 아직 mbc만 초점을 맞춰서 구성되어 있음! 나중에는 들어온 데이터별로 방송사를 다르게
             // 설정할 수 있도록 고쳐야함.
             for(let i=0; i<data.length; i++){
@@ -18,12 +17,15 @@ function getInfo() {
                 mbcElements[i].addEventListener('click' , function(event){
                     let clickDiv = event.currentTarget;
                     let radio_name = clickDiv.radio_name;
-                    fetch(`${source}/subpage/${radio_name}`)
-                    .then((response) => response.json())
-                    .then((data) => {
-                        location.href = data.url;
-                    }
-                );})
+                    let broadcast = clickDiv.broadcast;
+                    window.location.href = '/subpage?broadcast=' + broadcast + '&radio_name=' + radio_name;
+                    
+                    // fetch(`/${broadcast}/${radio_name}/subpage`)
+                    //     .then((response) => response.json())
+                    //     .then((data) => {
+                    //         location.href = data.url;
+                    // }
+                ;})
             }
         });
 }

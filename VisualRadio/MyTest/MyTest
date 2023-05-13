@@ -4,7 +4,7 @@ import time
 audio_path = "VisualRadio\\MyTest\\test.flac"
 
 def stt_google():
-    import speech_recognition as sr
+    # import speech_recognition as sr
     from google.oauth2 import service_account # 구글 클라우드 인증설정
     from google.cloud import storage, speech_v1
     from google.oauth2 import service_account
