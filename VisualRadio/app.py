@@ -12,6 +12,7 @@ import time
 
 app = Flask(__name__)
 CORS(app)  # 모든 라우트에 대해 CORS 허용
+app.config['MAX_CONTENT_LENGTH'] = 800 * 1024 * 1024  # 16MB로 업로드 크기 제한 변경
 
 # 로거
 logger = logging.getLogger()
@@ -49,28 +50,36 @@ def mainpage():
     return render_template('main.html')
 
 
-# 임시 페이지
+# 임시 
 @app.route('/programs')
 def progs():
     return render_template('programs.html')
+@app.route('/all')
+def get_all():
+    all = services.get_all_radio_programs()
+    return jsonify(all)
+
+
 
 # --------------------------------------------------------------------------------- admin페이지의 업로드 프로세스
 @app.route('/admin-update', methods=['POST'])
 def admin_update():
-    broadcasting_company = request.form.get('broadcasting_company')
+    logger.debug(f"[업로드] 호출됨")
+    broadcast = request.form.get('broadcast')
     program_name = request.form.get('program_name')
     date = request.form.get('date')
     guest_info = request.form.get('guest_info')
     audio_file = request.files.get('audio_file')
-    audio_save(broadcasting_company, program_name, date, audio_file)
-    logger.debug(f"[업로드] 등록 완료: {broadcasting_company}, {program_name}, {date}, {guest_info}, {audio_file}")
+    logger.debug(f"[업로드] 값을 가져옴 - {broadcast} {program_name} {date}")
+    audio_save(broadcast, program_name, date, audio_file)
+    logger.debug(f"[업로드] 등록 완료: {broadcast}, {program_name}, {date}, {guest_info}")
 
 
 
     # 다른 프로세스를 백그라운드로 실행시키기
     logger.debug("[업로드] 음성처리 - 백그라운드로 시작")
-    path = f"./VisualRadio/radio_storage/{broadcasting_company}/{program_name}/{date}/"
-    t = threading.Thread(target=process_audio_file, args=(broadcasting_company, program_name, date))
+    path = f"./VisualRadio/radio_storage/{broadcast}/{program_name}/{date}/"
+    t = threading.Thread(target=process_audio_file, args=(broadcast, program_name, date))
     t.start()
     return "ok"
 
@@ -89,6 +98,7 @@ def process_audio_file(broadcast, name, date):
 
 def audio_save(broadcast, program_name, date, audiofile):
     # 문제점: brunchcafe와 이석훈의브런치카페는 동일한 프로그램임. 추후 이 점 고려해야 할 것임
+    logger.debug(f"[업로드] raw.wav 저장 시작 - {broadcast} {program_name} {date}")
     path = f"./VisualRadio/radio_storage/{broadcast}/{program_name}/{date}/"
     os.makedirs(path, exist_ok=True)
     audiofile.save(path + 'raw.wav')
