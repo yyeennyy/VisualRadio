@@ -41,7 +41,7 @@ function buildCalendar(broadcast, radio_name) {
             nowColumn.setAttribute("date",  year + '-' + leftPad(month) + '-' +leftPad(nowDay.getDate()));
             var date = nowDay.getDate();
             for(let i=0; i<dateOk.length; i++){
-                console.log(date)
+                // console.log(date)
                 if(dateOk[i].date == date){
                     nowColumn.className = "day";
                     nowColumn.addEventListener('click', function(event){

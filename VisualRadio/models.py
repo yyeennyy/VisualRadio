@@ -13,14 +13,9 @@
 
 # SQLAlchemy 라이브러리를 사용하여 ORM(Object Relational Mapping)을 구현
 
-
-
-from flask_sqlalchemy import SQLAlchemy
-
-
+from VisualRadio import db
+# app = Flask(__name__)
 # db 객체 생성 (SQLAlchemy 객체를 전역 변수로 두기)
-db = SQLAlchemy()
-
 
 
 class Wav(db.Model):
