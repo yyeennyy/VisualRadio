@@ -6,6 +6,7 @@ import requests
 import io
 import sys
 from flask import jsonify, Flask
+from natsort import natsorted
 
 # for split
 from split_module.split import start_split
@@ -181,11 +182,11 @@ def stt(broadcast, name, date):
     section_list = os.listdir(section_dir)
     # 섹션마다 stt 처리하기
     threads = []
-    for order, section in enumerate(section_list):
+    for section in section_list:
         logger.debug(f"[stt] stt할 파일 : {section}")
         # STT 수행
         thread = threading.Thread(target=run_quickstart,
-                                  args=(broadcast, name, date, section, order))
+                                  args=(broadcast, name, date, section))
         threads.append(thread)
         thread.start()
     for thread in threads:
@@ -204,7 +205,7 @@ def stt(broadcast, name, date):
 
 import speech_recognition as sr
 from pydub import AudioSegment
-def go_fast_stt(src_path, dst_path, interval, order):
+def go_fast_stt(src_path, dst_path, interval, save_name):
     r = sr.Recognizer()
     # 음성 파일 로드 및 변환
     audio = AudioSegment.from_file(src_path)
@@ -261,12 +262,12 @@ def go_fast_stt(src_path, dst_path, interval, order):
 
     # 최종 data를 json으로 저장
     os.makedirs(f"{dst_path}", exist_ok=True)
-    filename = f"{dst_path}/stt_{order}.json"
-    logger.debug(f"[stt] 파일을 {filename}으로 저장")
+    filename = f"{dst_path}/{save_name}"
     # if os.path.exists(filename):
     #     os.remove(filename)
     with open(filename, 'w', encoding='utf-8') as f:
         json.dump(data, f, ensure_ascii=False)
+    logger.debug(f"[stt] {save_name} 저장함")
     return data
 
 def format_time(time_in_seconds):
@@ -274,15 +275,16 @@ def format_time(time_in_seconds):
     minutes, seconds = divmod(int(time_in_seconds), 60)
     milliseconds = int((time_in_seconds - int(time_in_seconds)) * 1000)
     return "{:d}:{:02d}.{:03d}".format(minutes, seconds, milliseconds)
-def run_quickstart(broadcast, name, date, section, order):
+def run_quickstart(broadcast, name, date, section):
+    save_name = section.replace(".wav", ".json")
     path = f"./VisualRadio/radio_storage/{broadcast}/{name}/{date}"
     os.makedirs(f"{path}/split_wav", exist_ok=True)
     src_path = f"{path}/split_wav/{section}"                         #####################################
     dst_path = f"{path}/raw_stt"
     # ---------------------------------------------
     interval = 10  # 구간의 길이 (초 단위)
-    go_fast_stt(src_path, dst_path, interval, order)
-    logger.debug(f"[stt] stt_{order}.json 처리 완료")
+    go_fast_stt(src_path, dst_path, interval, save_name)
+    logger.debug(f"[stt] {save_name} 처리 완료")
     # ---------------------------------------------
 
 
@@ -424,6 +426,14 @@ def run_quickstart(broadcast, name, date, section, order):
 #     microseconds = duration_micros % 1000
 #     return "{:d}:{:02d}.{:03d}".format(int(minutes), int(seconds), microseconds)
 
+import re
+def extract_number(file_name):
+    # 파일명에서 숫자를 추출하는 함수
+    match = re.search(r'\d+', file_name)
+    if match:
+        return int(match.group())
+    else:
+        return 0
 
 # 최종 script.json을 생성한다
 def make_txt(broadcast, name, date):
@@ -434,7 +444,7 @@ def make_txt(broadcast, name, date):
 
     stt_dir = f'{path}/raw_stt'
     os.makedirs(stt_dir, exist_ok=True)
-    stt_list = os.listdir(stt_dir)
+    stt_list = natsorted(os.listdir(stt_dir))
     file_path = [os.path.join(stt_dir, name) for name in stt_list]
 
     os.makedirs(f"{path}/result", exist_ok=True)
@@ -449,7 +459,10 @@ def make_txt(broadcast, name, date):
     new_data = []
     section_start = []
     prev_end_time = "0:00.000"
+
+
     for file in file_path:
+        logger.debug(f"[script] 합치는 중 - {file}")
         section_start.append(prev_end_time)
         with open(file, 'r', encoding='utf-8') as f:
             data = json.load(f)
@@ -522,7 +535,7 @@ def sum_wav_sections(broadcast, name, date):
     src_path = path + "/split_wav"
     dst_path = path + "/sum.wav"
 
-    src_files = os.listdir(src_path)
+    src_files = natsorted(os.listdir(src_path))
 
     input_streams = []
     for src in src_files:
