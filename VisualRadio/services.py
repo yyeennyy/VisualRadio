@@ -1,12 +1,11 @@
 import os
-from models import db, Wav
+from models import Wav
 import glob
 import time
 import requests
 import io
 import sys
-from app import app # 문제
-from flask import jsonify
+from flask import jsonify, Flask
 
 # for split
 from split_module.split import start_split
@@ -40,12 +39,11 @@ logger.addHandler(file_handler)
 # logger = logging.getLogger(__name__)
 
 
+from VisualRadio import db, app
+
+
 
 # --------------------------------------------- main
-
-
-
-
 def get_all_radio():
     with app.app_context():
         all_wavs = Wav.query.all() 
@@ -63,10 +61,7 @@ def get_all_radio():
     
     return json_data
 
-
-
 # --------------------------------------------- sub1
-
 def all_date_of(radio_name, month):
     with app.app_context():
         logger.warn(month)
@@ -86,8 +81,6 @@ def all_date_of(radio_name, month):
 
 
 # ----------------------------------------------
-
-
 
 def setup_db():
     pass
@@ -166,53 +159,39 @@ def split(broadcast, name, date):
 
 
 # wav to flac (google stt 권장 포맷)
-def wavToFlac(broadcast, name, date):
-    path = f"./VisualRadio/radio_storage/{broadcast}/{name}/{date}"
-    wav_loc = f"{path}/split_wav"
-    flac_loc = f"{path}/split_flac"
-    os.makedirs(flac_loc, exist_ok=True)
-    wav_path = get_file_path_list(wav_loc)
-    for order, wav in enumerate(wav_path):
-        song = AudioSegment.from_wav(wav)
-        song.export(flac_loc + "/sec_%d.flac" % (order), format="flac")
-    logger.debug("-- stt를 하기 위해 wav를 flac으로 변환했습니다 --")
+# def wavToFlac(broadcast, name, date):
+#     path = f"./VisualRadio/radio_storage/{broadcast}/{name}/{date}"
+#     wav_loc = f"{path}/split_wav"
+#     flac_loc = f"{path}/split_flac"
+#     os.makedirs(flac_loc, exist_ok=True)
+#     wav_path = get_file_path_list(wav_loc)
+#     for order, wav in enumerate(wav_path):
+#         song = AudioSegment.from_wav(wav)
+#         song.export(flac_loc + "/sec_%d.flac" % (order), format="flac")
+#     logger.debug("-- stt를 하기 위해 wav를 flac으로 변환했습니다 --")
 
 
-# ★
 def stt(broadcast, name, date):
-
     logger.debug("[stt] 시작")
     start_time = time.time()
     # 모든 section 결과를 무조건 stt한다.
     path = f"./VisualRadio/radio_storage/{broadcast}/{name}/{date}"
-    section_dir = f'{path}/split_flac'
+    section_dir = f'{path}/split_wav'
     os.makedirs(section_dir, exist_ok=True)
     section_list = os.listdir(section_dir)
-
-
-
-    # STT 클라이언트 생성
-    project_id = 'RadioProject'
-    credentials = service_account.Credentials.from_service_account_file('./VisualRadio/credentials.json')
-    client = speech_v1.SpeechClient(credentials=credentials)
-    storage_client = storage.Client(project=project_id, credentials=credentials)
-
     # 섹션마다 stt 처리하기
     threads = []
     for order, section in enumerate(section_list):
         logger.debug(f"[stt] stt할 파일 : {section}")
         # STT 수행
         thread = threading.Thread(target=run_quickstart,
-                                  args=(broadcast, name, date, section, client, storage_client, order))
+                                  args=(broadcast, name, date, section, order))
         threads.append(thread)
         thread.start()
-
     for thread in threads:
         thread.join()
-
     end_time = time.time()
     logger.debug(f"[stt] 완료 : 소요시간 {end_time-start_time}")
-
     # DB - stt를 True로 갱신
     with app.app_context():
         wav = Wav.query.filter_by(radio_name=name, radio_date=date).first()
@@ -223,79 +202,227 @@ def stt(broadcast, name, date):
         else:
             logger.debug(f"[stt] [오류] {name} {date} 가 있어야 하는데, DB에서 찾지 못함")
 
-
-def run_quickstart(broadcast, name, date, section, client, storage_client, order):
-
-    import time
-    from google.api_core.exceptions import ServiceUnavailable
-
-
-    # 참고: wav가 아닌 flac 기반 stt 진행
-    path = f"./VisualRadio/radio_storage/{broadcast}/{name}/{date}"
-    os.makedirs(f"{path}/split_flac", exist_ok=True)
-    file_path = f"{path}/split_flac/{section}"
-    bucket_name = 'radio_bucket'
-
-    while True:
-        try:
-            bucket = storage_client.bucket(bucket_name)
-            blob = bucket.blob(section)
-            blob.upload_from_filename(file_path)
-            storage_file_path = f'gs://{bucket_name}/{blob.name}'
-
-            audio = speech_v1.RecognitionAudio(uri=storage_file_path)
-            config = speech_v1.RecognitionConfig(
-                language_code='ko-KR',
-            )
-            operation = client.long_running_recognize(config=config, audio=audio)
-            response = operation.result(timeout=999999)
-            break  # 성공하면 루프를 빠져나갑니다.
-        except ServiceUnavailable as e:
-            logger.debug(f"Error: {e}. Retrying in 1 second...")
-            time.sleep(1)  # 1초 대기 후 다시 시도합니다.
-
-
-    results = response.results
-
-    start_time_delta = timedelta(hours=0, minutes=0, seconds=0, microseconds=0)
-    m, s = divmod(start_time_delta.seconds, 60)
-    start_time_formatted = "{:d}:{:02d}.{:03d}".format(m, s, start_time_delta.microseconds)
-
-    # 이미 json이 있으면 삭제 후 다시 stt 진행
-    os.makedirs(f"{path}/raw_stt", exist_ok=True)
-    filename = f"{path}/raw_stt/stt_%d.json" % (order)
-    if os.path.exists(filename):
-        os.remove(filename)
-
+import speech_recognition as sr
+from pydub import AudioSegment
+def go_fast_stt(src_path, dst_path, interval, order):
+    r = sr.Recognizer()
+    # 음성 파일 로드 및 변환
+    audio = AudioSegment.from_file(src_path)
+    with wave.open(src_path, 'rb') as wav_file:
+      sample_rate = wav_file.getframerate()  # 샘플 레이트
+      num_frames = wav_file.getnframes()  # 프레임 수
+      duration = num_frames / sample_rate  # 실제 음성 파일의 길이 (초 단위)
+    # 구간의 시작 및 끝 시간 계산
+    start_time = 0
+    end_time = start_time + interval * 1000  # 구간의 길이 (밀리초 단위)
     scripts = []
-    # stt 결과 가져오기 - text, time에 대한 json 만들기
-    logger.debug(f"[stt] stt_{order}.json 처리중")
-    for result in results:
-        # 각 음성 인식 결과에서 가장 가능성이 높은 대안을 사용
-        alternative = result.alternatives[0]
-        new_data = {'time': start_time_formatted, 'txt': alternative.transcript}
+    while end_time <= len(audio):
+        try:
+            # 구간 추출
+            audio_segment = audio[start_time:end_time]
+            # 추출된 구간을 임시 파일로 저장 (옵션)
+            temp_file_path = "temp.wav"
+            audio_segment.export(temp_file_path, format="wav")
+            # 음성 인식 수행
+            with sr.AudioFile(temp_file_path) as temp_audio_file:
+                temp_audio_data = r.record(temp_audio_file)
+                text = r.recognize_google(temp_audio_data, language='ko-KR')
+                # 추출된 구간의 텍스트 출력 또는 원하는 로직 수행
+                new_data = {f'time':format_time(start_time / 1000), 'txt':text}
+                scripts.append(json.dumps(new_data, ensure_ascii=False))
+          # 임시 파일 삭제 (옵션)
+          # import os
+          # os.remove(temp_file_path)
+        except:
+            pass
+        # 다음 구간으로 이동
+        start_time = end_time
+        end_time += interval * 1000
+        
+    # 마지막 구간 처리
+    try:
+        if start_time < len(audio):
+            audio_segment = audio[start_time:]
+            # 추출된 구간을 임시 파일로 저장 (옵션)
+            temp_file_path = "temp.wav"
+            audio_segment.export(temp_file_path, format="wav")
+            # 음성 인식 수행
+            with sr.AudioFile(temp_file_path) as temp_audio_file:
+                temp_audio_data = r.record(temp_audio_file)
+                text = r.recognize_google(temp_audio_data)
+            # 추출된 구간의 텍스트 출력 또는 원하는 로직 수행
+            # print(f"구간 {start_time / 1000} - {len(audio) / 1000}: {text}")
+            new_data = {f'time':format_time(start_time / 1000), 'txt':text}
+            scripts.append(json.dumps(new_data, ensure_ascii=False))
+    except:
+        pass
+    # 최종 data
+    data = {'end_time':format_time(duration), 'scripts':[json.loads(s) for s in scripts]}
 
-        scripts.append(json.dumps(new_data, ensure_ascii=False))
-
-        # start time 갱신
-        start_time_delta = result.result_end_time
-        m, s = divmod(start_time_delta.seconds, 60)
-        start_time_formatted = "{:d}:{:02d}.{:03d}".format(m, s, start_time_delta.microseconds)
-
-    end_time = str(get_flac_duration(file_path))
-    data = {'end_time': end_time, 'scripts': [json.loads(s) for s in scripts]}
+    # 최종 data를 json으로 저장
+    os.makedirs(f"{dst_path}", exist_ok=True)
+    filename = f"{dst_path}/stt_{order}.json"
+    logger.debug(f"[stt] 파일을 {filename}으로 저장")
+    # if os.path.exists(filename):
+    #     os.remove(filename)
     with open(filename, 'w', encoding='utf-8') as f:
         json.dump(data, f, ensure_ascii=False)
+    return data
 
+def format_time(time_in_seconds):
+    time_in_seconds = float(time_in_seconds)
+    minutes, seconds = divmod(int(time_in_seconds), 60)
+    milliseconds = int((time_in_seconds - int(time_in_seconds)) * 1000)
+    return "{:d}:{:02d}.{:03d}".format(minutes, seconds, milliseconds)
+def run_quickstart(broadcast, name, date, section, order):
+    path = f"./VisualRadio/radio_storage/{broadcast}/{name}/{date}"
+    os.makedirs(f"{path}/split_wav", exist_ok=True)
+    src_path = f"{path}/split_wav/{section}"                         #####################################
+    dst_path = f"{path}/raw_stt"
+    # ---------------------------------------------
+    interval = 10  # 구간의 길이 (초 단위)
+    go_fast_stt(src_path, dst_path, interval, order)
     logger.debug(f"[stt] stt_{order}.json 처리 완료")
+    # ---------------------------------------------
 
 
-def get_flac_duration(filepath):
-    audio = AudioSegment.from_file(filepath, format="flac")
-    duration_micros = int(audio.duration_seconds * 1000000)
-    minutes, seconds = divmod(duration_micros / 1000000, 60)
-    microseconds = duration_micros % 1000
-    return "{:d}:{:02d}.{:03d}".format(int(minutes), int(seconds), microseconds)
+# def run_quickstart(broadcast, name, date, section, order):
+#     import time
+#     path = f"./VisualRadio/radio_storage/{broadcast}/{name}/{date}"
+#     os.makedirs(f"{path}/split_flac", exist_ok=True)
+#     file_path = f"{path}/split_flac/{section}"
+#     def flac_duration(audio_path):
+#         audio = AudioSegment.from_file(audio_path, format="flac")
+#         duration_micros = int(audio.duration_seconds * 1000000)
+#         minutes, seconds = divmod(duration_micros / 1000000, 60)
+#         microseconds = duration_micros % 1000
+#         duration =  "{:d}:{:02d}.{:03d}".format(int(minutes), int(seconds), microseconds)
+#         return duration
+#     def format_time(time_in_seconds):
+#         time_in_seconds = float(time_in_seconds)
+#         minutes, seconds = divmod(int(time_in_seconds), 60)
+#         milliseconds = int((time_in_seconds - int(time_in_seconds)) * 1000)
+#         return "{:d}:{:02d}.{:03d}".format(minutes, seconds, milliseconds)
+#     import whisper
+#     device = "cpu"
+#     language = "ko"
+#     logger.debug("[stt] whisper 모델 불러오기")
+#     model = whisper.load_model("tiny").to(device)
+#     logger.debug("[stt] whisper의 transcribe시작")
+#     results = model.transcribe(
+#         file_path, language=language, temperature=0.0, word_timestamps=True
+#     )
+#     # 이미 json이 있으면 삭제 후 다시 stt 진행
+#     os.makedirs(f"{path}/raw_stt", exist_ok=True)
+#     filename = f"{path}/raw_stt/stt_%d.json" % (order)
+#     if os.path.exists(filename):
+#         os.remove(filename)
+#     scripts = []
+#     # stt 결과 가져오기 - text, time에 대한 json 만들기
+#     logger.debug(f"[stt] stt_{order}.json 처리중")
+#     scripts = []
+#     for result in results['segments']:
+#         new_data = {'time':format_time(str(result["start"])), 'txt':str(result['text'])}
+#         scripts.append(json.dumps(new_data, ensure_ascii=False))
+#     data = {'end_time':flac_duration(file_path), 'scripts':[json.loads(s) for s in scripts]}
+#     with open(filename, 'w', encoding='utf-8') as f:
+#         json.dump(data, f, ensure_ascii=False)
+#     logger.debug(f"[stt] stt_{order}.json 처리 완료")
+
+# ★
+# def stt(broadcast, name, date):
+#     logger.debug("[stt] 시작")
+#     start_time = time.time()
+#     # 모든 section 결과를 무조건 stt한다.
+#     path = f"./VisualRadio/radio_storage/{broadcast}/{name}/{date}"
+#     section_dir = f'{path}/split_flac'
+#     os.makedirs(section_dir, exist_ok=True)
+#     section_list = os.listdir(section_dir)
+#     # STT 클라이언트 생성
+#     project_id = 'RadioProject'
+#     credentials = service_account.Credentials.from_service_account_file('./VisualRadio/credentials.json')
+#     client = speech_v1.SpeechClient(credentials=credentials)
+#     storage_client = storage.Client(project=project_id, credentials=credentials)
+#     # 섹션마다 stt 처리하기
+#     threads = []
+#     for order, section in enumerate(section_list):
+#         logger.debug(f"[stt] stt할 파일 : {section}")
+#         # STT 수행
+#         thread = threading.Thread(target=run_quickstart,
+#                                   args=(broadcast, name, date, section, client, storage_client, order))
+#         threads.append(thread)
+#         thread.start()
+#     for thread in threads:
+#         thread.join()
+#     end_time = time.time()
+#     logger.debug(f"[stt] 완료 : 소요시간 {end_time-start_time}")
+#     # DB - stt를 True로 갱신
+#     with app.app_context():
+#         wav = Wav.query.filter_by(radio_name=name, radio_date=date).first()
+#         if wav:
+#             wav.stt = True
+#             db.session.add(wav)
+#             db.session.commit()
+#         else:
+#             logger.debug(f"[stt] [오류] {name} {date} 가 있어야 하는데, DB에서 찾지 못함")
+# def run_quickstart(broadcast, name, date, section, client, storage_client, order):
+#     import time
+#     from google.api_core.exceptions import ServiceUnavailable
+#     # 참고: wav가 아닌 flac 기반 stt 진행
+#     path = f"./VisualRadio/radio_storage/{broadcast}/{name}/{date}"
+#     os.makedirs(f"{path}/split_flac", exist_ok=True)
+#     file_path = f"{path}/split_flac/{section}"
+#     bucket_name = 'radio_bucket'
+#     bucket = storage_client.bucket(bucket_name)
+#     blob = bucket.blob(section)
+#     blob.upload_from_filename(file_path)
+#     storage_file_path = f'gs://{bucket_name}/{blob.name}'
+#     audio = speech_v1.RecognitionAudio(uri=storage_file_path)
+#     config = speech_v1.RecognitionConfig(
+#         language_code='ko-KR',
+#     )
+#     operation = client.long_running_recognize(config=config, audio=audio)
+#     logger.debug('[stt] response 받아오기 시작')
+#     response = operation.result(timeout=999999)
+#     logger.debug('[stt] response 받아옴')
+
+#     results = response.results
+    
+#     start_time_delta = timedelta(hours=0, minutes=0, seconds=0, microseconds=0)
+#     m, s = divmod(start_time_delta.seconds, 60)
+#     start_time_formatted = "{:d}:{:02d}.{:03d}".format(m, s, start_time_delta.microseconds)
+#     # 이미 json이 있으면 삭제 후 다시 stt 진행
+#     os.makedirs(f"{path}/raw_stt", exist_ok=True)
+#     filename = f"{path}/raw_stt/stt_%d.json" % (order)
+#     if os.path.exists(filename):
+#         os.remove(filename)
+#     scripts = []
+#     # stt 결과 가져오기 - text, time에 대한 json 만들기
+#     logger.debug(f"[stt] stt_{order}.json 처리중")
+#     for result in results:
+#         # 각 음성 인식 결과에서 가장 가능성이 높은 대안을 사용
+#         alternative = result.alternatives[0]
+#         # with open("./stt_result_google.json", 'w', encoding='utf-8') as f:
+#         #     json.dumps(alternative, f, ensure_ascii=False)
+#         new_data = {'time': start_time_formatted, 'txt': alternative.transcript}
+#         scripts.append(json.dumps(new_data, ensure_ascii=False))
+#         # start time 갱신
+#         start_time_delta = result.result_end_time
+#         m, s = divmod(start_time_delta.seconds, 60)
+#         start_time_formatted = "{:d}:{:02d}.{:03d}".format(m, s, start_time_delta.microseconds)
+
+#     end_time = str(get_flac_duration(file_path))
+#     data = {'end_time': end_time, 'scripts': [json.loads(s) for s in scripts]}
+#     with open(filename, 'w', encoding='utf-8') as f:
+#         json.dump(data, f, ensure_ascii=False)
+#     logger.debug(f"[stt] stt_{order}.json 처리 완료")
+
+# def get_flac_duration(filepath):
+#     audio = AudioSegment.from_file(filepath, format="flac")
+#     duration_micros = int(audio.duration_seconds * 1000000)
+#     minutes, seconds = divmod(duration_micros / 1000000, 60)
+#     microseconds = duration_micros % 1000
+#     return "{:d}:{:02d}.{:03d}".format(int(minutes), int(seconds), microseconds)
 
 
 # 최종 script.json을 생성한다
@@ -388,6 +515,32 @@ def add_time(time1, time2):
     time_formatted = "{:d}:{:02d}.{:03d}".format(m, s, delta.microseconds // 1000)
     print(time_formatted)
     return time_formatted
+
+
+def sum_wav_sections(broadcast, name, date):
+    path = f"./VisualRadio/radio_storage/{broadcast}/{name}/{date}"
+    src_path = path + "/split_wav"
+    dst_path = path + "/sum.wav"
+
+    src_files = os.listdir(src_path)
+
+    input_streams = []
+    for src in src_files:
+        input_streams.append(wave.open(src_path + "/" + src, 'rb'))
+    # 첫 번째 입력 파일의 정보를 가져옵니다.
+    params = input_streams[0].getparams()
+    # 출력 파일을 열고 쓰기 모드로 처리합니다.
+    output_stream = wave.open(dst_path, 'wb')
+    # 출력 파일의 파라미터를 설정합니다.
+    output_stream.setparams(params)
+    # 입력 파일을 읽고 출력 파일에 작성합니다.
+    for input_stream in input_streams:
+        output_stream.writeframes(input_stream.readframes(input_stream.getnframes()))
+    # 파일을 닫습니다.
+    for input_stream in input_streams:
+        input_stream.close()
+    output_stream.close()
+    print("[contents] wav section들 이어붙이기 완료")
 
 
 # 계획 없음 (멘트 섹션 찾기)

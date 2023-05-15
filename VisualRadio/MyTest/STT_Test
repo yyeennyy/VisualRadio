@@ -1,0 +1,132 @@
+import unittest
+import time
+import pytest
+from pydub import AudioSegment
+from google.oauth2 import service_account
+from google.cloud import storage, speech_v1
+import json
+import os
+
+
+
+class STT_Test(unittest.TestCase):
+    # 테스트 대상 파일
+    audio_path = "./VisualRadio/MyTest/sec_1.flac"
+
+    @pytest.fixture(scope='function')
+    def operation(self):
+        # 필요 클라이언트 생성과 세팅
+        project_id = 'RadioProject'
+        bucket_name = 'radio_bucket'
+        credentials = service_account.Credentials.from_service_account_file('./VisualRadio/credentials.json')
+        client = speech_v1.SpeechClient(credentials=credentials)
+        storage_client = storage.Client(project=project_id, credentials=credentials)
+        bucket = storage_client.bucket(bucket_name)
+
+        blob = bucket.blob(os.path.basename(self.audio_path))
+        blob.upload_from_filename(self.audio_path)
+        storage_file_path = f'gs://{bucket_name}/{blob.name}'
+        audio = speech_v1.RecognitionAudio(uri=storage_file_path)
+        config = speech_v1.RecognitionConfig(
+            language_code='ko-KR',
+        )
+        operation = client.long_running_recognize(config=config, audio=audio)
+        yield operation
+
+
+    @pytest.fixture(scope='function')
+    def google_result_1(operation):
+        response = operation.result(timeout=999999)
+        results = response.results
+        yield results
+
+    @pytest.fixture(scope='function')
+    def google_result_2(self, google_result_1):
+        
+        def flac_duration(audio_path):
+            audio = AudioSegment.from_file(audio_path, format="flac")
+            duration_micros = int(audio.duration_seconds * 1000000)
+            minutes, seconds = divmod(duration_micros / 1000000, 60)
+            microseconds = duration_micros % 1000
+            duration =  "{:d}:{:02d}.{:03d}".format(int(minutes), int(seconds), microseconds)
+            return duration
+
+        # stt결과 저장 경로
+        import os
+        save_path = "./VisualRadio/MyTest/results/stt_google.json"
+        if os.path.exists(save_path):
+            os.remove(save_path)
+
+        # start_time을 0분 0초로 초기화
+        import datetime
+        start_time_delta = datetime.timedelta(hours=0, minutes=0, seconds=0, microseconds=0)
+        m, s = divmod(start_time_delta.seconds, 60)
+        start_time_formatted = "{:d}:{:02d}.{:03d}".format(m, s, start_time_delta.microseconds)
+
+        # 스크립트에 time, text 정보 작성하기
+        import json
+        scripts = []
+        for result in google_result_1:
+            alternative = result.alternatives[0]  
+            new_data = {'time': start_time_formatted, 'txt': alternative.transcript}
+            scripts.append(json.dumps(new_data, ensure_ascii=False))
+            # start time 갱신
+            start_time_delta = result.result_end_time
+            m, s = divmod(start_time_delta.seconds, 60)
+            start_time_formatted = "{:d}:{:02d}.{:03d}".format(m, s, start_time_delta.microseconds)
+        end_time = str(flac_duration(self.audio_path))
+        data = {'end_time':end_time, 'scripts':[json.loads(s) for s in scripts]}
+        with open(save_path, 'w', encoding='utf-8') as f:
+            json.dump(data, f,  ensure_ascii=False)
+        yield save_path
+    
+
+    # @pytest.fixture
+    def test_get_whisper_result(self):
+        
+        def flac_duration(audio_path):
+            audio = AudioSegment.from_file(audio_path, format="flac")
+            duration_micros = int(audio.duration_seconds * 1000000)
+            minutes, seconds = divmod(duration_micros / 1000000, 60)
+            microseconds = duration_micros % 1000
+            duration =  "{:d}:{:02d}.{:03d}".format(int(minutes), int(seconds), microseconds)
+            return duration
+
+        # whisper의 타임포맷을 우리의 포맷으로 변경해주는 메서드
+        def format_time(time_in_seconds):
+            time_in_seconds = float(time_in_seconds)
+            minutes, seconds = divmod(int(time_in_seconds), 60)
+            milliseconds = int((time_in_seconds - int(time_in_seconds)) * 1000)
+            return "{:d}:{:02d}.{:03d}".format(minutes, seconds, milliseconds)
+
+
+        import whisper
+        # device = "cuda" if torch.cuda.is_available() else "cpu"
+        device = "cpu"
+        language = "ko"
+        model = whisper.load_model("base").to(device)
+
+        print(f"audio : {self.audio_path}")
+        results = model.transcribe(
+            self.audio_path, language=language, temperature=0.0, word_timestamps=True
+        )
+
+        scripts = []
+        for result in results['segments']:
+            new_data = {'time':format_time(str(result["start"])), 'txt':str(result['text'])}
+            scripts.append(json.dumps(new_data, ensure_ascii=False))
+
+        data = {'end_time':flac_duration(self.audio_path), 'scripts':[json.loads(s) for s in scripts]}
+
+        with open('./VisualRadio/MyTest/results/whi.json', 'w', encoding='utf-8') as f:
+            json.dump(data, f, ensure_ascii=False)
+
+    
+    
+    # def test_match_google_and_whisper_sync(google_result_2, get_whisper_result):
+    #     print(google_result_2)
+    #     print(get_whisper_result)
+
+
+if __name__ == '__main__':
+    unittest.main()
