@@ -178,6 +178,77 @@ def wavToFlac(broadcast, name, date):
     logger.debug("-- stt를 하기 위해 wav를 flac으로 변환했습니다 --")
 
 
+# def stt(broadcast, name, date):
+#     logger.debug("[stt] 시작")
+#     start_time = time.time()
+#     # 모든 section 결과를 무조건 stt한다.
+#     path = f"./VisualRadio/radio_storage/{broadcast}/{name}/{date}"
+#     section_dir = f'{path}/split_flac'
+#     os.makedirs(section_dir, exist_ok=True)
+#     section_list = os.listdir(section_dir)
+#     # 섹션마다 stt 처리하기
+#     threads = []
+#     for order, section in enumerate(section_list):
+#         logger.debug(f"[stt] stt할 파일 : {section}")
+#         # STT 수행
+#         thread = threading.Thread(target=run_quickstart,
+#                                   args=(broadcast, name, date, section, order))
+#         threads.append(thread)
+#         thread.start()
+#     for thread in threads:
+#         thread.join()
+#     end_time = time.time()
+#     logger.debug(f"[stt] 완료 : 소요시간 {end_time-start_time}")
+#     # DB - stt를 True로 갱신
+#     with app.app_context():
+#         wav = Wav.query.filter_by(radio_name=name, radio_date=date).first()
+#         if wav:
+#             wav.stt = True
+#             db.session.add(wav)
+#             db.session.commit()
+#         else:
+#             logger.debug(f"[stt] [오류] {name} {date} 가 있어야 하는데, DB에서 찾지 못함")
+# def run_quickstart(broadcast, name, date, section, order):
+#     import time
+#     path = f"./VisualRadio/radio_storage/{broadcast}/{name}/{date}"
+#     os.makedirs(f"{path}/split_flac", exist_ok=True)
+#     file_path = f"{path}/split_flac/{section}"
+#     def flac_duration(audio_path):
+#         audio = AudioSegment.from_file(audio_path, format="flac")
+#         duration_micros = int(audio.duration_seconds * 1000000)
+#         minutes, seconds = divmod(duration_micros / 1000000, 60)
+#         microseconds = duration_micros % 1000
+#         duration =  "{:d}:{:02d}.{:03d}".format(int(minutes), int(seconds), microseconds)
+#         return duration
+#     def format_time(time_in_seconds):
+#         time_in_seconds = float(time_in_seconds)
+#         minutes, seconds = divmod(int(time_in_seconds), 60)
+#         milliseconds = int((time_in_seconds - int(time_in_seconds)) * 1000)
+#         return "{:d}:{:02d}.{:03d}".format(minutes, seconds, milliseconds)
+#     import whisper
+#     device = "cpu"
+#     language = "ko"
+#     model = whisper.load_model("base").to(device)
+#     results = model.transcribe(
+#         file_path, language=language, temperature=0.0, word_timestamps=True
+#     )
+#     # 이미 json이 있으면 삭제 후 다시 stt 진행
+#     os.makedirs(f"{path}/raw_stt", exist_ok=True)
+#     filename = f"{path}/raw_stt/stt_%d.json" % (order)
+#     if os.path.exists(filename):
+#         os.remove(filename)
+#     scripts = []
+#     # stt 결과 가져오기 - text, time에 대한 json 만들기
+#     logger.debug(f"[stt] stt_{order}.json 처리중")
+#     scripts = []
+#     for result in results['segments']:
+#         new_data = {'time':format_time(str(result["start"])), 'txt':str(result['text'])}
+#         scripts.append(json.dumps(new_data, ensure_ascii=False))
+#     data = {'end_time':flac_duration(file_path), 'scripts':[json.loads(s) for s in scripts]}
+#     with open(filename, 'w', encoding='utf-8') as f:
+#         json.dump(data, f, ensure_ascii=False)
+#     logger.debug(f"[stt] stt_{order}.json 처리 완료")
+
 # ★
 def stt(broadcast, name, date):
 
@@ -236,23 +307,17 @@ def run_quickstart(broadcast, name, date, section, client, storage_client, order
     file_path = f"{path}/split_flac/{section}"
     bucket_name = 'radio_bucket'
 
-    while True:
-        try:
-            bucket = storage_client.bucket(bucket_name)
-            blob = bucket.blob(section)
-            blob.upload_from_filename(file_path)
-            storage_file_path = f'gs://{bucket_name}/{blob.name}'
+    bucket = storage_client.bucket(bucket_name)
+    blob = bucket.blob(section)
+    blob.upload_from_filename(file_path)
+    storage_file_path = f'gs://{bucket_name}/{blob.name}'
 
-            audio = speech_v1.RecognitionAudio(uri=storage_file_path)
-            config = speech_v1.RecognitionConfig(
-                language_code='ko-KR',
-            )
-            operation = client.long_running_recognize(config=config, audio=audio)
-            response = operation.result(timeout=999999)
-            break  # 성공하면 루프를 빠져나갑니다.
-        except ServiceUnavailable as e:
-            logger.debug(f"Error: {e}. Retrying in 1 second...")
-            time.sleep(1)  # 1초 대기 후 다시 시도합니다.
+    audio = speech_v1.RecognitionAudio(uri=storage_file_path)
+    config = speech_v1.RecognitionConfig(
+        language_code='ko-KR',
+    )
+    operation = client.long_running_recognize(config=config, audio=audio)
+    response = operation.result(timeout=999999)
 
 
     results = response.results
@@ -273,10 +338,10 @@ def run_quickstart(broadcast, name, date, section, client, storage_client, order
     for result in results:
         # 각 음성 인식 결과에서 가장 가능성이 높은 대안을 사용
         alternative = result.alternatives[0]
+        with open("./stt_result_google.json", 'w', encoding='utp-8') as f:
+            json.dumps(alternative, f, ensure_ascii=False)
         new_data = {'time': start_time_formatted, 'txt': alternative.transcript}
-
         scripts.append(json.dumps(new_data, ensure_ascii=False))
-
         # start time 갱신
         start_time_delta = result.result_end_time
         m, s = divmod(start_time_delta.seconds, 60)
