@@ -11,6 +11,7 @@ RUN pip install cryptography
 # RUN pip3 install setuptools-rust
 # RUN pip3 install git+https://github.com/openai/whisper.git
 RUN pip install SpeechRecognition
+RUN pip install natsort
 
 
 EXPOSE 5000
