@@ -64,6 +64,9 @@ function buildCalendar(broadcast, radio_name) {
     });
 }
 
+let prevCal = document.getElementById("prevCal");
+let nextCal = document.getElementById("nextCal");
+
 // 이전달 버튼 클릭
 function prevCalendar() {
     nowMonth = new Date(nowMonth.getFullYear(), nowMonth.getMonth() - 1, nowMonth.getDate());   // 현재 달을 1 감소
@@ -75,6 +78,9 @@ function nextCalendar() {
     buildCalendar();    // 달력 다시 생성
 }
 
+prevCal.addEventListener('click', prevCalendar);
+nextCal.addEventListener('click', nextCalendar);
+
 // input값이 한자리 숫자인 경우 앞에 '0' 붙혀주는 함수
 function leftPad(value) {
     if (value < 10) {
@@ -84,7 +90,7 @@ function leftPad(value) {
     return value;
 }
 
-// 궁금한 점 : 이거 왜 await fatch로 해야하나?
+
 async function fetchData(radio_name, month) {
     const response = await fetch(`/${radio_name}/${month}/all`);
     const data = await response.json();
@@ -102,6 +108,7 @@ fetch(`/${radio_name}/img`)
 })}
 
 let radio_info = document.getElementById('radioInfo')
+
 
 
 function showInfo(radio_name){
