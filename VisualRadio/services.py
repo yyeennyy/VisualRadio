@@ -535,7 +535,7 @@ def sum_wav_sections(broadcast, name, date):
     src_path = path + "/split_wav"
     dst_path = path + "/sum.wav"
 
-    src_files = os.listdir(src_path)
+    src_files = natsorted(os.listdir(src_path))
 
     input_streams = []
     for src in src_files:
