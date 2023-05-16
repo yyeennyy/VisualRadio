@@ -50,6 +50,7 @@ def get_all_radio():
         all_wavs = Wav.query.all() 
         wav_list = []
         
+        # broadcas
         for wav in all_wavs:
             wav_dict = {
                 'broadcast': wav.broadcast,
@@ -493,20 +494,11 @@ def make_txt(broadcast, name, date):
 def generate_images_by_section(broadcast, name, date, section_start_list):
     path = f"./VisualRadio/radio_storage/{broadcast}/{name}/{date}"
     
-    img_url_data = []
-    for i in range(len(section_start_list)):
-        img_url_data.append('you have to append img urls')
-
-    # img_url_1 = "https://img.hankyung.com/photo/202203/01.29353881.1-1200x.jpg"
-    # img_url_2 = "https://pbs.twimg.com/ext_tw_video_thumb/1514084683608309764/pu/img/1ihM-03RUgNtJqcs.jpg"
-    # img_url_3 = "https://static.inews24.com/v1/4815fc2c7e522d.jpg"
-    # img_url_4 = "https://cdn.litt.ly/images/NEpLQ6zpkVRqKo0EzVy3kg1wzlR68XYL?s=1200x630&m=inside"
-    # img_url_5 = "http://img2.sbs.co.kr/img/sbs_cms/CH/2020/06/01/CH59004650_w666_h968.jpg"
     sec_img_data = []
     for idx, time in enumerate(section_start_list):
         dic_data = {
             'time': time,
-            'img_url': img_url_data[idx]
+            'img_url': f"https://picsum.photos/300/300/?image={idx}"
         }
         sec_img_data.append(dic_data)
 
