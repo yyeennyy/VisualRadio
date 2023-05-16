@@ -1,11 +1,16 @@
+
 window.onload = function () { 
-    const urlParams = new URLSearchParams(window.location.search);    
-    const broadcast = urlParams.get('broadcast').replace(/\/$/, '');
-    const radio_name = urlParams.get('radio_name');
+    var urlParams = new URLSearchParams(window.location.search);    
+    var broadcast = urlParams.get('broadcast').replace(/\/$/, '');
+    var radio_name = urlParams.get('radio_name');
     console.log(radio_name, broadcast)
     buildCalendar(broadcast, radio_name);
     showImg(radio_name);
-    showInfo(radio_name); };   // 웹 페이지가 로드되면 buildCalendar 실행
+    showInfo(radio_name); 
+};   // 웹 페이지가 로드되면 buildCalendar 실행
+var urlParams = new URLSearchParams(window.location.search); 
+var broadcast = urlParams.get('broadcast').replace(/\/$/, '');
+var radio_name = urlParams.get('radio_name');
 
 
 let nowMonth = new Date();  // 현재 달을 페이지를 로드한 날의 달로 초기화
@@ -47,7 +52,6 @@ function buildCalendar(broadcast, radio_name) {
                     nowColumn.addEventListener('click', function(event){
                         let clickDiv = event.currentTarget;
                         let click_date = clickDiv.getAttribute('date');
-                        console.log(click_date)
                         window.location.href = '/contents?broadcast=' + broadcast + '&radio_name=' + radio_name + '&date=' + click_date;
                     })
                 }
@@ -67,19 +71,26 @@ function buildCalendar(broadcast, radio_name) {
 let prevCal = document.getElementById("prevCal");
 let nextCal = document.getElementById("nextCal");
 
-// 이전달 버튼 클릭
-function prevCalendar() {
-    nowMonth = new Date(nowMonth.getFullYear(), nowMonth.getMonth() - 1, nowMonth.getDate());   // 현재 달을 1 감소
-    buildCalendar();    // 달력 다시 생성
-}
+// // 이전달 버튼 클릭
+// function prevCalendar(broadcast, radio_name) {
+//     nowMonth = new Date(nowMonth.getFullYear(), nowMonth.getMonth() - 1, nowMonth.getDate());   // 현재 달을 1 감소
+//     buildCalendar(broadcast, radio_name);    // 달력 다시 생성
+// }
 // 다음달 버튼 클릭
-function nextCalendar() {
-    nowMonth = new Date(nowMonth.getFullYear(), nowMonth.getMonth() + 1, nowMonth.getDate());   // 현재 달을 1 증가
-    buildCalendar();    // 달력 다시 생성
-}
+// function nextCalendar(broadcast, radio_name) {
+//     nowMonth = new Date(nowMonth.getFullYear(), nowMonth.getMonth() + 1, nowMonth.getDate());   // 현재 달을 1 증가
+//     buildCalendar(broadcast, radio_name);    // 달력 다시 생성
+// }
 
-prevCal.addEventListener('click', prevCalendar);
-nextCal.addEventListener('click', nextCalendar);
+prevCal.addEventListener('click', () => {
+    nowMonth = new Date(nowMonth.getFullYear(), nowMonth.getMonth() - 1, nowMonth.getDate());   // 현재 달을 1 감소
+    buildCalendar(broadcast, radio_name);
+});
+nextCal.addEventListener('click', () => {
+    nowMonth = new Date(nowMonth.getFullYear(), nowMonth.getMonth() + 1, nowMonth.getDate());   // 현재 달을 1 증가
+    buildCalendar(broadcast, radio_name);    // 달력 다시 생성
+});
+
 
 // input값이 한자리 숫자인 경우 앞에 '0' 붙혀주는 함수
 function leftPad(value) {
