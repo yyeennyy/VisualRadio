@@ -84,7 +84,7 @@ def all_date_of(radio_name, month):
 
 # ----------------------------------------------
 
-def setup_db():
+def set_db():
     pass
 
 
@@ -504,7 +504,7 @@ def generate_images_by_section(broadcast, name, date, section_start_list):
 
     with open(f"{path}/result/section_image.json", 'w', encoding='utf-8') as f:
         json.dump(sec_img_data, f, ensure_ascii=False)
-    print("[make_txt] section_image.json 생성 완료!!!")
+    logger.debug("[make_txt] section_image.json 생성 완료!!!")
 
 
 def add_time(time1, time2):
