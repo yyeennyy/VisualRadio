@@ -29,7 +29,7 @@ services:
     # image: yenyeny1/visual-radio:0.1
     restart: always
     ports: 
-      - 5000:5000
+      - 5001:5001
     networks:
       - db-net
     volumes:
