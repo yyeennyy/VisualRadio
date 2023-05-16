@@ -84,7 +84,7 @@ def all_date_of(radio_name, month):
 
 # ----------------------------------------------
 
-def setup_db():
+def set_db():
     pass
 
 
@@ -490,7 +490,7 @@ def make_txt(broadcast, name, date):
     logger.debug("[make_txt] script.json 생성 완료!!!")
     generate_images_by_section(broadcast, name, date, section_start)
 
-
+import random
 def generate_images_by_section(broadcast, name, date, section_start_list):
     path = f"./VisualRadio/radio_storage/{broadcast}/{name}/{date}"
     
@@ -498,13 +498,13 @@ def generate_images_by_section(broadcast, name, date, section_start_list):
     for idx, time in enumerate(section_start_list):
         dic_data = {
             'time': time,
-            'img_url': f"https://picsum.photos/300/300/?image={idx}"
+            'img_url': f"https://picsum.photos/300/300/?image={random.randrange(0,1000)}"
         }
         sec_img_data.append(dic_data)
 
     with open(f"{path}/result/section_image.json", 'w', encoding='utf-8') as f:
         json.dump(sec_img_data, f, ensure_ascii=False)
-    print("[make_txt] section_image.json 생성 완료!!!")
+    logger.debug("[make_txt] section_image.json 생성 완료!!!")
 
 
 def add_time(time1, time2):
