@@ -94,8 +94,8 @@ def audio_save(broadcast, program_name, date, audiofile):
         audiofile.save(path + 'raw.wav')
         logger.debug("[업로드] raw.wav 저장 완료")
         # DB에 업데이트
-        services.audio_save_db(broadcast, program_name, date)
-        logger.debug("[업로드] DB반영 완료")
+    services.audio_save_db(broadcast, program_name, date)
+    logger.debug("[업로드] DB 초기화 완료")
     return "ok"
 
 
