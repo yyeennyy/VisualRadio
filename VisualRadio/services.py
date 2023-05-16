@@ -91,13 +91,13 @@ def set_db():
 def audio_save_db(broadcast, name, date):
     with app.app_context():
         wav = Wav.query.filter_by(radio_name=name, radio_date=str(date)).first()
-        if not wav:
-            wav = Wav(radio_name=name, radio_date=date, broadcast=broadcast, raw=True, section=0, stt=False,
-                      script=False, contnets=False, done=False)
-            db.session.add(wav)
-            db.session.commit()
-        else:
-            logger.debug(f"[업로드][경고] {name} {date}가 이미 있습니다")
+        if wav:
+            logger.debug(f"[업로드][경고] {name} {date}가 이미 있습니다 (덮어쓰기를 진행합니다)")
+
+        wav = Wav(radio_name=name, radio_date=date, broadcast=broadcast, raw=True, section=0, stt=False,
+                    script=False, contnets=False, done=False)
+        db.session.add(wav)
+        db.session.commit()
 
 
 # ★
