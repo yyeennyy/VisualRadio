@@ -93,10 +93,19 @@ def audio_save_db(broadcast, name, date):
         wav = Wav.query.filter_by(radio_name=name, radio_date=str(date)).first()
         if wav:
             logger.debug(f"[업로드][경고] {name} {date}가 이미 있습니다 (덮어쓰기를 진행합니다)")
-
-        wav = Wav(radio_name=name, radio_date=date, broadcast=broadcast, raw=True, section=0, stt=False,
-                    script=False, contnets=False, done=False)
-        db.session.add(wav)
+            # 기존 객체 수정
+            wav.broadcast = broadcast
+            wav.raw = True
+            wav.section = 0
+            wav.stt = False
+            wav.script = False
+            wav.contnets = False
+            wav.done = False
+        else:
+            wav = Wav(radio_name=name, radio_date=date, broadcast=broadcast, raw=True, section=0, stt=False,
+                        script=False, contnets=False, done=False)
+            db.session.add(wav)
+        
         db.session.commit()
 
 
@@ -545,7 +554,7 @@ def sum_wav_sections(broadcast, name, date):
     for input_stream in input_streams:
         input_stream.close()
     output_stream.close()
-    print("[contents] wav section들 이어붙이기 완료")
+    logger.debug("[contents] wav section들 이어붙이기 완료")
 
 
 # 계획 없음 (멘트 섹션 찾기)
