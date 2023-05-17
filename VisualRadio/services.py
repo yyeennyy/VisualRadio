@@ -7,6 +7,7 @@ import io
 import sys
 from flask import jsonify, Flask
 from natsort import natsorted
+from sqlalchemy import text
 
 # for split
 from split_module.split import start_split
@@ -47,21 +48,29 @@ from VisualRadio import db, app
 # --------------------------------------------- main
 def get_all_radio():
     with app.app_context():
-        all_wavs = Wav.query.all() 
-        wav_list = []
-        
-        # broadcas
-        for wav in all_wavs:
-            wav_dict = {
-                'broadcast': wav.broadcast,
-                'radio_name': wav.radio_name,
-                'image_url': 'no'
-            }
-            wav_list.append(wav_dict)
-        
-        json_data = json.dumps(wav_list)
-    
-    return json_data
+            query = text("""
+            SELECT CONCAT(CONCAT('{"broadcast": "', broadcast, '", ', '"programs": [', GROUP_CONCAT(DISTINCT CONCAT('{"radio_name":"', radio_name, '"}') SEPARATOR ', '),']}'))
+            FROM wav
+            GROUP BY broadcast;
+            """)
+            result = db.session.execute(query)
+            dict_list = []
+            for r in result:
+                # print(json.loads(r[0]))
+                dict_list.append(json.loads((r[0])))
+
+            for i in range(len(dict_list)):
+                broadcast = dict_list[i]['broadcast']
+                for j in dict_list[i]['programs']:
+                    radio_name = j['radio_name']
+                    img_path = f"/static/{broadcast}/{radio_name}/main_img.png"
+                    if os.path.exists(img_path):
+                        j['img'] = img_path
+                    else:
+                        j['img'] = "/static/images/default_main.png"
+            json_data = json.dumps(dict_list)
+            return json_data
+
 
 # --------------------------------------------- sub1
 def all_date_of(radio_name, month):
@@ -103,7 +112,7 @@ def audio_save_db(broadcast, name, date):
             wav.done = False
         else:
             wav = Wav(radio_name=name, radio_date=date, broadcast=broadcast, raw=True, section=0, stt=False,
-                        script=False, contnets=False, done=False)
+                        script=False, contnets=False)
             db.session.add(wav)
         
         db.session.commit()
