@@ -14,6 +14,6 @@ RUN pip install SpeechRecognition
 RUN pip install natsort
 
 
-EXPOSE 5000
+EXPOSE 5001
 
 CMD [ "python", "main.py" ]
