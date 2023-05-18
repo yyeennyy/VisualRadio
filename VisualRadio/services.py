@@ -163,34 +163,15 @@ def split(broadcast, name, date):
     return 0
 
 
-# def get_request_url_raw(radio_name, date):
-#     url = "http://localhost:5000/%s/%s/wave" % (radio_name, date)
-#     logger.debug(f"요청 경로:  {url}")
-#     response = requests.get(url)
-#     if response.status_code == 200:
-#         return io.BytesIO(response.content)
 
-
-# def get_request_url_fixed(radio_name, date, filename):
-#     url = "http://localhost:5000/%s/%s/fixed/%s" % (radio_name, date, filename)
-#     logger.debug(f"요청 경로:  {url}")
-#     response = requests.get(url)
-#     if response.status_code == 200:
-#         return io.BytesIO(response.content)
-
-
-# wav to flac (google stt 권장 포맷)
-# def wavToFlac(broadcast, name, date):
-#     path = f"./VisualRadio/radio_storage/{broadcast}/{name}/{date}"
-#     wav_loc = f"{path}/split_wav"
-#     flac_loc = f"{path}/split_flac"
-#     os.makedirs(flac_loc, exist_ok=True)
-#     wav_path = get_file_path_list(wav_loc)
-#     for order, wav in enumerate(wav_path):
-#         song = AudioSegment.from_wav(wav)
-#         song.export(flac_loc + "/sec_%d.flac" % (order), format="flac")
-#     logger.debug("-- stt를 하기 위해 wav를 flac으로 변환했습니다 --")
-
+# ------------------------------------------------------------------------------------------ stt 관련
+import time
+import json
+import re
+import wave
+import whisper
+from itertools import groupby
+import threading
 
 def stt(broadcast, name, date):
     logger.debug("[stt] 시작")
@@ -223,9 +204,26 @@ def stt(broadcast, name, date):
         else:
             logger.debug(f"[stt] [오류] {name} {date} 가 있어야 하는데, DB에서 찾지 못함")
 
+def run_quickstart(broadcast, name, date, section):
+    save_name = section.replace(".wav", ".json")
+    path = f"./VisualRadio/radio_storage/{broadcast}/{name}/{date}"
+    os.makedirs(f"{path}/split_wav", exist_ok=True)
+    src_path = f"{path}/split_wav/{section}"                         #####################################
+    dst_path = f"{path}/raw_stt"
+    # ------------------------- 임시로 whisper 테스트를 sec_0에서 해보자
+    if 'sec_0' in 'section':
+        go_whisper_stt(src_path, dst_path, save_name)
+    # --------------------------------------------- 기본 로직
+    else: 
+        interval = 10  # 구간의 길이 (초 단위)
+        go_fast_stt(src_path, dst_path, interval, save_name)
+        logger.debug(f"[stt] {save_name} 처리 완료")
+    # ---------------------------------------------
+
 import speech_recognition as sr
 from pydub import AudioSegment
 def go_fast_stt(src_path, dst_path, interval, save_name):
+    logger.debug(f"[stt] {save_name} 는 SpeechRecognition 라이브러리로 진행합니다.")
     r = sr.Recognizer()
     # 음성 파일 로드 및 변환
     audio = AudioSegment.from_file(src_path)
@@ -241,19 +239,13 @@ def go_fast_stt(src_path, dst_path, interval, save_name):
         try:
             # 구간 추출
             audio_segment = audio[start_time:end_time]
-            # 추출된 구간을 임시 파일로 저장 (옵션)
-            temp_file_path = "temp.wav"
-            audio_segment.export(temp_file_path, format="wav")
             # 음성 인식 수행
-            with sr.AudioFile(temp_file_path) as temp_audio_file:
+            with sr.AudioFile(audio_segment) as temp_audio_file:
                 temp_audio_data = r.record(temp_audio_file)
                 text = r.recognize_google(temp_audio_data, language='ko-KR')
                 # 추출된 구간의 텍스트 출력 또는 원하는 로직 수행
                 new_data = {f'time':format_time(start_time / 1000), 'txt':text}
                 scripts.append(json.dumps(new_data, ensure_ascii=False))
-          # 임시 파일 삭제 (옵션)
-          # import os
-          # os.remove(temp_file_path)
         except:
             pass
         # 다음 구간으로 이동
@@ -290,22 +282,72 @@ def go_fast_stt(src_path, dst_path, interval, save_name):
     logger.debug(f"[stt] {save_name} 저장함")
     return data
 
-def format_time(time_in_seconds):
-    time_in_seconds = float(time_in_seconds)
-    minutes, seconds = divmod(int(time_in_seconds), 60)
-    milliseconds = int((time_in_seconds - int(time_in_seconds)) * 1000)
-    return "{:d}:{:02d}.{:03d}".format(minutes, seconds, milliseconds)
-def run_quickstart(broadcast, name, date, section):
-    save_name = section.replace(".wav", ".json")
-    path = f"./VisualRadio/radio_storage/{broadcast}/{name}/{date}"
-    os.makedirs(f"{path}/split_wav", exist_ok=True)
-    src_path = f"{path}/split_wav/{section}"                         #####################################
-    dst_path = f"{path}/raw_stt"
-    # ---------------------------------------------
-    interval = 10  # 구간의 길이 (초 단위)
-    go_fast_stt(src_path, dst_path, interval, save_name)
-    logger.debug(f"[stt] {save_name} 처리 완료")
-    # ---------------------------------------------
+def go_whisper_stt(src_path, dst_path, save_name):
+    logger.debug(f"[whisper] {save_name}는 whisper로 처리합니다.")
+    def show_progress(message):
+        seconds = 0
+        while is_running:
+            print(f"[로딩] {message}... {seconds}초 지났어...♥")
+            time.sleep(1)
+            seconds += 2
+        print(f"[로딩] {message}... 끝!!!!!!!!!!!!!!!!!!!!!!!!!")
+    # device = "cuda" if torch.cuda.is_available() else "cpu"
+    device = "cpu"
+    language = "ko"
+    model = whisper.load_model("base").to(device)
+    # stt작업 하기 
+    is_running = True
+    thread = threading.Thread(target=show_progress, args=("whisper stt", ))
+    thread.start()
+    results = model.transcribe(
+        src_path, language=language, temperature=0.0, word_timestamps=True)
+    is_running = False
+    thread.join()
+    # 스크립트 만들기
+    scripts = []
+    lines = []
+    times = []
+    for result in results['segments']:
+        text = result['text']
+        endings = ['에요', '해요', '예요', '지요', '네요', '[?]{1}', '[가-힣]{1,2}시다', '[가-힣]{1,2}니다', '어요', '구요', '군요', '어요', '아요', '은요', '이요', '든요', '워요', '드리고요', '되죠', '하죠']
+        end_position = len(text)
+        end_word = None
+        for ending in endings:
+            pattern = re.compile(ending)
+            match = pattern.search(text)
+            if match:
+                now_position = match.start()
+                if now_position < end_position:
+                    end_position = now_position
+                    end_word = ending
+            else:
+                pass
+        # 시간 처리
+        lines.append(text)
+        times.append(result['start'])
+        if end_word != None:
+            scripts.append({'time':format_time(times[0]), 'txt':''.join(lines)})
+            lines = []
+            times = []
+    # 결과물의 끝까지 종결 어미가 안나오는 경우
+    unique_lines = [k for k, _ in groupby(lines)]
+    if len(times) != 0:
+        scripts.append({'time':format_time(times[0]), 'txt':''.join(unique_lines)})
+    # 처리
+    with wave.open(src_path, 'rb') as wav_file:
+        sample_rate = wav_file.getframerate()
+        num_frames = wav_file.getnframes()
+        duration = num_frames / sample_rate
+    data = {'end_time':format_time(duration), 'scripts':[s for s in scripts]}
+    os.makedirs(f"{dst_path}", exist_ok=True)
+    filename = f"{dst_path}/{save_name}"
+    with open(dst_path, 'w', encoding='utf-8') as f:
+        json.dump(data, f, ensure_ascii=False)
+    logger.debug(f"[whisper] {save_name} 완료")
+    return data
+
+
+
 
 
 # def run_quickstart(broadcast, name, date, section, order):
@@ -446,14 +488,36 @@ def run_quickstart(broadcast, name, date, section):
 #     microseconds = duration_micros % 1000
 #     return "{:d}:{:02d}.{:03d}".format(int(minutes), int(seconds), microseconds)
 
-import re
-def extract_number(file_name):
-    # 파일명에서 숫자를 추출하는 함수
-    match = re.search(r'\d+', file_name)
-    if match:
-        return int(match.group())
-    else:
-        return 0
+# def get_request_url_raw(radio_name, date):
+#     url = "http://localhost:5000/%s/%s/wave" % (radio_name, date)
+#     logger.debug(f"요청 경로:  {url}")
+#     response = requests.get(url)
+#     if response.status_code == 200:
+#         return io.BytesIO(response.content)
+
+
+# def get_request_url_fixed(radio_name, date, filename):
+#     url = "http://localhost:5000/%s/%s/fixed/%s" % (radio_name, date, filename)
+#     logger.debug(f"요청 경로:  {url}")
+#     response = requests.get(url)
+#     if response.status_code == 200:
+#         return io.BytesIO(response.content)
+
+
+# wav to flac (google stt 권장 포맷)
+# def wavToFlac(broadcast, name, date):
+#     path = f"./VisualRadio/radio_storage/{broadcast}/{name}/{date}"
+#     wav_loc = f"{path}/split_wav"
+#     flac_loc = f"{path}/split_flac"
+#     os.makedirs(flac_loc, exist_ok=True)
+#     wav_path = get_file_path_list(wav_loc)
+#     for order, wav in enumerate(wav_path):
+#         song = AudioSegment.from_wav(wav)
+#         song.export(flac_loc + "/sec_%d.flac" % (order), format="flac")
+#     logger.debug("-- stt를 하기 위해 wav를 flac으로 변환했습니다 --")
+
+
+# ------------------------------------------------------------------------------------------ stt 이후 과정
 
 # 최종 script.json을 생성한다
 def make_txt(broadcast, name, date):
@@ -475,12 +539,9 @@ def make_txt(broadcast, name, date):
     # 빈 파일 생성
     with open(script_path, 'w') as f:
         f.write('')
-
     new_data = []
     section_start = []
     prev_end_time = "0:00.000"
-
-
     for file in file_path:
         logger.debug(f"[script] 합치는 중 - {file}")
         section_start.append(prev_end_time)
@@ -608,16 +669,10 @@ def get_all_radio_programs():
 
 ###################################### tools ###################################
 
-def get_file_list(file_dir):
-    file_list = glob.glob(file_dir + '/*.wav')
-    return [os.path.basename(file_path) for file_path in file_list if os.path.isfile(file_path)]
+def format_time(time_in_seconds):
+    time_in_seconds = float(time_in_seconds)
+    minutes, seconds = divmod(int(time_in_seconds), 60)
+    milliseconds = int((time_in_seconds - int(time_in_seconds)) * 1000)
+    return "{:d}:{:02d}.{:03d}".format(minutes, seconds, milliseconds)
 
-
-def get_file_path_list(file_dir):
-    file_list = []
-    os.makedirs(file_dir, exist_ok=True)
-    for file_name in os.listdir(file_dir):
-        if os.path.isfile(os.path.join(file_dir, file_name)):
-            file_list.append(file_dir + "/" + file_name)
-    return file_list
 
