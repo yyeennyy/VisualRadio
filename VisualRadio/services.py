@@ -239,14 +239,21 @@ def go_fast_stt(src_path, dst_path, interval, save_name):
         try:
             # 구간 추출
             audio_segment = audio[start_time:end_time]
+            # 추출된 구간을 임시 파일로 저장 (옵션)
+            temp_file_path = "temp.wav"
+            audio_segment.export(temp_file_path, format="wav")
+
             # 음성 인식 수행
-            with sr.AudioFile(audio_segment) as temp_audio_file:
+            with sr.AudioFile(temp_file_path) as temp_audio_file:
                 temp_audio_data = r.record(temp_audio_file)
                 text = r.recognize_google(temp_audio_data, language='ko-KR')
                 # 추출된 구간의 텍스트 출력 또는 원하는 로직 수행
                 new_data = {f'time':format_time(start_time / 1000), 'txt':text}
                 scripts.append(json.dumps(new_data, ensure_ascii=False))
-        except:
+        except Exception as e:
+            if len(e) == 0:
+                pass
+            logger.warning(f"[stt] {save_name} 예외!!!! {e}")
             pass
         # 다음 구간으로 이동
         start_time = end_time
@@ -282,7 +289,11 @@ def go_fast_stt(src_path, dst_path, interval, save_name):
     return data
 
 def go_whisper_stt(src_path, dst_path, save_name):
+    filename = f"{dst_path}/{save_name}"
     logger.debug(f"[whisper] {save_name}는 whisper로 처리합니다.")
+    if os.path.exists(filename):
+        logger.debug("[whisper] 처리 끝 (이미 존재)")
+        return
     def show_progress(message):
         seconds = 0
         while is_running:
@@ -339,7 +350,6 @@ def go_whisper_stt(src_path, dst_path, save_name):
         duration = num_frames / sample_rate
     data = {'end_time':format_time(duration), 'scripts':[s for s in scripts]}
     os.makedirs(f"{dst_path}", exist_ok=True)
-    filename = f"{dst_path}/{save_name}"
     with open(filename, 'w', encoding='utf-8') as f:
         json.dump(data, f, ensure_ascii=False)
     logger.debug(f"[whisper] {save_name} 완료")
