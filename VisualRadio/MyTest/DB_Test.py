@@ -3,6 +3,8 @@ from init_db import db_session, engine, Base
 from model import Wav
 from sqlalchemy.sql import text
 import json
+import os
+# from flask import jsonify
 
 # 메모리 db를 만드는 방법 아님! 기존 mysql 연결하는 방식
 class DB_Test(unittest.TestCase):
@@ -37,34 +39,27 @@ class DB_Test(unittest.TestCase):
 
 
     def test_get_radio_names_by_broadcast(self):
-
-            # broadcast별로 radio_name을 가져오는 쿼리
-            # query = text('SELECT broadcast, radio_name FROM Wav GROUP BY broadcast, radio_name')
             query = text("""
-            SELECT CONCAT("{'broadcast':'", broadcast, "',", "'programs':[", GROUP_CONCAT(DISTINCT CONCAT("{'radio_name':'", radio_name, "'}") SEPARATOR ','),']}')
+            SELECT CONCAT(CONCAT('{"broadcast": "', broadcast, '", ', '"programs": [', GROUP_CONCAT(DISTINCT CONCAT('{"radio_name":"', radio_name, '"}') SEPARATOR ', '),']}'))
             FROM Wav
             GROUP BY broadcast;
             """)
             result = db_session.execute(query)
-
-            json_data = []
+            dict_list = []
             for r in result:
-                print(type(r[0]), r[0])
-                json_data.append(json.dumps(r[0]))
+                # print(json.loads(r[0]))
+                dict_list.append(json.loads((r[0])))
 
-            # for data in json_data:
-                # print(type(data), data)
-            print(json_data)
-
-            # result = db.execute(query)
-            # print(result)
-            
-            # # 결과 검증
-            # for row in result:
-            #     print(row[0], row[1])
-            #     # broadcast = row[0]
-            #     # radio_names = row[1]
-
+            for i in range(len(dict_list)):
+                broadcast = dict_list[i]['broadcast']
+                for j in dict_list[i]['programs']:
+                    radio_name = j['radio_name']
+                    img_path = f"/static/{broadcast}/{radio_name}/main_img.png"
+                    if os.path.exists(img_path):
+                        j['img'] = img_path
+                    else:
+                        j['img'] = "/static/images/default_main.png"
+            print(dict_list)
 
 if __name__ == '__main__':
     unittest.main()

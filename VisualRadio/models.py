@@ -17,8 +17,9 @@ from VisualRadio import db
 # app = Flask(__name__)
 # db 객체 생성 (SQLAlchemy 객체를 전역 변수로 두기)
 
-
+# 저 db는 __init__에서 생성한 그 db임
 class Wav(db.Model):
+    
     broadcast = db.Column(db.String(20), nullable=False, default="None")
     radio_name = db.Column(db.String(50), primary_key=True)
     radio_date = db.Column(db.String(50), primary_key=True)
@@ -27,9 +28,8 @@ class Wav(db.Model):
     stt = db.Column(db.Boolean, nullable=False, default=False)
     script = db.Column(db.Boolean, nullable=False, default=False)
     contents = db.Column(db.Boolean, nullable=False, default=False)
-    done = db.Column(db.Boolean, nullable=False, default=False)
 
-    def __init__(self, broadcast, radio_name, radio_date, raw, section, stt, script, contnets, done):
+    def __init__(self, broadcast, radio_name, radio_date, raw, section, stt, script, contents):
         self.broadcast = broadcast
         self.radio_name = radio_name
         self.radio_date = radio_date
@@ -37,11 +37,10 @@ class Wav(db.Model):
         self.section = section
         self.stt = stt
         self.script = script
-        self.contents = contnets
-        self.done = done
+        self.contents = contents
 
     def __repr__(self):
-        return f"<Radio {self.broadcast} {self.radio_name} {self.radio_date} : (raw : {self.raw}), (section, {self.section}), (stt, {self.stt}), (script, {self.script}), (contents, {self.contents}), (done, {self.done}))>\n"
+        return f"<Radio {self.broadcast} {self.radio_name} {self.radio_date} : (raw : {self.raw}), (section: {self.section}), (stt: {self.stt}), (script: {self.script}), (contents: {self.contents}))>\n"
 
 
 
