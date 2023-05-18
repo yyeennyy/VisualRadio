@@ -23,4 +23,6 @@ for /f "tokens=1" %%a in (output) do (
     set RADIO_ADDR=%%a
 )
 
+del output
+
 ffmpeg -t %RECORD_MINS% -i %RADIO_ADDR% %MP3_FILE_NAME%
