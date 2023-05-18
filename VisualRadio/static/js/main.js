@@ -43,8 +43,8 @@ function getInfo() {
               // 클릭 이벤트 추가
               programElement.addEventListener('click', function(event) {
                 const clickDiv = event.currentTarget;
-                const radio_name = clickDiv.getAttribute('radio_name');
-                const broadcast = clickDiv.getAttribute('broadcast');
+                const radio_name = clickDiv.querySelector('.program_name').getAttribute('radio_name');
+                const broadcast = clickDiv.querySelector('.program_name').getAttribute('broadcast');
                 window.location.href = '/subpage?broadcast=' + broadcast + '&radio_name=' + radio_name;
               });
             });
