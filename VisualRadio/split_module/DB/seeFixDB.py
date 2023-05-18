@@ -32,3 +32,4 @@ for row in rows:
 
 # 연결 종료
 conn.close()
+
