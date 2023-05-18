@@ -10,12 +10,12 @@ WORKDIR /app
 COPY requirements.txt .
 RUN pip3 install -r requirements.txt
 RUN pip install cryptography
-# RUN pip3 install setuptools-rust
-# RUN pip3 install git+https://github.com/openai/whisper.git
+RUN pip3 install setuptools-rust
+RUN pip3 install git+https://github.com/openai/whisper.git
 RUN pip install SpeechRecognition
 RUN pip install natsort
 RUN pip install librosa
-
+RUN pip install 
 
 EXPOSE 5001
 
