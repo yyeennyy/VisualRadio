@@ -193,7 +193,7 @@ function getImg(broadcast, radio_name, date) {
 })}
 
 function showImg(){
-      console.log(`showImg idex : ${currentIndex}`)
+      // console.log(`showImg idex : ${currentIndex}`)
       var { img_url, time } = data[currentIndex];
       var nextImgTime;
 
