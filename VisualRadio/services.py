@@ -291,9 +291,9 @@ def go_fast_stt(src_path, dst_path, interval, save_name):
 def go_whisper_stt(src_path, dst_path, save_name):
     filename = f"{dst_path}/{save_name}"
     logger.debug(f"[whisper] {save_name}는 whisper로 처리합니다.")
-    if os.path.exists(filename):
-        logger.debug("[whisper] 처리 끝 (이미 존재)")
-        return
+    # if os.path.exists(filename):
+        # logger.debug("[whisper] 처리 끝 (이미 존재)")
+        # return
     def show_progress(message):
         seconds = 0
         while is_running:
@@ -319,7 +319,7 @@ def go_whisper_stt(src_path, dst_path, save_name):
     times = []
     for result in results['segments']:
         text = result['text']
-        endings = ['에요', '해요', '예요', '지요', '네요', '[?]{1}', '[가-힣]{1,2}시다', '[가-힣]{1,2}니다', '어요', '구요', '군요', '어요', '아요', '은요', '이요', '든요', '워요', '드리고요', '되죠', '하죠']
+        endings = ['에요', '해요', '예요', '지요', '네요', '[?]{1}', '[가-힣]{1,2}시다', '[가-힣]{1,2}니다', '어요', '구요', '군요', '어요', '아요', '은요', '이요', '든요', '워요', '드리고요', '되죠', '하죠', '까요']
         end_position = len(text)
         end_word = None
         for ending in endings:
