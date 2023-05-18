@@ -7,7 +7,7 @@ networks:
 services:
   mysql:
     container_name: mysql
-    image: yenyeny1/mysql:latest
+    image: mysql:latest
     restart: always
     ports: 
       - 3306:3306
@@ -23,6 +23,8 @@ services:
       MYSQL_USER: visualradio
       MYSQL_PASSWORD: visualradio
       MYSQL_ROOT_PASSWORD: visualradio
+    volumes:
+      - "./db_setting/:/docker-entrypoint-initdb.d/"
   visual-radio:
     container_name: visual-radio
     build: .

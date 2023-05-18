@@ -27,9 +27,8 @@ class Wav(db.Model):
     stt = db.Column(db.Boolean, nullable=False, default=False)
     script = db.Column(db.Boolean, nullable=False, default=False)
     contents = db.Column(db.Boolean, nullable=False, default=False)
-    done = db.Column(db.Boolean, nullable=False, default=False)
 
-    def __init__(self, broadcast, radio_name, radio_date, raw, section, stt, script, contnets, done):
+    def __init__(self, broadcast, radio_name, radio_date, raw, section, stt, script, contnets):
         self.broadcast = broadcast
         self.radio_name = radio_name
         self.radio_date = radio_date
@@ -38,10 +37,9 @@ class Wav(db.Model):
         self.stt = stt
         self.script = script
         self.contents = contnets
-        self.done = done
 
     def __repr__(self):
-        return f"<Radio {self.broadcast} {self.radio_name} {self.radio_date} : (raw : {self.raw}), (section, {self.section}), (stt, {self.stt}), (script, {self.script}), (contents, {self.contents}), (done, {self.done}))>\n"
+        return f"<Radio {self.broadcast} {self.radio_name} {self.radio_date} : (raw : {self.raw}), (section, {self.section}), (stt, {self.stt}), (script, {self.script}), (contents, {self.contents}))>\n"
 
 
 

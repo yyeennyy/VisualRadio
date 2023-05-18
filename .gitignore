@@ -751,3 +751,4 @@ pyrightconfig.json
 *.txt
 credentials.json
 *.flac
+*.json
