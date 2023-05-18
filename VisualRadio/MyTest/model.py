@@ -4,7 +4,7 @@ from init_db import Base
 
 
 class Wav(Base):
-    __tablename__ = 'Wav'
+    __tablename__ = 'wav'
     
     broadcast = Column(String(20), nullable=False, default="None")
     radio_name = Column(String(50), primary_key=True)

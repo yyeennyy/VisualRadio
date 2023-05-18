@@ -752,3 +752,4 @@ pyrightconfig.json
 credentials.json
 *.flac
 VisualRadio/radio_storage
+*.json

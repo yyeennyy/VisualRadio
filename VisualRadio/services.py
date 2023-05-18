@@ -109,7 +109,6 @@ def audio_save_db(broadcast, name, date):
             wav.stt = False
             wav.script = False
             wav.contnets = False
-            wav.done = False
         else:
             wav = Wav(radio_name=name, radio_date=date, broadcast=broadcast, raw=True, section=0, stt=False,
                         script=False, contnets=False)
