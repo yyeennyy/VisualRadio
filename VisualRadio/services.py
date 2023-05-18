@@ -156,6 +156,8 @@ def split(broadcast, name, date):
             db.session.commit()
         else:
             pass  # 해당 wav 모델 인스턴스가 없을 경우 처리
+        
+    
 
 
     return 0
@@ -538,6 +540,26 @@ def add_time(time1, time2):
     print(time_formatted)
     return time_formatted
 
+import librosa
+import librosa.util as librosa_util
+import soundfile as sf
+
+def change_sr(path, sr_af):
+    # name : 바꾸고자하는 파일의 경로입니다!
+    # change_sr : 원하는 sr로 변경합니다! 들어오는 기본값은 44100으로 했습니다.
+    # change_path : 바꾼 음성 파일을 저장할 경로입니다!
+    
+    # wave 파일 로드
+    y, sr_or = librosa.load(path, sr=44100)
+    
+    # os.remove(path)
+
+    # 원하는 sr 값으로 샘플링 주파수 변경
+    y_resampled = librosa.resample(y, orig_sr=sr_or, target_sr=sr_af)
+
+    # 변경된 wave 파일 저장
+    sf.write(path, y_resampled, sr_af)
+
 
 def sum_wav_sections(broadcast, name, date):
     path = f"./VisualRadio/radio_storage/{broadcast}/{name}/{date}"
@@ -562,6 +584,9 @@ def sum_wav_sections(broadcast, name, date):
     for input_stream in input_streams:
         input_stream.close()
     output_stream.close()
+    
+    change_sr(dst_path, 24000)
+    
     logger.debug("[contents] wav section들 이어붙이기 완료")
 
 

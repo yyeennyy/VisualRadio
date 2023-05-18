@@ -137,6 +137,8 @@ function sleep(ms) {
     while (Date.now() < wakeUpTime) {}
 }
   
+const loading = document.getElementById('loading');
+
 function getWave(broadcast, radio_name, date) {
   const xhr = new XMLHttpRequest();
   xhr.open('GET', `/${broadcast}/${radio_name}/${date}/wave`, true);
@@ -150,6 +152,7 @@ function getWave(broadcast, radio_name, date) {
     }
   };
   xhr.onload = function(event) {
+    loading.innerHTML = '/';
     const blob = xhr.response;
     const audioURL = URL.createObjectURL(blob); // Blob 객체를 URL로 변환
     document.getElementById('audio').src = audioURL; // audio 엘리먼트에 URL 할당
