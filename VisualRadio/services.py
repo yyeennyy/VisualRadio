@@ -211,7 +211,7 @@ def run_quickstart(broadcast, name, date, section):
     src_path = f"{path}/split_wav/{section}"                         #####################################
     dst_path = f"{path}/raw_stt"
     # ------------------------- 임시로 whisper 테스트를 sec_0에서 해보자
-    if 'sec_0' in 'section':
+    if 'sec_0' in section:
         go_whisper_stt(src_path, dst_path, save_name)
     # --------------------------------------------- 기본 로직
     else: 
@@ -279,7 +279,6 @@ def go_fast_stt(src_path, dst_path, interval, save_name):
     #     os.remove(filename)
     with open(filename, 'w', encoding='utf-8') as f:
         json.dump(data, f, ensure_ascii=False)
-    logger.debug(f"[stt] {save_name} 저장함")
     return data
 
 def go_whisper_stt(src_path, dst_path, save_name):
@@ -341,7 +340,7 @@ def go_whisper_stt(src_path, dst_path, save_name):
     data = {'end_time':format_time(duration), 'scripts':[s for s in scripts]}
     os.makedirs(f"{dst_path}", exist_ok=True)
     filename = f"{dst_path}/{save_name}"
-    with open(dst_path, 'w', encoding='utf-8') as f:
+    with open(filename, 'w', encoding='utf-8') as f:
         json.dump(data, f, ensure_ascii=False)
     logger.debug(f"[whisper] {save_name} 완료")
     return data
