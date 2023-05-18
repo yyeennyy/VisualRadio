@@ -5,7 +5,7 @@ window.onload = function () {
     var radio_name = urlParams.get('radio_name');
     console.log(radio_name, broadcast)
     buildCalendar(broadcast, radio_name);
-    showImg(radio_name);
+    showImg(broadcast, radio_name);
     showInfo(radio_name); 
 };   // 웹 페이지가 로드되면 buildCalendar 실행
 var urlParams = new URLSearchParams(window.location.search); 
@@ -111,8 +111,8 @@ async function fetchData(radio_name, month) {
 
 let radio_img = document.getElementById('radioImg')
 
-function showImg(radio_name){
-fetch(`/${radio_name}/img`)
+function showImg(broadcast, radio_name){
+fetch(`/${broadcast}/${radio_name}/img`)
 .then((response) => response.json())
 .then((data) => {
     radio_img.setAttribute('src', data.main_photo)
