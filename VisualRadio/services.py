@@ -111,7 +111,7 @@ def audio_save_db(broadcast, name, date):
             wav.contnets = False
         else:
             wav = Wav(radio_name=name, radio_date=date, broadcast=broadcast, raw=True, section=0, stt=False,
-                        script=False, contnets=False)
+                        script=False, contents=False)
             db.session.add(wav)
         
         db.session.commit()
@@ -517,7 +517,7 @@ def generate_images_by_section(broadcast, name, date, section_start_list):
     for idx, time in enumerate(section_start_list):
         dic_data = {
             'time': time,
-            'img_url': f"https://picsum.photos/300/300/?image={random.randrange(0,1000)}"
+            'img_url': f"https://picsum.photos/300/300/?image={random.randrange(0,100)}"
         }
         sec_img_data.append(dic_data)
 
@@ -585,7 +585,8 @@ def sum_wav_sections(broadcast, name, date):
         input_stream.close()
     output_stream.close()
     
-    change_sr(dst_path, 24000)
+    # # sr을 줄이는 코드!!
+    # change_sr(dst_path, 24000)
     
     logger.debug("[contents] wav section들 이어붙이기 완료")
 
