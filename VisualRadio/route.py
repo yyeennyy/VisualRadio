@@ -103,13 +103,6 @@ def audio_save(broadcast, program_name, date, audiofile):
 
 # --------------------------------------------------------------------------------- main
 
-# # 전체 라디오 프로그램 정보 요청
-# @auth.route('/all')
-# def get_all():
-#     all = services.get_all_radio_programs()
-#     return jsonify(all)
-
-
 @auth.route('/radio', methods=['GET'])
 def radio_all():
     return services.get_all_radio()
@@ -118,15 +111,14 @@ def radio_all():
 def to_sub1():
     return render_template('sub1.html')
 
-
-
 # --------------------------------------------------------------------------------- sub1
 
-
-
-@auth.route('/<string:radio_name>/img', methods=['GET'])
-def load_main_img(radio_name):
-    return json.dumps({'main_photo':'https://i.namu.wiki/i/RKqtSpbvglnh3K-vLz1W1ZkrmQW9jJ_3KQU8ui6srOKBRLBD1dlJADFfp5tkWYxhr9IBEAd17x_ZTOVPHd7a8jAbVZ8lmRfO1F9wkHYM7UCUg52YsmpBcphHBj0c4CkRwe27gn_aT8eTjeh6rQr7lQ.webp'})
+@auth.route('/<string:broadcast>/<string:radio_name>/img', methods=['GET'])
+def load_main_img(broadcast, radio_name):
+    img_path = f"/static/{broadcast}/{radio_name}/main_img.png"
+    if not os.path.exists(img_path):
+        img_path = "/static/images/default_main.png"
+    return json.dumps({'main_photo':img_path})
 
 @auth.route('/<string:radio_name>/<string:month>/all', methods=['GET'])
 def load_month_info(radio_name, month):
@@ -143,7 +135,6 @@ def to_sub2():
 
 
 # --------------------------------------------------------------------------------- sub2
-
 
 # 지정된 회차의 스크립트 요청
 @auth.route('/<string:broadcast>/<string:name>/<string:date>/script', methods=['GET'])
