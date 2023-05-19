@@ -120,9 +120,9 @@ def load_main_img(broadcast, radio_name):
         img_path = "/static/images/default_main.png"
     return json.dumps({'main_photo':img_path})
 
-@auth.route('/<string:radio_name>/<string:month>/all', methods=['GET'])
-def load_month_info(radio_name, month):
-    return json.dumps(services.all_date_of(radio_name, month))
+@auth.route('/<string:broadcast>/<string:radio_name>/<string:month>/all', methods=['GET'])
+def load_month_info(broadcast, radio_name, month):
+    return json.dumps(services.all_date_of(broadcast, radio_name, month))
 
 @auth.route('/<string:radio_name>/radio_info', methods=['GET'])
 def load_radio_info(radio_name):

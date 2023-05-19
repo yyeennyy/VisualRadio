@@ -103,7 +103,7 @@ function leftPad(value) {
 
 
 async function fetchData(radio_name, month) {
-    const response = await fetch(`/${radio_name}/${month}/all`);
+    const response = await fetch(`/${broadcast}/${radio_name}/${month}/all`);
     const data = await response.json();
     // 이후에 data 변수를 사용하는 코드를 작성합니다.
     return data;

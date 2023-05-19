@@ -73,7 +73,7 @@ def get_all_radio():
 
 
 # --------------------------------------------- sub1
-def all_date_of(radio_name, month):
+def all_date_of(broadcast, radio_name, month):
     with app.app_context():
         logger.warn(month)
         # month를 이용하여 시작일과 종료일 계산
@@ -81,7 +81,7 @@ def all_date_of(radio_name, month):
         end_date = datetime.strptime(f'2023-{month}-01', '%Y-%m-%d').replace(day=1, month=start_date.month+1) - timedelta(days=1)
         
         # 해당 월의 데이터 조회
-        targets = Wav.query.filter_by(radio_name=radio_name).filter(Wav.radio_date >= start_date, Wav.radio_date <= end_date).all()
+        targets = Wav.query.filter_by(broadcast=broadcast, radio_name=radio_name).filter(Wav.radio_date >= start_date, Wav.radio_date <= end_date).all()
         
         only_day_list = [wav.radio_date.split('-')[-1] for wav in targets]
         date_list = [{'date': day} for day in only_day_list]
