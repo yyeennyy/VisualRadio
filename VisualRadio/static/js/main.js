@@ -1,61 +1,62 @@
-const mbcElements = document.getElementsByClassName("cover");
-const mbcImgElements = document.getElementsByClassName("mbcFm4u_img");
+const channelsElement = document.getElementById("channels");
 
-function getInfo() {
-    return fetch('/radio')
-      .then(response => response.json())
-      .then(data => {
-        const radioData = data;
-    
-        radioData.forEach(radio => {
-          const broadcast = radio.broadcast;
-          const programs = radio.programs;
-    
-          programs.forEach(program => {
-            const radioName = program.radio_name;
-            const imgSrc = program.img;
-    
-            const programElement = document.createElement('div');
-            programElement.classList.add('content');
-            programElement.classList.add(radio.broadcast)
-            programElement.innerHTML = `
-              <div class="cover_back">
-                <div class="lp">
-                  <img class="imgControl" src="/static/images/lp.png">
-                </div>
-                <div class="cover">
-                  <img class="imgControl" src="${imgSrc}">
-                </div>
-                <div class="like">
-                  <img class="imgControl" src="/static/images/before_heart.png">
-                </div>
-              </div>
-              <div class="program_name" broadcast="${broadcast}" radio_name="${radioName}">${radioName}</div>
-            `;
-    
-            const broadcastElements = document.querySelectorAll('.radioBroadcast');
-            broadcastElements.forEach(broadcastElement => {
-              const broadcastNameElement = broadcastElement.querySelector('.radioBroadcastName');
-              if (broadcastNameElement.textContent.includes(broadcast)) {
-                broadcastElement.appendChild(programElement);
-              }
-
-              // 클릭 이벤트 추가
-              programElement.addEventListener('click', function(event) {
-                const clickDiv = event.currentTarget;
-                const radio_name = clickDiv.querySelector('.program_name').getAttribute('radio_name');
-                const broadcast = clickDiv.querySelector('.program_name').getAttribute('broadcast');
-                window.location.href = '/subpage?broadcast=' + broadcast + '&radio_name=' + radio_name;
-              });
-            });
-          });
-        });
-      })
-      .catch(error => {
-        console.error('Error:', error);
-      });
+function createRadioBroadcast(broadcast) {
+  const radioBroadcastElement = document.createElement("div");
+  radioBroadcastElement.classList.add("radioBroadcast");
+  radioBroadcastElement.innerHTML = `
+    <div class="radioBroadcastName">${broadcast}</div>
+  `;
+  return radioBroadcastElement;
 }
 
+function createProgramElement(program, broadcast) {
+  const { radio_name, img } = program;
+  const programElement = document.createElement("div");
+  programElement.classList.add("content");
+  programElement.classList.add(radio_name);
+  programElement.innerHTML = `
+    <div class="cover_back">
+      <div class="lp">
+        <img class="imgControl" src="/static/images/lp.png">
+      </div>
+      <div class="cover">
+        <img class="imgControl" src="${img}">
+      </div>
+      <div class="like">
+        <img class="imgControl" src="/static/images/before_heart.png">
+      </div>
+    </div>
+    <div class="program_name" broadcast="${broadcast}" radio_name="${radio_name}">${radio_name}</div>
+  `;
+  return programElement;
+}
+
+function getInfo() {
+  return fetch("/radio")
+    .then((response) => response.json())
+    .then((data) => {
+      data.forEach(({ broadcast, programs }) => {
+        const radioBroadcastElement = createRadioBroadcast(broadcast);
+        programs.forEach((program) => {
+          const programElement = createProgramElement(program, broadcast);
+          radioBroadcastElement.appendChild(programElement);
+
+          // 클릭 이벤트 추가
+          programElement.addEventListener("click", function (event) {
+            const clickDiv = event.currentTarget;
+            const radio_name = clickDiv.querySelector(".program_name").getAttribute("radio_name");
+            const broadcast = clickDiv.querySelector(".program_name").getAttribute("broadcast");
+            window.location.href = "/subpage?broadcast=" + broadcast + "&radio_name=" + radio_name;
+          });
+        });
+
+        channelsElement.appendChild(radioBroadcastElement);
+      });
+    })
+    .catch(error => {
+      console.error('Error:', error);
+    });
+}
 //     return fetch(`/radio`)
 //     .then((response) => response.json())
 //     .then((data) => 
