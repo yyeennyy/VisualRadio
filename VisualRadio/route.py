@@ -26,8 +26,11 @@ logger.addHandler(file_handler)
 
 # --------------------------------------------------------------------------------- 수집기
 @auth.route('/collector', methods=["POST"])
-def collector(broadcast, time):
-    return services.collector_needs(broadcast, time);
+def collector():
+    params = json.loads(request.get_data())
+    broadcast = params['broadcast']
+    time = params['time']
+    return services.collector_needs(broadcast, time)
 
 # --------------------------------------------------------------------------------- 페이지
 @auth.route('/admin')
