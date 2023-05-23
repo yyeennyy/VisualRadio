@@ -43,15 +43,26 @@ logger.addHandler(file_handler)
 
 from VisualRadio import db, app
 
+# --------------------------------------------- collector
+def collector_needs(broadcast, time):
+    with app.app_context:
+        query = text("""
+            SELECT CONCAT('{"radio_name":"', radio_name, '"', ',"record_len":', record_len, '}') 
+            FROM radio 
+            WHERE broadcast=""" + broadcast +  """
+            AND start_time=""" + time
+        )
+        result = db.session.execute(query)
+        return json.dumps(json.loads(result))
 
 
 # --------------------------------------------- main
 def get_all_radio():
     with app.app_context():
             query = text("""
-            SELECT CONCAT(CONCAT('{"broadcast": "', broadcast, '", ', '"programs": [', GROUP_CONCAT(DISTINCT CONCAT('{"radio_name":"', radio_name, '"}') SEPARATOR ', '),']}'))
-            FROM wav
-            GROUP BY broadcast;
+                SELECT CONCAT(CONCAT('{"broadcast": "', broadcast, '", ', '"programs": [', GROUP_CONCAT(DISTINCT CONCAT('{"radio_name":"', radio_name, '"}') SEPARATOR ', '),']}'))
+                FROM wav
+                GROUP BY broadcast;
             """)
             result = db.session.execute(query)
             dict_list = []
