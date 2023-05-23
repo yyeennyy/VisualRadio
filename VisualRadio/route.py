@@ -24,6 +24,11 @@ logger.addHandler(file_handler)
 
 
 
+# --------------------------------------------------------------------------------- 수집기
+@auth.route('/collector', methods=["POST"])
+def collector(broadcast, time):
+    return services.collector_needs(broadcast, time);
+
 # --------------------------------------------------------------------------------- 페이지
 @auth.route('/admin')
 def adminpage():
