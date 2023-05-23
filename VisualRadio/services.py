@@ -45,15 +45,18 @@ from VisualRadio import db, app
 
 # --------------------------------------------- collector
 def collector_needs(broadcast, time):
-    with app.app_context:
+    with app.app_context():
         query = text("""
             SELECT CONCAT('{"radio_name":"', radio_name, '"', ',"record_len":', record_len, '}') 
             FROM radio 
-            WHERE broadcast=""" + broadcast +  """
-            AND start_time=""" + time
+            WHERE broadcast=""" +'"'+ broadcast +'"'+
+            'AND start_time=' +'"'+ time +'"'
         )
         result = db.session.execute(query)
-        return json.dumps(json.loads(result))
+        for r in result:
+            data = json.loads((r[0]))
+        return json.dumps(data)
+        
 
 
 # --------------------------------------------- main
