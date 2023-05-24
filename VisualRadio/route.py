@@ -29,7 +29,7 @@ logger.addHandler(file_handler)
 def collector():
     params = json.loads(request.get_data())
     broadcast = params['broadcast']
-    time = params['time']
+    time = params['start_time']
     return services.collector_needs(broadcast, time)
 
 # --------------------------------------------------------------------------------- 페이지
