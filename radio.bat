@@ -1,24 +1,28 @@
 cd .\
 
-set RADIO_NAME=%0
-
-if not exist %cd%\VisualRadio\radio_storage\%RADIO_NAME%\ (
-    mkdir %cd%\VisualRadio\radio_storage\%RADIO_NAME%
+set BROADCAST=%0
+if not exist %cd%\VisualRadio\radio_storage\%BROADCAST%\ (
+    mkdir %cd%\VisualRadio\radio_storage\%BROADCAST%
 )
 
-set RADIO_DATE=%date:~2,2%%date:~5,2%%date:~8,2%
-if not exist %cd%\VisualRadio\radio_storage\%RADIO_NAME%\%RADIO_DATE%\ (
-    mkdir %cd%\VisualRadio\radio_storage\%RADIO_NAME%\%RADIO_DATE%
+set RADIO_NAME=%1
+if not exist %cd%\VisualRadio\radio_storage\%BROADCAST%\%RADIO_NAME%\ (
+    mkdir %cd%\VisualRadio\radio_storage\%BROADCAST%\%RADIO_NAME%
+)
+
+set RADIO_DATE=%date%
+if not exist %cd%\VisualRadio\radio_storage\%BROADCAST%\%RADIO_NAME%\%RADIO_DATE%\ (
+    mkdir %cd%\VisualRadio\radio_storage\%BROADCAST%\%RADIO_NAME%\%RADIO_DATE%
 )
 
 set PROGRAM_NAME=raw
  
-set MP3_FILE_NAME=VisualRadio\radio_storage\%RADIO_NAME%\%RADIO_DATE%\%PROGRAM_NAME%.wav
+set MP3_FILE_NAME=VisualRadio\radio_storage\%BROADCAST%\%RADIO_NAME%\%RADIO_DATE%\%PROGRAM_NAME%.wav
 
-set RECORD_MINS=10
+set RECORD_MINS=%2
 
 @ echo off
-python radio_mbcfm4u.py > output
+python %BROADCAST%.py > output
 for /f "tokens=1" %%a in (output) do (
     set RADIO_ADDR=%%a
 )

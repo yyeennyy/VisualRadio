@@ -52,9 +52,11 @@ def collector_needs(broadcast, time):
             WHERE broadcast=""" +'"'+ broadcast +'"'+
             'AND start_time=' +'"'+ time +'"'
         )
+        logger.debug(query)
         result = db.session.execute(query)
         for r in result:
             data = json.loads((r[0]))
+        logger.debug(data)
         return json.dumps(data)
         
 
