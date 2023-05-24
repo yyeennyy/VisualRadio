@@ -38,15 +38,30 @@ public class Client {
                 // URL url = new URL("http://localhost:5000");
                 URL url = new URL("http://localhost/collector");
                 HttpURLConnection connection = (HttpURLConnection) url.openConnection();
+                connection.setRequestProperty("Content-Type", "application/json;utf-8");
+                connection.setRequestProperty("Accept","application/json");
                 connection.setRequestMethod("POST");
                 connection.setDoOutput(true);
                 
                 // 필요한 데이터 설정 (방송사, 예약 시간 등)
-                String requestBody = "broadcast=" + broadcast + "&start_time=" + start_time;
+                // String requestBody = "broadcast=" + broadcast + "&start_time=" + start_time;
+                String jsonStr = String.format("{\"broadcast\":\"%s\", \"start_time\":\"%s\"}", broadcast, start_time);
 
                 // 요청 데이터 전송
+                // try(OutputStream os = connection.getOutputStream()){
+                //     byte[] input = jsonStr.getBytes("utf-8");
+                //     os.write(input, 0, input.length);
+                // }
+                // try(BufferedReader br = new BufferedReader(new InputStreamReader(connection.getInputStream(),"utf-8"))){
+                //     StringBuilder response = new StringBuilder();
+                //     String responseLine = null;
+                //     while((responseLine = br.readLine()) != null){
+                //         response.append(responseLine.trim());
+                //     }
+                //     System.out.println(response.toString());
+                // }
                 OutputStream outputStream = connection.getOutputStream();
-                outputStream.write(requestBody.getBytes());
+                outputStream.write(jsonStr.getBytes());
                 outputStream.flush();
                 outputStream.close();
                 
