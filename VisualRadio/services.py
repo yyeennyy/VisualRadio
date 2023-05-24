@@ -54,9 +54,10 @@ def collector_needs(broadcast, time):
         )
         logger.debug(query)
         result = db.session.execute(query)
+        data = ""
         for r in result:
             data = json.loads((r[0]))
-        logger.debug(data)
+            logger.debug(data)
         return json.dumps(data)
         
 
