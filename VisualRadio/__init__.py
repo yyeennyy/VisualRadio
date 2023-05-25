@@ -40,7 +40,7 @@ def create_app():
     app.register_blueprint(auth, url_prefix='/')
 
     with app.app_context():
-        db.create_all()
+        db.create_all() 
     logger.debug("[DB] 생성 완료")
 
     return app, db
