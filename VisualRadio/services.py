@@ -52,12 +52,12 @@ def collector_needs(broadcast, time):
             WHERE broadcast=""" +'"'+ broadcast +'"'+
             'AND start_time=' +'"'+ time +'"'
         )
-        logger.debug(query)
+        # logger.debug(query)
         result = db.session.execute(query)
         data = ""
         for r in result:
             data = json.loads((r[0]))
-            logger.debug(data)
+            # logger.debug(data)
         return json.dumps(data)
         
 
@@ -136,7 +136,7 @@ def audio_save_db(broadcast, name, date):
 
 # ★
 def split(broadcast, name, date):
-
+    return
     path = f"./VisualRadio/radio_storage/{broadcast}/{name}/{date}"
     song_path = path + "/raw.wav"
     save_path = path + "/split_wav"
@@ -191,19 +191,21 @@ from itertools import groupby
 import threading
 
 def stt(broadcast, name, date):
+    return
     logger.debug("[stt] 시작")
     start_time = time.time()
-    # 모든 section 결과를 무조건 stt한다.
+    # 모든 sec_n.wav를 stt할 것이다
     path = f"./VisualRadio/radio_storage/{broadcast}/{name}/{date}"
     section_dir = f'{path}/split_wav'
     os.makedirs(section_dir, exist_ok=True)
     section_list = os.listdir(section_dir)
-    # 섹션마다 stt 처리하기
+
+    # sec_n.wav를 stt하기 시작
     threads = []
     for section in section_list:
         logger.debug(f"[stt] stt할 파일 : {section}")
-        # STT 수행
-        thread = threading.Thread(target=run_quickstart,
+        # thread로 stt 진행
+        thread = threading.Thread(target=stt_process,
                                   args=(broadcast, name, date, section))
         threads.append(thread)
         thread.start()
@@ -219,98 +221,63 @@ def stt(broadcast, name, date):
             db.session.add(wav)
             db.session.commit()
         else:
-            logger.debug(f"[stt] [오류] {name} {date} 가 있어야 하는데, DB에서 찾지 못함")
+            logger.debug(f"[stt] [오류] {broadcast} {name} {date} 가 있어야 하는데, DB에서 찾지 못함")
 
-def run_quickstart(broadcast, name, date, section):
+def stt_process(broadcast, name, date, section):
+    # 경로 설정
     save_name = section.replace(".wav", ".json")
     path = f"./VisualRadio/radio_storage/{broadcast}/{name}/{date}"
     os.makedirs(f"{path}/split_wav", exist_ok=True)
-    src_path = f"{path}/split_wav/{section}"                         #####################################
+    src_path = f"{path}/split_wav/{section}"
     dst_path = f"{path}/raw_stt"
-    # ------------------------- 임시로 whisper 테스트를 sec_0에서 해보자
-    if 'sec_0' in section:
-        go_whisper_stt(src_path, dst_path, save_name)
-    # --------------------------------------------- 기본 로직
-    else: 
-        interval = 10  # 구간의 길이 (초 단위)
-        go_fast_stt(src_path, dst_path, interval, save_name)
-        logger.debug(f"[stt] {save_name} 처리 완료")
-    # ---------------------------------------------
+    
+    # whisper stt 결과 얻기
+    go_whisper_stt(src_path, dst_path + "/whisper", save_name)
+    # google stt 결과 얻기
+    interval = 10  # seconds
+    go_fast_stt(src_path, dst_path + "/google", interval, save_name)
+
+    logger.debug(f"[stt] {save_name} 완료 (google, whisper)")
 
 import speech_recognition as sr
 from pydub import AudioSegment
 def go_fast_stt(src_path, dst_path, interval, save_name):
-    logger.debug(f"[stt] {save_name} 는 SpeechRecognition 라이브러리로 진행합니다.")
     r = sr.Recognizer()
-    # 음성 파일 로드 및 변환
     audio = AudioSegment.from_file(src_path)
     with wave.open(src_path, 'rb') as wav_file:
-      sample_rate = wav_file.getframerate()  # 샘플 레이트
-      num_frames = wav_file.getnframes()  # 프레임 수
-      duration = num_frames / sample_rate  # 실제 음성 파일의 길이 (초 단위)
+      sample_rate = wav_file.getframerate() 
+      num_frames = wav_file.getnframes()  
+      duration = num_frames / sample_rate  
+
     # 구간의 시작 및 끝 시간 계산
     start_time = 0
     end_time = start_time + interval * 1000  # 구간의 길이 (밀리초 단위)
     scripts = []
-    while end_time <= len(audio):
+    while end_time <= len(audio) or start_time < len(audio):
         try:
-            # 구간 추출
+            # 해당 구간 임시파일
             audio_segment = audio[start_time:end_time]
-            # 추출된 구간을 임시 파일로 저장 (옵션)
             temp_file_path = "temp.wav"
             audio_segment.export(temp_file_path, format="wav")
-
-            # 음성 인식 수행
             with sr.AudioFile(temp_file_path) as temp_audio_file:
                 temp_audio_data = r.record(temp_audio_file)
                 text = r.recognize_google(temp_audio_data, language='ko-KR')
-                # 추출된 구간의 텍스트 출력 또는 원하는 로직 수행
                 new_data = {f'time':format_time(start_time / 1000), 'txt':text}
                 scripts.append(json.dumps(new_data, ensure_ascii=False))
         except Exception as e:
-            if len(e) == 0:
-                pass
-            logger.warning(f"[stt] {save_name} 예외!!!! {e}")
             pass
-        # 다음 구간으로 이동
         start_time = end_time
         end_time += interval * 1000
-        
-    # 마지막 구간 처리
-    try:
-        if start_time < len(audio):
-            audio_segment = audio[start_time:]
-            # 추출된 구간을 임시 파일로 저장 (옵션)
-            temp_file_path = "temp.wav"
-            audio_segment.export(temp_file_path, format="wav")
-            # 음성 인식 수행
-            with sr.AudioFile(temp_file_path) as temp_audio_file:
-                temp_audio_data = r.record(temp_audio_file)
-                text = r.recognize_google(temp_audio_data)
-            # 추출된 구간의 텍스트 출력 또는 원하는 로직 수행
-            # print(f"구간 {start_time / 1000} - {len(audio) / 1000}: {text}")
-            new_data = {f'time':format_time(start_time / 1000), 'txt':text}
-            scripts.append(json.dumps(new_data, ensure_ascii=False))
-    except:
-        pass
-    # 최종 data
+    # 최종 data 저장하기
     data = {'end_time':format_time(duration), 'scripts':[json.loads(s) for s in scripts]}
-
-    # 최종 data를 json으로 저장
     os.makedirs(f"{dst_path}", exist_ok=True)
     filename = f"{dst_path}/{save_name}"
-    # if os.path.exists(filename):
-    #     os.remove(filename)
     with open(filename, 'w', encoding='utf-8') as f:
         json.dump(data, f, ensure_ascii=False)
     return data
 
 def go_whisper_stt(src_path, dst_path, save_name):
     filename = f"{dst_path}/{save_name}"
-    logger.debug(f"[whisper] {save_name}는 whisper로 처리합니다.")
-    # if os.path.exists(filename):
-        # logger.debug("[whisper] 처리 끝 (이미 존재)")
-        # return
     def show_progress(message):
         seconds = 0
         while is_running:
@@ -318,25 +285,28 @@ def go_whisper_stt(src_path, dst_path, save_name):
             time.sleep(1)
             seconds += 2
         print(f"[로딩] {message}... 끝!!!!!!!!!!!!!!!!!!!!!!!!!")
-    # device = "cuda" if torch.cuda.is_available() else "cpu"
-    device = "cpu"
+
+    # whisper 세팅
+    device = "cpu"    #device = "cuda" if torch.cuda.is_available() else "cpu"
     language = "ko"
     model = whisper.load_model("base").to(device)
-    # stt작업 하기 
+    # 로딩 확인을 위한 쓰레드
     is_running = True
     thread = threading.Thread(target=show_progress, args=("whisper stt", ))
     thread.start()
+    # whisper stt 실행
     results = model.transcribe(
         src_path, language=language, temperature=0.0, word_timestamps=True)
     is_running = False
     thread.join()
+
     # 스크립트 만들기
     scripts = []
     lines = []
     times = []
     for result in results['segments']:
         text = result['text']
-        endings = ['에요', '해요', '예요', '지요', '네요', '[?]{1}', '[가-힣]{1,2}시다', '[가-힣]{1,2}니다', '어요', '구요', '군요', '어요', '아요', '은요', '이요', '든요', '워요', '드리고요', '되죠', '하죠', '까요']
+        endings = ['에요', '해요', '예요', '지요', '네요', '[?]{1}', '[가-힣]{1,2}시다', '[가-힣]{1,2}니다', '어요', '구요', '군요', '어요', '아요', '은요', '이요', '든요', '워요', '드리고요', '되죠', '하죠', '까요', '게요', '시죠', '거야', '잖아']
         end_position = len(text)
         end_word = None
         for ending in endings:
@@ -356,11 +326,15 @@ def go_whisper_stt(src_path, dst_path, save_name):
             scripts.append({'time':format_time(times[0]), 'txt':''.join(lines)})
             lines = []
             times = []
-    # 결과물의 끝까지 종결 어미가 안나오는 경우
+
+    # 결과물의 끝까지 종결 어미가 안나오는 경우이다
+    # stt가 잘 안되는 경우, 동일 문장이 반복될 가능성이 높다 (whisper 특성)
+    # groupby(lines)를 통해 동일문장을 하나만 반영
     unique_lines = [k for k, _ in groupby(lines)]
     if len(times) != 0:
         scripts.append({'time':format_time(times[0]), 'txt':''.join(unique_lines)})
-    # 처리
+
+    # 최종 script를 저장
     with wave.open(src_path, 'rb') as wav_file:
         sample_rate = wav_file.getframerate()
         num_frames = wav_file.getnframes()
@@ -374,214 +348,41 @@ def go_whisper_stt(src_path, dst_path, save_name):
 
 
 
-
-
-# def run_quickstart(broadcast, name, date, section, order):
-#     import time
-#     path = f"./VisualRadio/radio_storage/{broadcast}/{name}/{date}"
-#     os.makedirs(f"{path}/split_flac", exist_ok=True)
-#     file_path = f"{path}/split_flac/{section}"
-#     def flac_duration(audio_path):
-#         audio = AudioSegment.from_file(audio_path, format="flac")
-#         duration_micros = int(audio.duration_seconds * 1000000)
-#         minutes, seconds = divmod(duration_micros / 1000000, 60)
-#         microseconds = duration_micros % 1000
-#         duration =  "{:d}:{:02d}.{:03d}".format(int(minutes), int(seconds), microseconds)
-#         return duration
-#     def format_time(time_in_seconds):
-#         time_in_seconds = float(time_in_seconds)
-#         minutes, seconds = divmod(int(time_in_seconds), 60)
-#         milliseconds = int((time_in_seconds - int(time_in_seconds)) * 1000)
-#         return "{:d}:{:02d}.{:03d}".format(minutes, seconds, milliseconds)
-#     import whisper
-#     device = "cpu"
-#     language = "ko"
-#     logger.debug("[stt] whisper 모델 불러오기")
-#     model = whisper.load_model("tiny").to(device)
-#     logger.debug("[stt] whisper의 transcribe시작")
-#     results = model.transcribe(
-#         file_path, language=language, temperature=0.0, word_timestamps=True
-#     )
-#     # 이미 json이 있으면 삭제 후 다시 stt 진행
-#     os.makedirs(f"{path}/raw_stt", exist_ok=True)
-#     filename = f"{path}/raw_stt/stt_%d.json" % (order)
-#     if os.path.exists(filename):
-#         os.remove(filename)
-#     scripts = []
-#     # stt 결과 가져오기 - text, time에 대한 json 만들기
-#     logger.debug(f"[stt] stt_{order}.json 처리중")
-#     scripts = []
-#     for result in results['segments']:
-#         new_data = {'time':format_time(str(result["start"])), 'txt':str(result['text'])}
-#         scripts.append(json.dumps(new_data, ensure_ascii=False))
-#     data = {'end_time':flac_duration(file_path), 'scripts':[json.loads(s) for s in scripts]}
-#     with open(filename, 'w', encoding='utf-8') as f:
-#         json.dump(data, f, ensure_ascii=False)
-#     logger.debug(f"[stt] stt_{order}.json 처리 완료")
-
-# ★
-# def stt(broadcast, name, date):
-#     logger.debug("[stt] 시작")
-#     start_time = time.time()
-#     # 모든 section 결과를 무조건 stt한다.
-#     path = f"./VisualRadio/radio_storage/{broadcast}/{name}/{date}"
-#     section_dir = f'{path}/split_flac'
-#     os.makedirs(section_dir, exist_ok=True)
-#     section_list = os.listdir(section_dir)
-#     # STT 클라이언트 생성
-#     project_id = 'RadioProject'
-#     credentials = service_account.Credentials.from_service_account_file('./VisualRadio/credentials.json')
-#     client = speech_v1.SpeechClient(credentials=credentials)
-#     storage_client = storage.Client(project=project_id, credentials=credentials)
-#     # 섹션마다 stt 처리하기
-#     threads = []
-#     for order, section in enumerate(section_list):
-#         logger.debug(f"[stt] stt할 파일 : {section}")
-#         # STT 수행
-#         thread = threading.Thread(target=run_quickstart,
-#                                   args=(broadcast, name, date, section, client, storage_client, order))
-#         threads.append(thread)
-#         thread.start()
-#     for thread in threads:
-#         thread.join()
-#     end_time = time.time()
-#     logger.debug(f"[stt] 완료 : 소요시간 {end_time-start_time}")
-#     # DB - stt를 True로 갱신
-#     with app.app_context():
-#         wav = Wav.query.filter_by(radio_name=name, radio_date=date).first()
-#         if wav:
-#             wav.stt = True
-#             db.session.add(wav)
-#             db.session.commit()
-#         else:
-#             logger.debug(f"[stt] [오류] {name} {date} 가 있어야 하는데, DB에서 찾지 못함")
-# def run_quickstart(broadcast, name, date, section, client, storage_client, order):
-#     import time
-#     from google.api_core.exceptions import ServiceUnavailable
-#     # 참고: wav가 아닌 flac 기반 stt 진행
-#     path = f"./VisualRadio/radio_storage/{broadcast}/{name}/{date}"
-#     os.makedirs(f"{path}/split_flac", exist_ok=True)
-#     file_path = f"{path}/split_flac/{section}"
-#     bucket_name = 'radio_bucket'
-#     bucket = storage_client.bucket(bucket_name)
-#     blob = bucket.blob(section)
-#     blob.upload_from_filename(file_path)
-#     storage_file_path = f'gs://{bucket_name}/{blob.name}'
-#     audio = speech_v1.RecognitionAudio(uri=storage_file_path)
-#     config = speech_v1.RecognitionConfig(
-#         language_code='ko-KR',
-#     )
-#     operation = client.long_running_recognize(config=config, audio=audio)
-#     logger.debug('[stt] response 받아오기 시작')
-#     response = operation.result(timeout=999999)
-#     logger.debug('[stt] response 받아옴')
-
-#     results = response.results
-    
-#     start_time_delta = timedelta(hours=0, minutes=0, seconds=0, microseconds=0)
-#     m, s = divmod(start_time_delta.seconds, 60)
-#     start_time_formatted = "{:d}:{:02d}.{:03d}".format(m, s, start_time_delta.microseconds)
-#     # 이미 json이 있으면 삭제 후 다시 stt 진행
-#     os.makedirs(f"{path}/raw_stt", exist_ok=True)
-#     filename = f"{path}/raw_stt/stt_%d.json" % (order)
-#     if os.path.exists(filename):
-#         os.remove(filename)
-#     scripts = []
-#     # stt 결과 가져오기 - text, time에 대한 json 만들기
-#     logger.debug(f"[stt] stt_{order}.json 처리중")
-#     for result in results:
-#         # 각 음성 인식 결과에서 가장 가능성이 높은 대안을 사용
-#         alternative = result.alternatives[0]
-#         # with open("./stt_result_google.json", 'w', encoding='utf-8') as f:
-#         #     json.dumps(alternative, f, ensure_ascii=False)
-#         new_data = {'time': start_time_formatted, 'txt': alternative.transcript}
-#         scripts.append(json.dumps(new_data, ensure_ascii=False))
-#         # start time 갱신
-#         start_time_delta = result.result_end_time
-#         m, s = divmod(start_time_delta.seconds, 60)
-#         start_time_formatted = "{:d}:{:02d}.{:03d}".format(m, s, start_time_delta.microseconds)
-
-#     end_time = str(get_flac_duration(file_path))
-#     data = {'end_time': end_time, 'scripts': [json.loads(s) for s in scripts]}
-#     with open(filename, 'w', encoding='utf-8') as f:
-#         json.dump(data, f, ensure_ascii=False)
-#     logger.debug(f"[stt] stt_{order}.json 처리 완료")
-
-# def get_flac_duration(filepath):
-#     audio = AudioSegment.from_file(filepath, format="flac")
-#     duration_micros = int(audio.duration_seconds * 1000000)
-#     minutes, seconds = divmod(duration_micros / 1000000, 60)
-#     microseconds = duration_micros % 1000
-#     return "{:d}:{:02d}.{:03d}".format(int(minutes), int(seconds), microseconds)
-
-# def get_request_url_raw(radio_name, date):
-#     url = "http://localhost:5000/%s/%s/wave" % (radio_name, date)
-#     logger.debug(f"요청 경로:  {url}")
-#     response = requests.get(url)
-#     if response.status_code == 200:
-#         return io.BytesIO(response.content)
-
-
-# def get_request_url_fixed(radio_name, date, filename):
-#     url = "http://localhost:5000/%s/%s/fixed/%s" % (radio_name, date, filename)
-#     logger.debug(f"요청 경로:  {url}")
-#     response = requests.get(url)
-#     if response.status_code == 200:
-#         return io.BytesIO(response.content)
-
-
-# wav to flac (google stt 권장 포맷)
-# def wavToFlac(broadcast, name, date):
-#     path = f"./VisualRadio/radio_storage/{broadcast}/{name}/{date}"
-#     wav_loc = f"{path}/split_wav"
-#     flac_loc = f"{path}/split_flac"
-#     os.makedirs(flac_loc, exist_ok=True)
-#     wav_path = get_file_path_list(wav_loc)
-#     for order, wav in enumerate(wav_path):
-#         song = AudioSegment.from_wav(wav)
-#         song.export(flac_loc + "/sec_%d.flac" % (order), format="flac")
-#     logger.debug("-- stt를 하기 위해 wav를 flac으로 변환했습니다 --")
-
-
 # ------------------------------------------------------------------------------------------ stt 이후 과정
 
-# 최종 script.json을 생성한다
-def make_txt(broadcast, name, date):
-    logger.debug("[make_txt] 전체 script.json 생성 시작")
-    # stt_n.json 각각을 처리
-    # end_time을 고려하여 제작
+# 최종 script.json을 생성한다.
+# google과 whisper의 stt 결과를 모두 고려한다.
+def make_script(broadcast, name, date):
+    logger.debug("[make_script] script.json 생성중")
     path = f"./VisualRadio/radio_storage/{broadcast}/{name}/{date}"
 
-    stt_dir = f'{path}/raw_stt'
-    os.makedirs(stt_dir, exist_ok=True)
+    # google
+    stt_dir = f'{path}/raw_stt/google' # 반드시 존재함
     stt_list = natsorted(os.listdir(stt_dir))
-    file_path = [os.path.join(stt_dir, name) for name in stt_list]
-
-    os.makedirs(f"{path}/result", exist_ok=True)
-    script_path = f"{path}/result/script.json"
-    # 파일이 존재하면 삭제
-    if os.path.exists(script_path):
-        os.remove(script_path)
-    # 빈 파일 생성
-    with open(script_path, 'w') as f:
+    targets = [os.path.join(stt_dir, name) for name in stt_list]
+    os.makedirs(f"{path}/result/google", exist_ok=True)
+    save_path = f"{path}/result/google/script.json"
+    if os.path.exists(save_path):
+        os.remove(save_path)
+    with open(save_path, 'w') as f:
         f.write('')
-    new_data = []
-    section_start = []
-    prev_end_time = "0:00.000"
-    for file in file_path:
-        logger.debug(f"[script] 합치는 중 - {file}")
-        section_start.append(prev_end_time)
-        with open(file, 'r', encoding='utf-8') as f:
-            data = json.load(f)
-        scripts = data['scripts']
-        for text in scripts:
-            dic_data = {'time': add_time(prev_end_time, text['time']),
-                        'txt': text['txt'].strip()}
-            new_data.append(dic_data)
-        prev_end_time = add_time(prev_end_time, data['end_time'])
+    make_script_2(targets, save_path)
 
-    with open(script_path, 'a', encoding='utf-8') as f:
-        json.dump(new_data, f, ensure_ascii=False)
+    # whisper
+    stt_dir = f'{path}/raw_stt/whisper' # 반드시 존재함
+    stt_list = natsorted(os.listdir(stt_dir))
+    targets = [os.path.join(stt_dir, name) for name in stt_list]
+    os.makedirs(f"{path}/result/whisper", exist_ok=True)
+    save_path = f"{path}/result/whisper/script.json"
+    if os.path.exists(save_path):
+        os.remove(save_path)
+    with open(save_path, 'w') as f:
+        f.write('')
+    section_start = make_script_2(targets, save_path)
+    
+    # 각 section의 stt결과를 합쳐 찐막 scripts를 만든다.
+    correct_applicant(broadcast, name, date)
+    logger.debug("[make_script] 사연자 보정 완료 => 최종 script.json 생성")
 
     # DB - script를 True로 갱신
     with app.app_context():
@@ -591,10 +392,166 @@ def make_txt(broadcast, name, date):
             db.session.add(wav)
             db.session.commit()
         else:
-            logger.debug(f"[make_txt] [오류] {name} {date} 가 있어야 하는데, DB에서 찾지 못함")
-
-    logger.debug("[make_txt] script.json 생성 완료!!!")
+            logger.debug(f"[make_script] [오류] {name} {date} 가 있어야 하는데, DB에서 찾지 못함")
     generate_images_by_section(broadcast, name, date, section_start)
+
+# file_path에 있는 sections를 처리하여 save_path에 script.json을 저장한다.
+def make_script_2(file_path, save_path):
+    new_data = []
+    section_start = []
+    prev_end_time = "0:00.000"
+    for file in file_path:
+        section_start.append(prev_end_time)
+        with open(file, 'r', encoding='utf-8') as f:
+            data = json.load(f)
+        scripts = data['scripts']
+        for text in scripts:
+            dic_data = {'time': add_time(prev_end_time, text['time']),
+                        'txt': text['txt'].strip()}
+            new_data.append(dic_data)
+        prev_end_time = add_time(prev_end_time, data['end_time'])
+    with open(save_path, 'a', encoding='utf-8') as f:
+        json.dump(new_data, f, ensure_ascii=False)
+    return section_start
+
+import math
+from datetime import datetime, timedelta
+time_format = '%M:%S.%f'
+number_dir = {'일': 1, '이': 2, '삼': 3, '사': 4, '오': 5, '호':5, '육': 6, '유': 6, '칠': 7, '팔': 8, '구': 9, '국':9, '군':9, '영': 0, '공':0, '하나': 1, '둘': 2, '셋': 3, '넷': 4, '다섯': 5, '여섯': 6, '일곱': 7, '여덟': 8, '아홉': 9}
+def correct_applicant(broadcast, name, date):
+    path = f"./VisualRadio/radio_storage/{broadcast}/{name}/{date}"
+    g_path = f"{path}/result/google/script.json"
+    w_path = f"{path}/result/whisper/script.json"
+    save_path = f"{path}/result/script.json"
+
+    # step1)
+    # whisper 결과를 기준으로 google 결과를 매치
+    # 텍스트 비교해보기
+    with open(w_path, 'r', encoding='utf-8') as w:
+        wdata = json.load(w)
+    with open(g_path, 'r', encoding='utf-8') as g:
+        gdata = json.load(g)
+
+    g_text_prev = ""
+    g_applicant = {}
+    w_applicant = {}
+    g_concat = []
+    for w in wdata:
+        w_time = w['time']
+        w_dtime = datetime.strptime(w_time, time_format).time()
+        w_text = w['txt']
+        for g in gdata:
+            g_time = g['time'][:-4] + '.000'
+            g_dtime = datetime.strptime(g_time, time_format).time()
+            g_text = g['txt']
+            if w_dtime >= g_dtime: 
+                g_concat.append(g_text)
+            else:
+                ' '.join(g_concat)
+                g_concat = []
+                break
+        if g_text != g_text_prev:
+            # print("\n┌───────────────────────────────────────────────────────────────────────────────────────────────────────────────")
+            # print("●", g_time, "[google]", g_text)
+            if applicant_number(g_text) != None:
+                # print("            사연자 : ", applicant_number(g_text))
+                g_applicant[g_time] = applicant_number(g_text)
+            # print("└───────────────────────────────────────────────────────────────────────────────────────────────────────────────")
+            
+        g_text_prev = g_text
+        # print(w_time, ">>", w_text)
+        if applicant_number(w_text) != None:
+            # print("            사연자 : ", applicant_number(w_text))
+            w_applicant[w_time] = applicant_number(w_text)
+
+    # 이제부터 만들 결과물 : [멘트시간, 잘못된번호, 올바른번호]
+    should_choice = {}
+    this_is_true = {}
+    tmp = []
+    for w_key in w_applicant:
+        w_time = datetime.strptime(w_key, time_format)
+        w_element = w_applicant.get(w_key)
+        for g_key in g_applicant:
+            g_element = g_applicant.get(g_key)
+            g_time = datetime.strptime(g_key, time_format)
+            # 기존: 겹치는 것만 고려했음
+            if abs(w_time - g_time) <= timedelta(seconds=10):
+                if w_element[1] != g_element[1]:
+                    should_choice[w_key] = [w_element[1], g_element[1]]
+                else:
+                    this_is_true[w_key] = [w_element[0], w_element[1]]
+                    tmp.append(g_key)
+        # 수정: whisper 단독도 true로 처리
+        if w_key not in this_is_true:
+            this_is_true[w_key] = [w_element[0], w_element[1]]
+
+    for t in tmp:
+        g_applicant.pop(t)
+
+    google_alone = g_applicant
+    logger.debug(f"[correct_applicant] 다음은 애매하여 처리하지 않았음 {should_choice}")
+    logger.debug(f"[correct_applicant] 확실한 수정사항: {this_is_true}")
+    # should_choice : 애매한 청취자 정보
+    # this_is_true : 확실한 보정 정보
+    # google_alone : 구글에만 탐지된 청취자 정보
+
+    # google만 인식한 것은 whisper에서 어떨까?
+    # +=10 범위에 숫자 인식 비슷하게 한 거 있으면, 그걸 후보군에 넣자.
+    target_text = []   
+    for g_key in google_alone:
+        # print(g_key, google_alone.get(g_key))
+        g_time = datetime.strptime(g_key, time_format)
+        for w in wdata:
+            w_key = w['time']
+            w_time = datetime.strptime(w_key, time_format)
+            if abs(g_time - w_time) < timedelta(seconds=10):
+                # print(w_key, w['txt']) # target임
+                target_text.append([w_key, w['txt'], google_alone.get(g_key)])
+                # print('--------------')
+
+    applicants_added_back = {}
+    for text in target_text:
+        w_key = text[0]
+        w_text = text[1]
+        g_hints = text[2]
+        cnt = 0
+        # logger.debug("--------- 청취자 찾는중 ----------")
+        for hint in g_hints:
+            contained = find_similar_strings(hint, w_text)
+            if contained != None:
+                cnt += 1
+                # logger.debug(contained, "at", w_text)
+            if cnt == len(g_hints):
+                # logger.debug("---------- 최종 반영 ---------")
+                # logger.debug(f"{w_key}에 {g_hints[1]} 청취자 정보 찾음")
+                added = f"{w_text} :: ※ {g_hints[1]}청취자"
+                logger.debug(added)
+                applicants_added_back[w_key] = added
+        # if target_text[-1] == text:
+            # logger.debug("--------- 청취자 찾기 끝 ---------")
+    # logger.debug(f"\n\n>> 최종 결과: {applicants_added_back}")
+
+
+    # 찾은 결과를 실제로 반영한다.
+    # applicants_added_back : 정확히 대체하지 못함. 청취자번호를 뒤에 그냥 추가할 것임
+    # this_is_true : 확실한 사연자 보정 정보
+    result_data = []
+    for w in wdata:
+        if w['time'] in applicants_added_back:
+            logger.debug(f"┌변환 전: {w['txt']}")
+            w['txt'] = applicants_added_back.get(w['time']).strip()
+            logger.debug(f"└변환 후: {w['txt']}")
+        for w_key in this_is_true:
+            if w['time'] == w_key:
+                a = this_is_true.get(w_key)[0]
+                b = this_is_true.get(w_key)[1]
+                logger.debug(f"┌변환 전: {w['txt']}")
+                w['txt'] = w['txt'].replace(a, b+"님")
+                logger.debug(f"└변환 후: {w['txt']}")
+    with open(save_path, 'w', encoding='utf-8') as f:
+        json.dump(wdata, f, ensure_ascii=False)
+    logger.debug("[correct_applicant] 사연자 보정 완료")
+
 
 import random
 def generate_images_by_section(broadcast, name, date, section_start_list):
@@ -610,7 +567,7 @@ def generate_images_by_section(broadcast, name, date, section_start_list):
 
     with open(f"{path}/result/section_image.json", 'w', encoding='utf-8') as f:
         json.dump(sec_img_data, f, ensure_ascii=False)
-    logger.debug("[make_txt] section_image.json 생성 완료!!!")
+    logger.debug("[make_script] section_image.json 생성 완료!!!")
 
 
 def add_time(time1, time2):
@@ -624,7 +581,7 @@ def add_time(time1, time2):
 
     m, s = divmod(delta.seconds, 60)
     time_formatted = "{:d}:{:02d}.{:03d}".format(m, s, delta.microseconds // 1000)
-    print(time_formatted)
+    # print(time_formatted)
     return time_formatted
 
 import librosa
@@ -701,4 +658,59 @@ def format_time(time_in_seconds):
     milliseconds = int((time_in_seconds - int(time_in_seconds)) * 1000)
     return "{:d}:{:02d}.{:03d}".format(minutes, seconds, milliseconds)
 
+def applicant_number(text):
+    if "문자" in text and ("샵" in text or "#" in text):
+        return
+    # 가능한 정규표현식이 최대한 매치되어야 하는 것이 관건
+    number_re1 = r"(((일|이(?!런)(?! 하나 둘)|삼|사|오|육|칠|팔|구|국|공|영|하나(?! 둘이)(?!둘이)|둘|호|유|[0-9]){1})(|,| |\.)?(((일|이(?!런)(?! 하나 둘)|삼|사|오|육|칠|팔|구|국|공|영|하나(?! 둘이)(?!둘이)|둘|호|유|[0-9]){1}(?!에)(|,| |\.)?){2,3}(?![0-9])(?!씩))( )?[군|범|번]{1}( )?[님|림]{1})"
+    number_re2 = r"(((일|이(?!런)(?! 하나 둘)|삼|사|오|육|칠|팔|구|국|공|영|하나(?! 둘이)(?!둘이)|둘|호|유|[0-9]){1})(|,| |\.)?(((일|이(?!런)(?! 하나 둘)|삼|사|오|육|칠|팔|구|국|공|영|하나(?! 둘이)(?!둘이)|둘|호|유|[0-9]){1}(?!에)(|,| |\.)?){2,3}(?![0-9])(?!씩))( )?[군|범|번]?( )?[님|림]{1})"
+    number_re3 = r"(((일|이(?!런)(?! 하나 둘)|삼|사|오|육|칠|팔|구|국|공|영|하나(?! 둘이)(?!둘이)|둘|호|유|[0-9]){1})(|,| |\.)?(((일|이(?!런)(?! 하나 둘)|삼|사|오|육|칠|팔|구|국|공|영|하나(?! 둘이)(?!둘이)|둘|호|유|[0-9]){1}(?!에)(|,| |\.)?){2,3}(?![0-9])(?!씩))( )?[군|범|번]{1}( )?[님|림]?)"
+    number_re4 = r"(((일|이(?!런)(?! 하나 둘)|삼|사|오|육|칠|팔|구|국|공|영|하나(?! 둘이)(?!둘이)|둘|호|유|[0-9]){1})(|,| |\.)?(((일|이(?!런)(?! 하나 둘)|삼|사|오|육|칠|팔|구|국|공|영|하나(?! 둘이)(?!둘이)|둘|호|유|[0-9]){1}(?!에)(|,| |\.)?){2,3}(?![0-9])(?!씩))( )?[군|범|번]?( )?[님|림]?)"
+    reg_list = [number_re1, number_re2, number_re3, number_re4]
+    for reg in reg_list:
+        pattern = re.compile(reg)
+        match = pattern.search(text)
+        if match:
+            raw = match.group().strip()
+            if re.match(r'^\d{4}$', raw):
+                return None
+            fix = ''.join(str(number_dir.get(c, c)) for c in raw).replace(",","").replace(" ", "")
+            fix = re.findall(r'\d{4}', fix)
+            fix = ''.join(fix)
+            if len(raw.replace(" ", "").replace(",", "")) >= 4:
+                return [raw, fix]
+            else:
+                return None
+    return None
 
+# 사연자 찾기 도구들
+def get_g_key_1(time_str):
+    minutes, seconds = time_str.split(':')
+    seconds = math.floor(float(seconds))
+    time_str = f'{minutes}:{str(seconds).zfill(2)}.000'
+    return time_str
+def get_g_key_2(time_str):
+    minutes, seconds = time_str.split(':')
+    seconds = math.ceil(float(seconds))
+    if seconds == 60:
+        minutes = str(int(minutes) + 1)
+        seconds = 0
+    time_str = f'{minutes}:{str(seconds).zfill(2)}.000'
+    return time_str
+def get_ngrams(string, n):
+    ngrams = []
+    for i in range(len(string) - n + 1):
+        ngram = string[i:i+n].strip()
+        ngrams.append(ngram)
+    return ngrams
+def find_similar_strings(target, string):
+    target_ngrams = get_ngrams(target, len(target)//2)
+    contained = []
+    finded = False
+    for ngram in target_ngrams:
+        if string.find(ngram) != -1:
+            contained.append(ngram)
+            finded = True
+    if finded:
+        return contained
+    return None

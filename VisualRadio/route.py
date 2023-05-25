@@ -67,26 +67,20 @@ def admin_update():
     audio_save(broadcast, program_name, date, audio_file)
     logger.debug(f"[업로드] 등록 완료: {broadcast}, {program_name}, {date}, {guest_info}")
 
-
-
     # 다른 프로세스를 백그라운드로 실행시키기
     logger.debug("[업로드] 음성처리 - 백그라운드로 시작")
-    path = f"./VisualRadio/radio_storage/{broadcast}/{program_name}/{date}/"
     t = threading.Thread(target=process_audio_file, args=(broadcast, program_name, date))
     t.start()
     return "ok"
 
 
 def process_audio_file(broadcast, name, date):
-    semaphore = threading.Semaphore(1)
-    semaphore.acquire()
+    logger.debug(f"{broadcast} {name} {date}")
     services.split(broadcast, name, date)
-    # services.wavToFlac(broadcast, name, date)
     services.stt(broadcast, name, date)
-    services.make_txt(broadcast, name, date)
+    services.make_script(broadcast, name, date)
     services.sum_wav_sections(broadcast, name, date)
     logger.debug("[업로드] 오디오 처리 완료")
-    semaphore.release()
     return "ok"
 
 
