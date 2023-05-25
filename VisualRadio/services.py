@@ -191,7 +191,6 @@ from itertools import groupby
 import threading
 
 def stt(broadcast, name, date):
-    return
     logger.debug("[stt] 시작")
     start_time = time.time()
     # 모든 sec_n.wav를 stt할 것이다
