@@ -1,5 +1,5 @@
 import os
-from models import Wav
+from models import Wav, Radio
 import glob
 import time
 import requests
@@ -60,6 +60,30 @@ def collector_needs(broadcast, time):
             # logger.debug(data)
         return json.dumps(data)
         
+# --------------------------------------------- 좋아요 기능
+def like(bcc, name):
+    with app.app_context():
+        radio = Radio.query.filter_by(broadcast=bcc, radio_name=name).first()
+        radio.like_cnt += 1
+        cnt = radio.like_cnt
+        db.session.add(radio)
+        db.session.commit()
+    return cnt
+    
+def unlike(bcc, name):
+    with app.app_context():
+        radio = Radio.query.filter_by(broadcast=bcc, radio_name=name).first()
+        if(radio.like_cnt > 0):
+            radio.like_cnt -= 1
+        cnt = radio.like_cnt
+        db.session.add(radio)
+        db.session.commit()
+    return cnt
+
+def get_like_cnt(bcc, name):
+    with app.app_context():
+        radio = Radio.query.filter_by(broadcast=bcc, radio_name=name).first()
+        return radio.like_cnt
 
 
 # --------------------------------------------- main
@@ -191,7 +215,6 @@ from itertools import groupby
 import threading
 
 def stt(broadcast, name, date):
-    return
     logger.debug("[stt] 시작")
     start_time = time.time()
     # 모든 sec_n.wav를 stt할 것이다
