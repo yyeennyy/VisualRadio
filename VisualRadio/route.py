@@ -86,9 +86,8 @@ def process_audio_file(broadcast, name, date):
 
 def audio_save(broadcast, program_name, date, audiofile):
     path = f"./VisualRadio/radio_storage/{broadcast}/{program_name}/{date}/"
-
     # 문제점: brunchcafe와 이석훈의브런치카페는 동일한 프로그램임. 추후 이 점 고려해야 할 것임
-
+    # DB에서 체크하는 방식으로 변경해야 함
     if os.path.exists(path + '/raw.wav'):
         logger.debug("[업로드] 이미 raw.wav가 존재함")
     else:
