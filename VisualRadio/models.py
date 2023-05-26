@@ -30,7 +30,7 @@ class Radio(db.Model):
     __tablename__ = 'radio'
     broadcast = db.Column(db.String(50), primary_key=True)
     radio_name = db.Column(db.String(50), primary_key=True)
-    start_time = db.Column(db.String(50), nullable=False, default="0:0")
+    start_time = db.Column(db.String(50), nullable=True)
     record_len = db.Column(db.Integer, nullable=False, default=0)
     like_cnt = db.Column(db.Integer, nullable=False, default=0)
 
