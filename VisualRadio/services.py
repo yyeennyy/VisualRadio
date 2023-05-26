@@ -90,8 +90,8 @@ def get_like_cnt(bcc, name):
 def get_all_radio():
     with app.app_context():
             query = text("""
-                SELECT CONCAT(CONCAT('{"broadcast": "', broadcast, '", ', '"programs": [', GROUP_CONCAT(DISTINCT CONCAT('{"radio_name":"', radio_name, '"}') SEPARATOR ', '),']}'))
-                FROM wav
+                SELECT CONCAT(CONCAT('{"broadcast": "', broadcast, '", ', '"programs": [', GROUP_CONCAT(DISTINCT CONCAT('{"radio_name":"', radio_name, '", "like_cnt":"', like_cnt, '"}') SEPARATOR ', '),']}'))
+                FROM radio
                 GROUP BY broadcast;
             """)
             result = db.session.execute(query)
