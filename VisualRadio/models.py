@@ -32,12 +32,14 @@ class Radio(db.Model):
     radio_name = db.Column(db.String(50), primary_key=True)
     start_time = db.Column(db.String(50), nullable=False, default="0:0")
     record_len = db.Column(db.Integer, nullable=False, default=0)
+    like_cnt = db.Column(db.Integer, nullable=False, default=0)
 
-    def __init__(self, broadcast, radio_name, start_time, record_len):
+    def __init__(self, broadcast, radio_name, start_time, record_len, like_cnt):
         self.broadcast = broadcast
         self.radio_name = radio_name
         self.start_time = start_time
         self.record_len = record_len
+        self.like_cnt = like_cnt
 
     def __repr__(self):
         return f"Radio: {self.broadcast} {self.radio_name}: 시작시간 {self.start_time}, 녹음시간 {self.record_len}"
