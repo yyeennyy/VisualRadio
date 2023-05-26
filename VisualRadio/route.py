@@ -106,16 +106,17 @@ def audio_save(broadcast, program_name, date, audiofile):
 @auth.route("/like/<string:broadcast>/<string:radio_name>", methods=['GET'])
 def like(broadcast, radio_name):
     like_cnt = services.like(broadcast, radio_name)
-    return like_cnt
+    return json.dumps({'like_cnt':like_cnt})
 @auth.route("/unlike/<string:broadcast>/<string:radio_name>", methods=['GET'])
 def unlike(broadcast, radio_name):
     like_cnt = services.unlike(broadcast, radio_name)
-    return like_cnt
+    return json.dumps({'like_cnt':like_cnt})
 
+# sub1페이지 전용
 @auth.route("/like-cnt/<string:broadcast>/<string:radio_name>", methods=['GET'])
 def like_prog(broadcast, radio_name):
     like_cnt = services.get_like_cnt(broadcast, radio_name)
-    return like_cnt
+    return json.dumps({'like_cnt':like_cnt})
 
 
 

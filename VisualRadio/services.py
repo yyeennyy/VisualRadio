@@ -90,8 +90,8 @@ def get_like_cnt(bcc, name):
 def get_all_radio():
     with app.app_context():
             query = text("""
-                SELECT CONCAT(CONCAT('{"broadcast": "', broadcast, '", ', '"programs": [', GROUP_CONCAT(DISTINCT CONCAT('{"radio_name":"', radio_name, '"}') SEPARATOR ', '),']}'))
-                FROM wav
+                SELECT CONCAT(CONCAT('{"broadcast": "', broadcast, '", ', '"programs": [', GROUP_CONCAT(DISTINCT CONCAT('{"radio_name":"', radio_name, '", "like_cnt":"', like_cnt, '"}') SEPARATOR ', '),']}'))
+                FROM radio
                 GROUP BY broadcast;
             """)
             result = db.session.execute(query)
@@ -140,6 +140,14 @@ def set_db():
 
 def audio_save_db(broadcast, name, date):
     with app.app_context():
+        # 일단 radio 테이블에 존재하지 않으면 추가해야 함
+        radio = Radio.query.filter_by(broadcast=broadcast, radio_name=name).first()
+        if not radio:
+            logger.debug(f"[업로드] 새로운 라디오의 등장!! {broadcast} {name}")
+            radio = Radio(broadcast=broadcast, radio_name=name, start_time=None,  record_len=0, like_cnt=0)
+            db.session.add(radio)
+
+        # wav 테이블에 해당회차 추가
         wav = Wav.query.filter_by(radio_name=name, radio_date=str(date)).first()
         if wav:
             logger.debug(f"[업로드][경고] {name} {date}가 이미 있습니다 (덮어쓰기를 진행합니다)")
@@ -160,7 +168,6 @@ def audio_save_db(broadcast, name, date):
 
 # ★
 def split(broadcast, name, date):
-    return
     path = f"./VisualRadio/radio_storage/{broadcast}/{name}/{date}"
     song_path = path + "/raw.wav"
     save_path = path + "/split_wav"
@@ -228,7 +235,7 @@ def stt(broadcast, name, date):
     for section in section_list:
         logger.debug(f"[stt] stt할 파일 : {section}")
         # thread로 stt 진행
-        thread = threading.Thread(target=stt_process,
+        thread = threading.Thread(target=stt_proccess,
                                   args=(broadcast, name, date, section))
         threads.append(thread)
         thread.start()
@@ -246,12 +253,13 @@ def stt(broadcast, name, date):
         else:
             logger.debug(f"[stt] [오류] {broadcast} {name} {date} 가 있어야 하는데, DB에서 찾지 못함")
 
-def stt_process(broadcast, name, date, section):
+def stt_proccess(broadcast, name, date, section):
     # 경로 설정
     save_name = section.replace(".wav", ".json")
     path = f"./VisualRadio/radio_storage/{broadcast}/{name}/{date}"
     os.makedirs(f"{path}/split_wav", exist_ok=True)
     src_path = f"{path}/split_wav/{section}"
+    os.makedirs(f"{path}/raw_stt", exist_ok=True)
     dst_path = f"{path}/raw_stt"
     
     # whisper stt 결과 얻기
@@ -265,6 +273,7 @@ def stt_process(broadcast, name, date, section):
 import speech_recognition as sr
 from pydub import AudioSegment
 def go_fast_stt(src_path, dst_path, interval, save_name):
+    os.makedirs(dst_path, exist_ok=True)
     r = sr.Recognizer()
     audio = AudioSegment.from_file(src_path)
     with wave.open(src_path, 'rb') as wav_file:
@@ -300,6 +309,7 @@ def go_fast_stt(src_path, dst_path, interval, save_name):
     return data
 
 def go_whisper_stt(src_path, dst_path, save_name):
+    os.makedirs(dst_path, exist_ok=True)
     filename = f"{dst_path}/{save_name}"
     def show_progress(message):
         seconds = 0
