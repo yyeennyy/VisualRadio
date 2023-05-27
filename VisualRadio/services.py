@@ -1,10 +1,6 @@
 import os
 from models import Wav, Radio, Listener
-import glob
 import time
-import requests
-import io
-import sys
 from flask import jsonify, Flask
 from natsort import natsorted
 from sqlalchemy import text
@@ -13,8 +9,8 @@ from sqlalchemy import text
 from split_module.split import start_split
 
 # for stt
-from google.oauth2 import service_account  # 구글 클라우드 인증설정
-from google.cloud import storage, speech_v1
+# from google.oauth2 import service_account  # 구글 클라우드 인증설정
+# from google.cloud import storage, speech_v1
 import threading
 from datetime import datetime
 from datetime import timedelta
@@ -27,6 +23,9 @@ from pydub import AudioSegment
 # 로거
 from VisualRadio import CreateLogger
 logger = CreateLogger("우리가1등(^o^)b")
+
+# sql
+from sqlalchemy.exc import IntegrityError
 
 
 from VisualRadio import db, app
@@ -528,7 +527,7 @@ def correct_applicant(broadcast, name, date):
     # 이제부터 만들 결과물 : [멘트시간, 잘못된번호, 올바른번호]
     should_choice = {}
     this_is_true = {}
-    tmp = []
+    tmp = set()
     for w_key in w_applicant:
         w_time = datetime.strptime(w_key, time_format)
         w_element = w_applicant.get(w_key)
@@ -541,7 +540,7 @@ def correct_applicant(broadcast, name, date):
                     should_choice[w_key] = [w_element[1], g_element[1]]
                 else:
                     this_is_true[w_key] = [w_element[0], w_element[1]]
-                    tmp.append(g_key)
+                tmp.add(g_key)
         # 수정: whisper 단독도 true로 처리
         if w_key not in this_is_true:
             this_is_true[w_key] = [w_element[0], w_element[1]]
@@ -635,9 +634,12 @@ def register_listener(broadcast, radio_name, radio_date):
             preview_text = line['txt'][:30]
         preview_text_dict[person_list[0]] = preview_text
     with app.app_context():
-        for listener in listener_set:
-            db.session.add(Listener(broadcast=broadcast, radio_name=radio_name, radio_date=radio_date, code=listener, preview_text=preview_text_dict.get(listener)))
-        db.session.commit()
+        try:
+            for listener in listener_set:
+                db.session.add(Listener(broadcast=broadcast, radio_name=radio_name, radio_date=radio_date, code=listener, preview_text=preview_text_dict.get(listener)))
+            db.session.commit()
+        except IntegrityError as e:
+            logger.debug("IntegrityError occurred: 이미 DB에 <사연자+프로그램회차>정보 있을 가능성 높음")
     logger.debug(f"[find_listner] 청취자 업뎃완료: {listener_set} at {broadcast} {radio_date} {radio_date}")
 
 
