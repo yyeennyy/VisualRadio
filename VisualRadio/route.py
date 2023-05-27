@@ -84,7 +84,6 @@ def process_audio_file(broadcast, name, date):
     logger.debug("[업로드] 오디오 처리 완료")
     return "ok"
 
-
 def audio_save(broadcast, program_name, date, audiofile):
     path = f"./VisualRadio/radio_storage/{broadcast}/{program_name}/{date}/"
     # 문제점: brunchcafe와 이석훈의브런치카페는 동일한 프로그램임. 추후 이 점 고려해야 할 것임
@@ -106,26 +105,11 @@ def audio_save(broadcast, program_name, date, audiofile):
 def search_page():
     return render_template('search.html')
 
-@auth.route("/search/program/<string:search>", methods=['GET'])
-def search_program(search):
-    # search는 프로그램 이름 일부이다.
-    # radio테이블에서 검색한다.
-    # services.search_program(search)
-    # 반환 데이터 예시
-    data = [
-        {
-            'broadcast' :'MBC',
-            'programs' : [ 
-            {
-                'radio_name':'라디오1',
-                'img':'/static/images/default_main.png'
-            },
-            {
-                'radio_name':'라디오2',
-                'img':'/static/images/default_main.png'
-            }
-            ] 
-        }]
+@auth.route("/search/program")
+def search_program():
+    search = request.args.get('search')
+    data = services.search_programs(search)
+    logger.debug(f"[search] 검색 결과 {data}")
     return json.dumps(data)
 
 # --------------------------------------------------------------------------------- 좋아요 전용
@@ -133,6 +117,7 @@ def search_program(search):
 def like(broadcast, radio_name):
     like_cnt = services.like(broadcast, radio_name)
     return json.dumps({'like_cnt':like_cnt})
+
 @auth.route("/unlike/<string:broadcast>/<string:radio_name>", methods=['GET'])
 def unlike(broadcast, radio_name):
     like_cnt = services.unlike(broadcast, radio_name)

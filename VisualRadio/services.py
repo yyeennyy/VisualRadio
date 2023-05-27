@@ -1,5 +1,5 @@
 import os
-from models import Wav, Radio
+from models import Wav, Radio, Listener
 import glob
 import time
 import requests
@@ -60,6 +60,33 @@ def collector_needs(broadcast, time):
             # logger.debug(data)
         return json.dumps(data)
         
+# --------------------------------------------- 검색 기능
+def search_programs(search):
+    query = text("""
+        SELECT CONCAT(CONCAT('{"broadcast": "', broadcast, '", ', '"programs": [', GROUP_CONCAT(DISTINCT CONCAT('{"radio_name":"', radio_name, '"}') SEPARATOR ', '),']}'))
+        FROM radio
+        WHERE radio_name LIKE "%""" +search+ """%"
+        GROUP BY broadcast;
+    """)
+    logger.debug(query)
+    result = db.session.execute(query)
+    dict_list = []
+    for r in result:
+        dict_list.append(json.loads(r[0]))
+
+    for i in range(len(dict_list)):
+        broadcast = dict_list[i]['broadcast']
+        for j in dict_list[i]['programs']:
+            radio_name = j['radio_name']
+            img_path = f"/static/{broadcast}/{radio_name}/main_img.png"
+            if os.path.exists(img_path):
+                j['img'] = img_path
+            else:
+                j['img'] = "/static/images/default_main.png"
+    json_data = json.dumps(dict_list, ensure_ascii=False)
+    return json_data
+
+
 # --------------------------------------------- 좋아요 기능
 def like(bcc, name):
     with app.app_context():
@@ -584,6 +611,29 @@ def correct_applicant(broadcast, name, date):
     with open(save_path, 'w', encoding='utf-8') as f:
         json.dump(wdata, f, ensure_ascii=False)
     logger.debug("[correct_applicant] 사연자 보정 완료")
+
+
+# 만들어진 스크립트에서 청취자 찾기 
+def register_listener(broadcast, radio_name, radio_date):
+    script_file = f"./VisualRadio/radio_storage/{broadcast}/{radio_name}/{radio_date}/result/script.json"
+    if not os.path.exists(script_file):
+        logger.debug(f"[find_listner] 경고: 만들어진 script가 없음 {broadcast} {radio_name} {radio_date}")
+    with open(script_file, 'r', encoding='utf-8') as f:
+        data = json.load(f)
+    regex = "[0-9]{4}"
+    listener_set = set()
+    for line in data:
+        person_list = re.findall(regex, line['txt'])
+        if len(person_list) == 0:
+            continue
+        listener_set = set.union(listener_set, person_list)
+    with app.app_context():
+        for listener in listener_set:
+            db.session.add(Listener(broadcast=broadcast, radio_name=radio_name, radio_date=radio_date, listener=listener))
+        db.session.commit()
+    logger.debug(f"[find_listner] 청취자 업뎃완료: {listener_set} at {broadcast} {radio_date} {radio_date}")
+
+
 
 
 import random
