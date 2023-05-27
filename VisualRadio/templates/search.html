@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>검색 페이지</title>
+  <link rel="stylesheet" href="/static/css/main.css">
+</head>
+<body>
+  <h1>검색 페이지</h1>
+  <form id="searchForm">
+    <input type="text" id="searchInput" placeholder="검색어를 입력하세요">
+    <button type="submit">검색</button>
+  </form>
+  <p style="color: red" id="resultText"></p>
+
+  <div id="resultContainer">
+    <h2>검색 결과</h2>
+    <div id = "wrap">
+        <div id = "channels"></div>
+    </div>
+  </div>
+</body>
+</html>
+
+<script>
+const channelsElement = document.getElementById("channels");
+
+document.getElementById('searchForm').addEventListener('submit', function(event) {
+    document.getElementById("resultText").textContent="";
+    event.preventDefault(); // 폼 제출 기본 동작 막기
+
+    var searchInput = document.getElementById('searchInput').value;
+    var url = '/search/program/' + encodeURIComponent(searchInput);
+
+    fetch(url)
+        .then(function(response) {
+        return response.json();
+        })
+        .then(function(data) {
+            data.forEach(function(item) {
+                displaySearchResults(item);
+            })
+        })
+        .catch(function(error) {
+        var resultElement = document.getElementById("resultText");
+        var textToInsert = "검색어를 입력하세요 🤔";
+        resultElement.textContent = textToInsert;
+        });
+});
+
+function displaySearchResults(item) {
+    broadcast = item['broadcast']
+    programs = item['programs']
+    const radioBroadcastElement = createRadioBroadcast(broadcast);
+    programs.forEach((program) => {
+           const programElement = createProgramElement(program, broadcast);
+           radioBroadcastElement.appendChild(programElement);
+                
+            // 클릭 이벤트 추가
+            programElement.addEventListener("click", function (event) {
+                const clickDiv = event.currentTarget;
+                const radio_name = clickDiv.querySelector(".program_name").getAttribute("radio_name");
+                const broadcast = clickDiv.querySelector(".program_name").getAttribute("broadcast");
+                window.location.href = "/subpage?broadcast=" + broadcast + "&radio_name=" + radio_name;
+            });
+    })
+    channelsElement.appendChild(radioBroadcastElement);
+}
+
+function createRadioBroadcast(broadcast) {
+  const radioBroadcastElement = document.createElement("div");
+  radioBroadcastElement.classList.add("radioBroadcast");
+  radioBroadcastElement.innerHTML = `
+    <div class="radioBroadcastName">${broadcast}</div>
+  `;
+  return radioBroadcastElement;
+}
+
+function createProgramElement(program, broadcast) {
+  const { radio_name, img } = program;
+  const programElement = document.createElement("div");
+  programElement.classList.add("content");
+  programElement.classList.add(radio_name);
+  programElement.innerHTML = `
+    <div class="cover_back">
+      <div class="lp">
+        <img class="imgControl" src="/static/images/lp.png">
+      </div>
+      <div class="cover">
+        <img class="imgControl" src="${img}">
+      </div>
+      <div class="like">
+        <img class="imgControl" src="/static/images/before_heart.png">
+      </div>
+    </div>
+    <div class="program_name" broadcast="${broadcast}" radio_name="${radio_name}">${radio_name}</div>
+  `;
+  return programElement;
+}
+</script>

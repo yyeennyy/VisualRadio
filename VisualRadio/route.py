@@ -79,6 +79,7 @@ def process_audio_file(broadcast, name, date):
     services.split(broadcast, name, date)
     services.stt(broadcast, name, date)
     services.make_script(broadcast, name, date)
+    services.register_listener(broadcast, name, date)
     services.sum_wav_sections(broadcast, name, date)
     logger.debug("[업로드] 오디오 처리 완료")
     return "ok"
@@ -100,6 +101,32 @@ def audio_save(broadcast, program_name, date, audiofile):
     logger.debug("[업로드] DB 초기화 완료")
     return "ok"
 
+# -------------------------------------------------------------------------------- 검색기능
+@auth.route("/search")
+def search_page():
+    return render_template('search.html')
+
+@auth.route("/search/program/<string:search>", methods=['GET'])
+def search_program(search):
+    # search는 프로그램 이름 일부이다.
+    # radio테이블에서 검색한다.
+    # services.search_program(search)
+    # 반환 데이터 예시
+    data = [
+        {
+            'broadcast' :'MBC',
+            'programs' : [ 
+            {
+                'radio_name':'라디오1',
+                'img':'/static/images/default_main.png'
+            },
+            {
+                'radio_name':'라디오2',
+                'img':'/static/images/default_main.png'
+            }
+            ] 
+        }]
+    return json.dumps(data)
 
 # --------------------------------------------------------------------------------- 좋아요 전용
 @auth.route("/like/<string:broadcast>/<string:radio_name>", methods=['GET'])
