@@ -13,7 +13,8 @@ function createProgramElement(program, broadcast) {
   const { radio_name, img } = program;
   const programElement = document.createElement("div");
   programElement.classList.add("content");
-  programElement.classList.add(radio_name);
+  const radio_class = radio_name.replace(/\s/g, "")
+  programElement.classList.add(radio_class);
   programElement.innerHTML = `
     <div class="cover_back">
       <div class="lp">
@@ -26,7 +27,7 @@ function createProgramElement(program, broadcast) {
         <img class="imgControl" src="/static/images/before_heart.png">
       </div>
     </div>
-    <div class="program_name" broadcast="${broadcast}" radio_name="${radio_name}">${radio_name}</div>
+    <div class="program_name" broadcast="${broadcast}" radio_name="${radio_class}">${radio_name}</div>
   `;
   return programElement;
 }
