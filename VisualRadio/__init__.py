@@ -2,25 +2,46 @@ import sys
 from flask import redirect, url_for, request, Flask
 from flask_cors import CORS
 import logging
+import logging.handlers
 
 from flask_sqlalchemy import SQLAlchemy
 
+#TODO: 마이그레이션
+# for using alembic! with SQLAlchemy.. 
+# 마이그레이션 명령어 사용 예
+# alembic revision --autogenerate -m "radio에 컬럼 추가.."
+# from sqlalchemy.ext.declarative import declarative_base
+# Base = declarative_base()
+# target_matadata = Base.metadata
 
-# db
 
 # 로거
-logger = logging.getLogger()
-logger.setLevel(logging.DEBUG)
-formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
-stream_handler = logging.StreamHandler()
-stream_handler.setFormatter(formatter)
-logger.addHandler(stream_handler)
-file_handler = logging.FileHandler('my.log')
-file_handler.setFormatter(formatter)
-logger.addHandler(file_handler)
+def CreateLogger(logger_name):
+    # Create Logger
+    logger = logging.getLogger(logger_name)
+    # Check handler exists
+    if len(logger.handlers) > 0:
+        return logger # Logger already exists
+    logger.setLevel(logging.DEBUG)
+    formatter = logging.Formatter('\n[%(levelname)s|%(name)s|%(filename)s:%(lineno)s] %(asctime)s > %(message)s')
+    
+    # Create Handlers
+    # 1
+    stream_handler = logging.StreamHandler()
+    stream_handler.setFormatter(formatter)
+    logger.addHandler(stream_handler)
+
+    # 2
+    file_handler = logging.FileHandler('my.log')
+    file_handler.setFormatter(formatter)
+    logger.addHandler(file_handler)
+
+    return logger
 
 db = SQLAlchemy()
 app = Flask(__name__)
+
+logger = CreateLogger("우리가1등(^o^)b")
 
 
 def create_app():
@@ -41,7 +62,10 @@ def create_app():
 
     with app.app_context():
         db.create_all() 
-    logger.debug("[DB] 생성 완료")
+        logger.debug("[DB] 세팅 완료")
+    
+    # Entity가 변경되었을 때(예:컬럼추가), 데이터베이스를 마이그레이션 한다. 
+
 
     return app, db
 
