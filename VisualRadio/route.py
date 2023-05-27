@@ -76,9 +76,9 @@ def admin_update():
 
 def process_audio_file(broadcast, name, date):
     logger.debug(f"{broadcast} {name} {date}")
-    services.split(broadcast, name, date)
-    services.stt(broadcast, name, date)
-    services.make_script(broadcast, name, date)
+    # services.split(broadcast, name, date)
+    # services.stt(broadcast, name, date)
+    # services.make_script(broadcast, name, date)
     services.register_listener(broadcast, name, date)
     services.sum_wav_sections(broadcast, name, date)
     logger.debug("[업로드] 오디오 처리 완료")
@@ -109,6 +109,13 @@ def search_page():
 def search_program():
     search = request.args.get('search')
     data = services.search_programs(search)
+    logger.debug(f"[search] 검색 결과 {data}")
+    return json.dumps(data)
+
+@auth.route("/search/listener")
+def search_listener():
+    search = request.args.get('search')
+    data = services.search_listeners(search)
     logger.debug(f"[search] 검색 결과 {data}")
     return json.dumps(data)
 

@@ -12,13 +12,21 @@
         <img id = "logoImg" src="/static/images/logo.png">
     </div>
     </a>
+
+    <div id="searchOptionBox">
+        <input type="radio" name="searchOption" value="program" checked>
+        <label for="program">프로그램 찾기</label>
+        <input type="radio" name="searchOption" value="listener">
+        <label for="listener">청취자 찾기</label>
+    </div>
+
     <form id="searchForm">
         <input type="text" id="searchInput" placeholder="검색어를 입력하세요">
         <button type="submit">검색</button>
       </form>
       <div id="resultContainer">
         <h2>검색 결과</h2>
-        <p style="color: red;" id="resultText"></p>
+        <p id="resultText"></p>
         <div id = "wrap">
             <div id = "channels"></div>
         </div>
@@ -31,8 +39,18 @@
 const channelsElement = document.getElementById("channels");
 
 document.getElementById('searchForm').addEventListener('submit', function(event) {
-    var prevResult = document.getElementById("channels");
-    prevResult.innerHTML = "";
+    // 선택옵션 가져오기
+    var searchOptionRadios = document.getElementsByName("searchOption");
+    var option;
+
+    for (var i = 0; i < searchOptionRadios.length; i++) {
+    if (searchOptionRadios[i].checked) {
+            option = searchOptionRadios[i].value;
+            break;
+        }
+    }
+    document.getElementById("channels").innerHTML="";
+
     document.getElementById("resultText").textContent="";
     event.preventDefault(); // 폼 제출 기본 동작 막기
     var searchInput = document.getElementById('searchInput').value;
@@ -40,10 +58,11 @@ document.getElementById('searchForm').addEventListener('submit', function(event)
         var resultElement = document.getElementById("resultText");
         var textToInsert = "검색어를 입력하세요 🤔";
         resultElement.textContent = textToInsert;
+        resultElement.style.color = "red";
         return
     }
     queryString = "search=" + searchInput
-    var url = '/search/program?' + queryString;
+    var url = '/search/' + option + '?' + queryString;
     fetch(url)
         .then(function(response) {
             return response.json();
@@ -55,7 +74,7 @@ document.getElementById('searchForm').addEventListener('submit', function(event)
                 resultText.style.color = "black";
             } else {
                 var parsedData = JSON.parse(data); // 문자열을 JSON 객체로 파싱
-                displaySearchResults(parsedData);
+                displaySearchResults(parsedData, option);
             }
         })
         .catch(function(error) {
@@ -63,22 +82,35 @@ document.getElementById('searchForm').addEventListener('submit', function(event)
         });
 });
 
-function displaySearchResults(item) {
-    item.forEach(({broadcast, programs}) => {
-        const radioBroadcastElement = createRadioBroadcast(broadcast);
-        programs.forEach((program) => {
-            const programElement = createProgramElement(program, broadcast);
-            radioBroadcastElement.appendChild(programElement);
-                // 클릭 이벤트 추가
-                programElement.addEventListener("click", function (event) {
-                    const clickDiv = event.currentTarget;
-                    const radio_name = clickDiv.querySelector(".program_name").getAttribute("radio_name");
-                    const broadcast = clickDiv.querySelector(".program_name").getAttribute("broadcast");
-                    window.location.href = "/subpage?broadcast=" + broadcast + "&radio_name=" + radio_name;
-                });
-        })
-        channelsElement.appendChild(radioBroadcastElement);
-    });
+function displaySearchResults(item, option) {
+    console.log(item, option)
+    if (option=='program'){
+        item.forEach(({broadcast, programs}) => {
+            const radioBroadcastElement = createRadioBroadcast(broadcast);
+            programs.forEach((program) => {
+                const programElement = createProgramElement(program, broadcast);
+                radioBroadcastElement.appendChild(programElement);
+                    // 클릭 이벤트 추가
+                    programElement.addEventListener("click", function (event) {
+                        const clickDiv = event.currentTarget;
+                        const radio_name = clickDiv.querySelector(".program_name").getAttribute("radio_name");
+                        const broadcast = clickDiv.querySelector(".program_name").getAttribute("broadcast");
+                        window.location.href = "/subpage?broadcast=" + broadcast + "&radio_name=" + radio_name;
+                    });
+            })
+            channelsElement.appendChild(radioBroadcastElement);
+        });
+    } else if (option=='listener'){
+        item.forEach(({broadcast, radio_name, radio_date, preview_text}) => {
+            const newElement = document.createElement('div');
+            newElement.innerHTML = `
+                <div>
+                    <div class="listenerInfo">${broadcast} | ${radio_name} | ${radio_date} | ${preview_text}</div>
+                </div><br>
+            `;
+            channelsElement.appendChild(newElement)
+        });
+    }
 }
 
 function createRadioBroadcast(broadcast) {
@@ -112,5 +144,6 @@ function createProgramElement(program, broadcast) {
   `;
   return programElement;
 }
+
 
 </script>
