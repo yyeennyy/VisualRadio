@@ -87,6 +87,21 @@ def search_programs(search):
     return json_data
 
 
+def search_listeners(search):
+    result = Listener.query.filter_by(code=search).all()
+    info = []
+    for r in result:
+        data = {
+            'broadcast':r.broadcast,
+            'radio_name':r.radio_name,
+            'radio_date':r.radio_date,
+            'preview_text':r.preview_text
+        }
+        info.append(data)
+    
+    json_data = json.dumps(info, ensure_ascii=False)
+    return json_data
+
 # --------------------------------------------- 좋아요 기능
 def like(bcc, name):
     with app.app_context():
@@ -622,14 +637,20 @@ def register_listener(broadcast, radio_name, radio_date):
         data = json.load(f)
     regex = "[0-9]{4}"
     listener_set = set()
+    preview_text_dict = {}
     for line in data:
         person_list = re.findall(regex, line['txt'])
         if len(person_list) == 0:
             continue
         listener_set = set.union(listener_set, person_list)
+        # TODO: 미리보기 텍스트 구현 (지금은 임시로..)
+        # person_list에서 찾은 person(xxxx)를 가지고 근처 텍스트를 따와서 저장
+        if len(line['txt']) > 30:
+            preview_text = line['txt'][:30]
+        preview_text_dict[person_list[0]] = preview_text
     with app.app_context():
         for listener in listener_set:
-            db.session.add(Listener(broadcast=broadcast, radio_name=radio_name, radio_date=radio_date, listener=listener))
+            db.session.add(Listener(broadcast=broadcast, radio_name=radio_name, radio_date=radio_date, code=listener, preview_text=preview_text_dict.get(listener)))
         db.session.commit()
     logger.debug(f"[find_listner] 청취자 업뎃완료: {listener_set} at {broadcast} {radio_date} {radio_date}")
 
