@@ -44,3 +44,20 @@ class Radio(db.Model):
     def __repr__(self):
         return f"Radio: {self.broadcast} {self.radio_name}: 시작시간 {self.start_time}, 녹음시간 {self.record_len}"
 
+
+class Listener(db.Model):
+    __tablename__ = 'listener'
+    broadcast = db.Column(db.String(50), primary_key=True)
+    radio_name = db.Column(db.String(50), primary_key=True)
+    radio_date = db.Column(db.String(50), primary_key=True)
+    code = db.Column(db.Integer, nullable=False)
+
+    def __init__(self, broadcast, radio_name, radio_date, code):
+        self.broadcast = broadcast
+        self.radio_name = radio_name
+        self.start_time = radio_date
+        self.code = code
+    
+    def __repr__(self):
+        return f"청취자: {self.broadcast} {self.radio_name} {self.radio_date} => 청취자 {self.code}"
+

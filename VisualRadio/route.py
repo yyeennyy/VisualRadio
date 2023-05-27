@@ -79,10 +79,10 @@ def process_audio_file(broadcast, name, date):
     services.split(broadcast, name, date)
     services.stt(broadcast, name, date)
     services.make_script(broadcast, name, date)
+    services.register_listener(broadcast, name, date)
     services.sum_wav_sections(broadcast, name, date)
     logger.debug("[업로드] 오디오 처리 완료")
     return "ok"
-
 
 def audio_save(broadcast, program_name, date, audiofile):
     path = f"./VisualRadio/radio_storage/{broadcast}/{program_name}/{date}/"
@@ -100,12 +100,24 @@ def audio_save(broadcast, program_name, date, audiofile):
     logger.debug("[업로드] DB 초기화 완료")
     return "ok"
 
+# -------------------------------------------------------------------------------- 검색기능
+@auth.route("/search")
+def search_page():
+    return render_template('search.html')
+
+@auth.route("/search/program")
+def search_program():
+    search = request.args.get('search')
+    data = services.search_programs(search)
+    logger.debug(f"[search] 검색 결과 {data}")
+    return json.dumps(data)
 
 # --------------------------------------------------------------------------------- 좋아요 전용
 @auth.route("/like/<string:broadcast>/<string:radio_name>", methods=['GET'])
 def like(broadcast, radio_name):
     like_cnt = services.like(broadcast, radio_name)
     return json.dumps({'like_cnt':like_cnt})
+
 @auth.route("/unlike/<string:broadcast>/<string:radio_name>", methods=['GET'])
 def unlike(broadcast, radio_name):
     like_cnt = services.unlike(broadcast, radio_name)
