@@ -23,7 +23,7 @@ def CreateLogger(logger_name):
     if len(logger.handlers) > 0:
         return logger # Logger already exists
     logger.setLevel(logging.DEBUG)
-    formatter = logging.Formatter('\n[%(levelname)s|%(name)s|%(filename)s:%(lineno)s] %(asctime)s > %(message)s')
+    formatter = logging.Formatter('[%(levelname)s|%(name)s|%(filename)s:%(lineno)s] %(asctime)s > %(message)s')
     
     # Create Handlers
     # 1
