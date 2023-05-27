@@ -50,13 +50,15 @@ class Listener(db.Model):
     broadcast = db.Column(db.String(50), primary_key=True)
     radio_name = db.Column(db.String(50), primary_key=True)
     radio_date = db.Column(db.String(50), primary_key=True)
-    code = db.Column(db.Integer, nullable=False)
+    code = db.Column(db.Integer, nullable=False, primary_key=True)
+    preview_text = db.Column(db.String(200), nullable=False, default="")
 
-    def __init__(self, broadcast, radio_name, radio_date, code):
+    def __init__(self, broadcast, radio_name, radio_date, code, preview_text):
         self.broadcast = broadcast
         self.radio_name = radio_name
-        self.start_time = radio_date
+        self.radio_date = radio_date
         self.code = code
+        self.preview_text = preview_text
     
     def __repr__(self):
         return f"청취자: {self.broadcast} {self.radio_name} {self.radio_date} => 청취자 {self.code}"

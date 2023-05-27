@@ -11,16 +11,8 @@ auth = Blueprint('auth', __name__)
 
 
 # 로거
-import logging
-logger = logging.getLogger()
-logger.setLevel(logging.DEBUG)
-formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
-stream_handler = logging.StreamHandler()
-stream_handler.setFormatter(formatter)
-logger.addHandler(stream_handler)
-file_handler = logging.FileHandler('my.log')
-file_handler.setFormatter(formatter)
-logger.addHandler(file_handler)
+from VisualRadio import CreateLogger
+logger = CreateLogger("우리가1등(^o^)b")
 
 
 

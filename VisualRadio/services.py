@@ -25,20 +25,8 @@ import wave
 from pydub import AudioSegment
 
 # 로거
-import logging
-logger = logging.getLogger()
-logger.setLevel(logging.DEBUG)
-formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
-#
-stream_handler = logging.StreamHandler()
-stream_handler.setFormatter(formatter)
-logger.addHandler(stream_handler)
-#
-file_handler = logging.FileHandler('my.log')
-file_handler.setFormatter(formatter)
-logger.addHandler(file_handler)
-
-# logger = logging.getLogger(__name__)
+from VisualRadio import CreateLogger
+logger = CreateLogger("우리가1등(^o^)b")
 
 
 from VisualRadio import db, app
@@ -158,7 +146,6 @@ def get_all_radio():
 # --------------------------------------------- sub1
 def all_date_of(broadcast, radio_name, month):
     with app.app_context():
-        logger.warn(month)
         # month를 이용하여 시작일과 종료일 계산
         start_date = datetime.strptime(f'2023-{month}-01', '%Y-%m-%d').date()
         end_date = datetime.strptime(f'2023-{month}-01', '%Y-%m-%d').replace(day=1, month=start_date.month+1) - timedelta(days=1)
@@ -169,7 +156,6 @@ def all_date_of(broadcast, radio_name, month):
         only_day_list = [wav.radio_date.split('-')[-1] for wav in targets]
         date_list = [{'date': day} for day in only_day_list]
         date_json = json.dumps(date_list)
-        logger.warning(date_json)
 
         return date_json
 
