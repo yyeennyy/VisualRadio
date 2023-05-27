@@ -68,9 +68,9 @@ def admin_update():
 
 def process_audio_file(broadcast, name, date):
     logger.debug(f"{broadcast} {name} {date}")
-    # services.split(broadcast, name, date)
-    # services.stt(broadcast, name, date)
-    # services.make_script(broadcast, name, date)
+    services.split(broadcast, name, date)
+    services.stt(broadcast, name, date)
+    services.make_script(broadcast, name, date)
     services.register_listener(broadcast, name, date)
     services.sum_wav_sections(broadcast, name, date)
     logger.debug("[업로드] 오디오 처리 완료")
