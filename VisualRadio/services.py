@@ -270,7 +270,7 @@ def stt(broadcast, name, date):
     for thread in threads:
         thread.join()
     end_time = time.time()
-    logger.debug(f"[stt] 완료 : 소요시간 {end_time-start_time}")
+    logger.debug(f"[stt] 완료 : 소요시간 {int((time)//60)}분 {int((time)%60)}초")
     # DB - stt를 True로 갱신
     with app.app_context():
         wav = Wav.query.filter_by(radio_name=name, radio_date=date).first()
