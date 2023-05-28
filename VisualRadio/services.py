@@ -218,6 +218,7 @@ def split(broadcast, name, date):
 
     start_time = time.time()
     start_split(song_path, name, save_path)
+
     end_time = time.time()
     logger.debug(f"[split] 분할 처리 시간: {end_time - start_time} seconds")
     os.makedirs(save_path, exist_ok=True)
@@ -295,14 +296,13 @@ def stt_proccess(broadcast, name, date, section):
     interval = 10  # seconds
     go_fast_stt(src_path, dst_path + "/google", interval, save_name)
 
-    logger.debug(f"[stt] {save_name} 완료 (google, whisper)")
+    logger.debug(f"[stt] {save_name} 완전히 완료")
 
 import speech_recognition as sr
 from pydub import AudioSegment
 def go_fast_stt(src_path, dst_path, interval, save_name):
+    logger.debug(f"[stt] google : {save_name} 진행 중")
     os.makedirs(dst_path, exist_ok=True)
-    r = sr.Recognizer()
-    audio = AudioSegment.from_file(src_path)
     with wave.open(src_path, 'rb') as wav_file:
       sample_rate = wav_file.getframerate() 
       num_frames = wav_file.getnframes()  
@@ -312,6 +312,8 @@ def go_fast_stt(src_path, dst_path, interval, save_name):
     start_time = 0
     end_time = start_time + interval * 1000  # 구간의 길이 (밀리초 단위)
     scripts = []
+    r = sr.Recognizer()
+    audio = AudioSegment.from_file(src_path)
     while end_time <= len(audio) or start_time < len(audio):
         try:
             # 해당 구간 임시파일
@@ -327,6 +329,7 @@ def go_fast_stt(src_path, dst_path, interval, save_name):
             pass
         start_time = end_time
         end_time += interval * 1000
+    r = None
     # 최종 data 저장하기
     data = {'end_time':format_time(duration), 'scripts':[json.loads(s) for s in scripts]}
     os.makedirs(f"{dst_path}", exist_ok=True)
@@ -336,29 +339,18 @@ def go_fast_stt(src_path, dst_path, interval, save_name):
     return data
 
 def go_whisper_stt(src_path, dst_path, save_name):
+    logger.debug(f"[stt] whisper : {save_name} 진행 중")
     os.makedirs(dst_path, exist_ok=True)
     filename = f"{dst_path}/{save_name}"
-    def show_progress(message):
-        seconds = 0
-        while is_running:
-            print(f"[로딩] {message}... {seconds}초 지났어...♥")
-            time.sleep(1)
-            seconds += 2
-        print(f"[로딩] {message}... 끝!!!!!!!!!!!!!!!!!!!!!!!!!")
-
     # whisper 세팅
     device = "cpu"    #device = "cuda" if torch.cuda.is_available() else "cpu"
     language = "ko"
-    model = whisper.load_model("base").to(device)
+    model = whisper.load_model("tiny").to(device)
     # 로딩 확인을 위한 쓰레드
-    is_running = True
-    thread = threading.Thread(target=show_progress, args=("whisper stt", ))
-    thread.start()
     # whisper stt 실행
     results = model.transcribe(
         src_path, language=language, temperature=0.0, word_timestamps=True)
-    is_running = False
-    thread.join()
+    model = None
 
     # 스크립트 만들기
     scripts = []
@@ -403,7 +395,7 @@ def go_whisper_stt(src_path, dst_path, save_name):
     os.makedirs(f"{dst_path}", exist_ok=True)
     with open(filename, 'w', encoding='utf-8') as f:
         json.dump(data, f, ensure_ascii=False)
-    logger.debug(f"[whisper] {save_name} 완료")
+    logger.debug(f"[stt] whisper : {save_name} 완료")
     return data
 
 
@@ -417,7 +409,8 @@ def make_script(broadcast, name, date):
     path = f"./VisualRadio/radio_storage/{broadcast}/{name}/{date}"
 
     # google
-    stt_dir = f'{path}/raw_stt/google' # 반드시 존재함
+    stt_dir = f'{path}/raw_stt/google'
+    os.makedirs(stt_dir, exist_ok=True)
     stt_list = natsorted(os.listdir(stt_dir))
     targets = [os.path.join(stt_dir, name) for name in stt_list]
     os.makedirs(f"{path}/result/google", exist_ok=True)
@@ -429,7 +422,8 @@ def make_script(broadcast, name, date):
     make_script_2(targets, save_path)
 
     # whisper
-    stt_dir = f'{path}/raw_stt/whisper' # 반드시 존재함
+    stt_dir = f'{path}/raw_stt/whisper'
+    os.makedirs(stt_dir, exist_ok=True)
     stt_list = natsorted(os.listdir(stt_dir))
     targets = [os.path.join(stt_dir, name) for name in stt_list]
     os.makedirs(f"{path}/result/whisper", exist_ok=True)
@@ -620,7 +614,7 @@ def register_listener(broadcast, radio_name, radio_date):
         logger.debug(f"[find_listner] 경고: 만들어진 script가 없음 {broadcast} {radio_name} {radio_date}")
     with open(script_file, 'r', encoding='utf-8') as f:
         data = json.load(f)
-    regex = "[0-9]{4}"
+    regex = "(?<!\d)(?<!\d )\d{4}(?! \d)(?!\d)" # 전화번호처럼 연속된 8자리(공백포함)는 인식하지 않는 정규표현식임
     listener_set = set()
     preview_text_dict = {}
     for line in data:
@@ -628,17 +622,21 @@ def register_listener(broadcast, radio_name, radio_date):
         if len(person_list) == 0:
             continue
         listener_set = set.union(listener_set, person_list)
-        # TODO: 미리보기 텍스트 구현 (지금은 임시로..)
-        # person_list에서 찾은 person(xxxx)를 가지고 근처 텍스트를 따와서 저장
-        if len(line['txt']) > 30:
-            preview_text = line['txt'][:30]
-        preview_text_dict[person_list[0]] = preview_text
+        for person in person_list:
+            start_idx = line['txt'].find(person)
+            if len(line['txt']) > 30+start_idx:
+                preview_text = line['txt'][start_idx:30+start_idx]
+            else:
+                preview_text = line['txt']
+            preview_text_dict[person] = preview_text
     with app.app_context():
         try:
+            db.session.query(Listener).filter_by(broadcast=broadcast, radio_name=radio_name, radio_date=radio_date).delete()
             for listener in listener_set:
                 db.session.add(Listener(broadcast=broadcast, radio_name=radio_name, radio_date=radio_date, code=listener, preview_text=preview_text_dict.get(listener)))
             db.session.commit()
         except IntegrityError as e:
+            # 모든 정보 delete 후 add하고 있으므로 이 Error는 없을 것으로 예상
             logger.debug("IntegrityError occurred: 이미 DB에 <사연자+프로그램회차>정보 있을 가능성 높음")
     logger.debug(f"[find_listner] 청취자 업뎃완료: {listener_set} at {broadcast} {radio_date} {radio_date}")
 
@@ -701,7 +699,7 @@ def sum_wav_sections(broadcast, name, date):
     path = f"./VisualRadio/radio_storage/{broadcast}/{name}/{date}"
     src_path = path + "/split_wav"
     dst_path = path + "/sum.wav"
-
+    os.makedirs(src_path, exist_ok=True)
     src_files = natsorted(os.listdir(src_path))
 
     input_streams = []
@@ -754,10 +752,10 @@ def applicant_number(text):
     if "문자" in text and ("샵" in text or "#" in text):
         return
     # 가능한 정규표현식이 최대한 매치되어야 하는 것이 관건
-    number_re1 = r"(((일|이(?!런)(?! 하나 둘)|삼|사|오|육|칠|팔|구|국|공|영|하나(?! 둘이)(?!둘이)|둘|호|유|[0-9]){1})(|,| |\.)?(((일|이(?!런)(?! 하나 둘)|삼|사|오|육|칠|팔|구|국|공|영|하나(?! 둘이)(?!둘이)|둘|호|유|[0-9]){1}(?!에)(|,| |\.)?){2,3}(?![0-9])(?!씩))( )?[군|범|번]{1}( )?[님|림]{1})"
-    number_re2 = r"(((일|이(?!런)(?! 하나 둘)|삼|사|오|육|칠|팔|구|국|공|영|하나(?! 둘이)(?!둘이)|둘|호|유|[0-9]){1})(|,| |\.)?(((일|이(?!런)(?! 하나 둘)|삼|사|오|육|칠|팔|구|국|공|영|하나(?! 둘이)(?!둘이)|둘|호|유|[0-9]){1}(?!에)(|,| |\.)?){2,3}(?![0-9])(?!씩))( )?[군|범|번]?( )?[님|림]{1})"
-    number_re3 = r"(((일|이(?!런)(?! 하나 둘)|삼|사|오|육|칠|팔|구|국|공|영|하나(?! 둘이)(?!둘이)|둘|호|유|[0-9]){1})(|,| |\.)?(((일|이(?!런)(?! 하나 둘)|삼|사|오|육|칠|팔|구|국|공|영|하나(?! 둘이)(?!둘이)|둘|호|유|[0-9]){1}(?!에)(|,| |\.)?){2,3}(?![0-9])(?!씩))( )?[군|범|번]{1}( )?[님|림]?)"
-    number_re4 = r"(((일|이(?!런)(?! 하나 둘)|삼|사|오|육|칠|팔|구|국|공|영|하나(?! 둘이)(?!둘이)|둘|호|유|[0-9]){1})(|,| |\.)?(((일|이(?!런)(?! 하나 둘)|삼|사|오|육|칠|팔|구|국|공|영|하나(?! 둘이)(?!둘이)|둘|호|유|[0-9]){1}(?!에)(|,| |\.)?){2,3}(?![0-9])(?!씩))( )?[군|범|번]?( )?[님|림]?)"
+    number_re1 = r"(((일|이(?!런)(?! 하나 둘)|삼|사|오|육|칠|팔|구|국|공|영|하나(?! 둘이)(?!둘이)|둘|호|유|[0-9]){1})(|,| |\.)?(((일|이(?!런)(?! 하나 둘)|삼|사|오|육|칠|팔|구|국|공|영|하나(?! 둘이)(?!둘이)|둘|호|유|[0-9]){1}(?!에)(|,| |\.)?){2,3}(?![0-9])(?!씩|원))( )?[군|범|번]{1}( )?[님|림]{1})"
+    number_re2 = r"(((일|이(?!런)(?! 하나 둘)|삼|사|오|육|칠|팔|구|국|공|영|하나(?! 둘이)(?!둘이)|둘|호|유|[0-9]){1})(|,| |\.)?(((일|이(?!런)(?! 하나 둘)|삼|사|오|육|칠|팔|구|국|공|영|하나(?! 둘이)(?!둘이)|둘|호|유|[0-9]){1}(?!에)(|,| |\.)?){2,3}(?![0-9])(?!씩|원))( )?[군|범|번]?( )?[님|림]{1})"
+    number_re3 = r"(((일|이(?!런)(?! 하나 둘)|삼|사|오|육|칠|팔|구|국|공|영|하나(?! 둘이)(?!둘이)|둘|호|유|[0-9]){1})(|,| |\.)?(((일|이(?!런)(?! 하나 둘)|삼|사|오|육|칠|팔|구|국|공|영|하나(?! 둘이)(?!둘이)|둘|호|유|[0-9]){1}(?!에)(|,| |\.)?){2,3}(?![0-9])(?!씩|원))( )?[군|범|번]{1}( )?[님|림]?)"
+    number_re4 = r"(((일|이(?!런)(?! 하나 둘)|삼|사|오|육|칠|팔|구|국|공|영|하나(?! 둘이)(?!둘이)|둘|호|유|[0-9]){1})(|,| |\.)?(((일|이(?!런)(?! 하나 둘)|삼|사|오|육|칠|팔|구|국|공|영|하나(?! 둘이)(?!둘이)|둘|호|유|[0-9]){1}(?!에)(|,| |\.)?){2,3}(?![0-9])(?!씩|원))( )?[군|범|번]?( )?[님|림]?)"
     reg_list = [number_re1, number_re2, number_re3, number_re4]
     for reg in reg_list:
         pattern = re.compile(reg)
