@@ -301,7 +301,7 @@ def stt_proccess(broadcast, name, date, section):
 import speech_recognition as sr
 from pydub import AudioSegment
 def go_fast_stt(src_path, dst_path, interval, save_name):
-    logger.debug(f"[stt] google : {save_name} 진행 중")
+    logger.debug(f"[stt] google  : {save_name} 진행 중")
     os.makedirs(dst_path, exist_ok=True)
     with wave.open(src_path, 'rb') as wav_file:
       sample_rate = wav_file.getframerate() 
