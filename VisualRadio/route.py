@@ -55,7 +55,6 @@ def admin_update():
     date = request.form.get('date')
     guest_info = request.form.get('guest_info')
     audio_file = request.files.get('audio_file')
-    logger.debug(f"[업로드] 값을 가져옴 - {broadcast} {program_name} {date}")
     audio_save(broadcast, program_name, date, audio_file)
     logger.debug(f"[업로드] 등록 완료: {broadcast}, {program_name}, {date}, {guest_info}")
 
@@ -83,13 +82,10 @@ def audio_save(broadcast, program_name, date, audiofile):
     if os.path.exists(path + '/raw.wav'):
         logger.debug("[업로드] 이미 raw.wav가 존재함")
     else:
-        logger.debug(f"[업로드] raw.wav 저장 시작 - {broadcast} {program_name} {date}")
         os.makedirs(path, exist_ok=True)
         audiofile.save(path + 'raw.wav')
-        logger.debug("[업로드] raw.wav 저장 완료")
-        # DB에 업데이트
     services.audio_save_db(broadcast, program_name, date)
-    logger.debug("[업로드] DB 초기화 완료")
+    logger.debug(f"[업로드] raw.wav 저장 완료 - {broadcast} {program_name} {date}")
     return "ok"
 
 # -------------------------------------------------------------------------------- 검색기능
