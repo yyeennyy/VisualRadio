@@ -32,6 +32,18 @@ function createProgramElement(program, broadcast) {
   return programElement;
 }
 
+function setLikeImage(programElement, broadcast, radio_name) {
+  const likeElement = programElement.querySelector(".like");
+  const heartImage = likeElement.querySelector(".imgControl");
+
+  const cookieValue = getCookie(broadcast, radio_name);
+  if (cookieValue === "true") {
+    heartImage.src = '/static/images/heart.png';
+  } else {
+    heartImage.src = '/static/images/before_heart.png';
+  }
+}
+
 function getInfo() {
   return fetch("/radio")
     .then((response) => response.json())
@@ -49,8 +61,65 @@ function getInfo() {
             const broadcast = clickDiv.querySelector(".program_name").getAttribute("broadcast");
             window.location.href = "/subpage?broadcast=" + broadcast + "&radio_name=" + radio_name;
           });
-        });
 
+          // "like" 요소에 이벤트 리스너 추가
+          const likeElement = programElement.querySelector(".like");
+          const heartImage = likeElement.querySelector(".imgControl");
+          likeElement.addEventListener("click", function (event) {
+            event.stopPropagation(); // 이벤트 전파 중지 => 이거 안하면 부모 요소의 클릭 이벤트가 적용되어 버튼 클릭시 sub1 페이지로 이동됨
+
+            if (heartImage.src.includes('before_heart.png')) {
+              heartImage.src = '/static/images/heart.png';
+
+              const radio_name = programElement.querySelector(".program_name").getAttribute("radio_name");
+              const broadcast = programElement.querySelector(".program_name").getAttribute("broadcast");
+              const url = `/like/${broadcast}/${radio_name}`;
+              
+              // 쿠키 생성
+              setCookie(broadcast, radio_name, "true", 7);
+              const cookieValue = getCookie(broadcast, radio_name);
+              console.log(cookieValue);
+              
+              fetch(url)
+                .then(response => {
+                  if (!response.ok) {
+                    throw new Error("실패ㅠㅠ");
+                  }
+                  // 성공적으로 요청을 보낸 후의 처리
+                  console.log("성공!!!");
+                })
+                .catch(error => {
+                  console.error('Error:', error);
+                });
+            } else {
+              heartImage.src = '/static/images/before_heart.png';
+
+              const radio_name = programElement.querySelector(".program_name").getAttribute("radio_name");
+              const broadcast = programElement.querySelector(".program_name").getAttribute("broadcast");
+              const unlikeUrl = `/unlike/${broadcast}/${radio_name}`;
+
+              // 쿠키 생성
+              setCookie(broadcast, radio_name, "false", 7);
+              const cookieValue = getCookie(broadcast, radio_name);
+              console.log(cookieValue);
+
+              fetch(unlikeUrl)
+                .then(response => {
+                  if (!response.ok) {
+                    throw new Error("실패ㅠㅠ");
+                  }
+                  // 성공적으로 요청을 보낸 후의 처리
+                  console.log("성공!!!");
+                })
+                .catch(error => {
+                  console.error('Error:', error);
+                });
+            }
+          });
+          // 쿠키 값에 따라 좋아요 이미지 설정
+          const radio_name = programElement.querySelector(".program_name").getAttribute("radio_name");
+          setLikeImage(programElement, broadcast, radio_name);
+        });
         channelsElement.appendChild(radioBroadcastElement);
       });
     })
@@ -85,4 +154,5 @@ function getInfo() {
 //             }
 //         });
 // }
-getInfo();
+
+getInfo()

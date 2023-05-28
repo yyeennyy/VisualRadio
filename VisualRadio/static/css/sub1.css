@@ -52,6 +52,7 @@
     margin-bottom: 30px;
     border-radius: 40px;
     border: 1px solid black;
+    position: relative;
 }
 
 #radioImg {
@@ -96,4 +97,27 @@ td {
     background-size: 40px 40px;
     background-position: center center;
     background-repeat: no-repeat;
+}
+
+#imgControl {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+#like {
+    width: 30px;
+    height: 30px;
+    position: absolute;
+    top: 15px;
+    right: 15px;
+}
+
+#likecnt {
+    width: 30px;
+    height: 20px;
+    font-size: 20px;
+    color: red;
+    font-weight: bold;
+    margin-top: -5px;
 }

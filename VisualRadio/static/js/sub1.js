@@ -1,13 +1,15 @@
-
 window.onload = function () { 
     var urlParams = new URLSearchParams(window.location.search);    
     var broadcast = urlParams.get('broadcast').replace(/\/$/, '');
     var radio_name = urlParams.get('radio_name');
-    console.log(radio_name, broadcast)
+    console.log(radio_name, broadcast);
     buildCalendar(broadcast, radio_name);
     showImg(broadcast, radio_name);
     showInfo(radio_name); 
+    showLikeCnt(broadcast, radio_name);
+    getCookie(broadcast, radio_name);
 };   // 웹 페이지가 로드되면 buildCalendar 실행
+
 var urlParams = new URLSearchParams(window.location.search); 
 var broadcast = urlParams.get('broadcast').replace(/\/$/, '');
 var radio_name = urlParams.get('radio_name');
@@ -91,7 +93,6 @@ nextCal.addEventListener('click', () => {
     buildCalendar(broadcast, radio_name);    // 달력 다시 생성
 });
 
-
 // input값이 한자리 숫자인 경우 앞에 '0' 붙혀주는 함수
 function leftPad(value) {
     if (value < 10) {
@@ -100,7 +101,6 @@ function leftPad(value) {
     }
     return value;
 }
-
 
 async function fetchData(radio_name, month) {
     const response = await fetch(`/${broadcast}/${radio_name}/${month}/all`);
@@ -112,15 +112,13 @@ async function fetchData(radio_name, month) {
 let radio_img = document.getElementById('radioImg')
 
 function showImg(broadcast, radio_name){
-fetch(`/${broadcast}/${radio_name}/img`)
-.then((response) => response.json())
-.then((data) => {
-    radio_img.setAttribute('src', data.main_photo)
-})}
+    fetch(`/${broadcast}/${radio_name}/img`)
+    .then((response) => response.json())
+    .then((data) => {
+        radio_img.setAttribute('src', data.main_photo)
+    })}
 
 let radio_info = document.getElementById('radioInfo')
-
-
 
 function showInfo(radio_name){
     fetch(`/${radio_name}/radio_info`)
@@ -128,3 +126,12 @@ function showInfo(radio_name){
     .then((data) => {
         radio_info.innerHTML = data.info
 })}
+
+function showLikeCnt(broadcast, radio_name) {
+    const likeCountElement = document.getElementById("likecnt");
+    fetch(`/like-cnt/${broadcast}/${radio_name}`)
+      .then((response) => response.json())
+      .then((data) => {
+        likeCountElement.innerHTML = data['like_cnt'];
+    })
+}

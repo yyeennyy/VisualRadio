@@ -6,6 +6,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>RADIO_SUB1</title>
     <link rel="stylesheet" href="/static/css/sub1.css">
+    <script type="module" src="/static/js/cookie.js"></script>
     <script type="module" src="/static/js/sub1.js"></script>
 </head>
 <body>
@@ -20,9 +21,13 @@
                 <div id = "image">
                     <!-- 라디오 이미지 -->
                     <img id = "radioImg" src="">
+                    <div id = "like">
+                        <img id="imgControl" src="/static/images/heart.png">
+                        <span id = "likecnt"></span>
+                    </div>
                 </div>
                 <!-- 라디오 소개글 -->
-                <div id = "radioInfo">안녕?</div>
+                <div id = "radioInfo"></div>
             </div>
             <div id = "episode">
                 <table class="calendar">

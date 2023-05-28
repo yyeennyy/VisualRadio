@@ -269,8 +269,6 @@ function showImageAtCurrentTime() {
     });
 }
 
-
-
 const playPausediv = document.getElementById("play-pause-btn");
 
 playPausediv.addEventListener("click", function() {
