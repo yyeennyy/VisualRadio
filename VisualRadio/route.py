@@ -140,8 +140,8 @@ def to_sub1():
 
 @auth.route('/<string:broadcast>/<string:radio_name>/img', methods=['GET'])
 def load_main_img(broadcast, radio_name):
-    img_path = f"/static/{broadcast}/{radio_name}/main_img.png"
-    if not os.path.exists(img_path):
+    img_path = f"/static/main_imgs/{broadcast}/{radio_name}/main_img.jpeg"
+    if not os.path.exists("./VisualRadio"+img_path):
         img_path = "/static/images/default_main.png"
     return json.dumps({'main_photo':img_path})
 
@@ -151,7 +151,8 @@ def load_month_info(broadcast, radio_name, month):
 
 @auth.route('/<string:radio_name>/radio_info', methods=['GET'])
 def load_radio_info(radio_name):
-    return json.dumps({'info':"일단 띄워지는것좀 보자"})
+    return json.dumps({'info':"""음악과 함께 하는 다정한 시간 '이석훈의 브런치카페'\n
+방송: FM4U 매일 오전 11시~12시\n연출: 조민경 | 작가 : 서성은, 윤혜정"""})
 
 @auth.route('/contents', methods=['GET'])
 def to_sub2():

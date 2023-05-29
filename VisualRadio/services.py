@@ -133,8 +133,8 @@ def get_all_radio():
                 broadcast = dict_list[i]['broadcast']
                 for j in dict_list[i]['programs']:
                     radio_name = j['radio_name']
-                    img_path = f"/static/{broadcast}/{radio_name}/main_img.png"
-                    if os.path.exists(img_path):
+                    img_path = f"/static/main_imgs/{broadcast}/{radio_name}/main_img.jpeg"
+                    if os.path.isfile("./VisualRadio" + img_path):
                         j['img'] = img_path
                     else:
                         j['img'] = "/static/images/default_main.png"
@@ -270,7 +270,7 @@ def stt(broadcast, name, date):
     for thread in threads:
         thread.join()
     end_time = time.time()
-    logger.debug(f"[stt] 완료 : 소요시간 {int((time)//60)}분 {int((time)%60)}초")
+    logger.debug(f"[stt] 완료 : 소요시간 {int((end_time-start_time)//60)}분 {int((end_time-start_time)%60)}초")
     # DB - stt를 True로 갱신
     with app.app_context():
         wav = Wav.query.filter_by(radio_name=name, radio_date=date).first()
