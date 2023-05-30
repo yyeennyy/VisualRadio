@@ -151,8 +151,7 @@ def load_month_info(broadcast, radio_name, month):
 
 @auth.route('/<string:radio_name>/radio_info', methods=['GET'])
 def load_radio_info(radio_name):
-    return json.dumps({'info':"""음악과 함께 하는 다정한 시간 '이석훈의 브런치카페'\n
-방송: FM4U 매일 오전 11시~12시\n연출: 조민경 | 작가 : 서성은, 윤혜정"""})
+    return json.dumps({'info':"음악과 함께 하는 다정한 시간 '이석훈의 브런치카페'<br>매일 오전 11부터 12시까지, MBC FM4U<br>쿤디랑 음악 들으면서 커피나 할까?<br>-<br>사연 보내기와 지난 방송 듣기는 아래 링크에서<br>litt.ly/mbc_brunchcafe<br>-<br>연출: 조민경 | 작가 : 서성은, 윤혜정"})
 
 @auth.route('/contents', methods=['GET'])
 def to_sub2():
