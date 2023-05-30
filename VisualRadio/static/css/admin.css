@@ -1,0 +1,78 @@
+* {
+    font-size: 15px;
+    color: rgb(154, 48, 174);
+    margin: 0 auto;
+}
+
+#wrap {
+    width: 500px;
+    height: 600px;
+    margin: 0 auto;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    flex-direction: column;
+    /* border: 1px solid black; */
+}
+
+#logo {
+    width: 350px;
+    height: 87.5px;
+    position: relative;
+    top: 0px;
+    margin: 0 auto;
+}
+
+#logoImg {
+    width: 350px;
+    height: 87.5px;            
+}
+
+#info {
+    font-weight: bold;
+    font-size: 20px;
+    margin-top: 30px;
+    margin-bottom: 15px;
+}
+
+table {
+    margin-bottom: 20px;
+}
+
+#st {
+    width: 130px;
+    height: 30px;
+    line-height: 30px;
+    text-align: center;
+    font-weight: bold;
+}
+
+#nd {
+    width: 150px;
+    height: 30px;
+    line-height: 30px;
+    padding-left: 15px;
+}
+
+#input {
+    border: 1px solid rgb(154, 48, 174);
+}
+
+button {
+    font-weight: 550;
+    background-color: rgb(224, 191, 230);
+    border: 1px solid rgb(154, 48, 174);
+    border-radius: 5px;
+    width: 50px;
+    height: 30px;
+    margin-top: 20px;
+    margin:auto;
+    display:block;
+    /* background-image: url("C:\Users\JINJIWON\VisualRadio\VisualRadio\static\images\searchButton.png");
+    background-repeat: no-repeat;
+    background-size: cover; */
+}
+
+#home {
+    margin-top: 20px;
+}
