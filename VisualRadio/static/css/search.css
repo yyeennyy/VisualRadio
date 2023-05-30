@@ -124,6 +124,8 @@
     margin-top: 15px;
     color:rgb(154, 48, 174);
     width: 1000px;
+    height: 20px;
+    line-height: 20px;
 }
 
 #searchOptionBox {
