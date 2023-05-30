@@ -65,8 +65,8 @@ def search_programs(search):
         broadcast = dict_list[i]['broadcast']
         for j in dict_list[i]['programs']:
             radio_name = j['radio_name']
-            img_path = f"/static/{broadcast}/{radio_name}/main_img.png"
-            if os.path.exists(img_path):
+            img_path = f"/static/main_imgs/{broadcast}/{radio_name}/main_img.jpeg"
+            if os.path.exists("./VisualRadio"+img_path):
                 j['img'] = img_path
             else:
                 j['img'] = "/static/images/default_main.png"
