@@ -40,7 +40,7 @@
     width: 100%;
     height: 200px;
     background-color: rgba(223, 207, 244, 0.2);
-    border: 1px solid black;
+    /* border: 1px solid black; */
     position: relative;
     margin-bottom: 40px;
     display: flex;
@@ -149,6 +149,8 @@
     width: 100%;
     height: 1000px;
     /* border: 5px solid green; */
+    display: flex;
+    justify-content : center;
 }
 
 #resultTextTitle {
@@ -185,3 +187,4 @@ button {
     background-repeat: no-repeat;
     background-size: cover; */
 }
+

@@ -25,8 +25,9 @@
         <button type="submit">검색</button>
       </form>
     </div>
+    <div id="resultTextTitle"></div>
     <div id="resultContainer">
-      <div id="resultTextTitle">검색 결과</div>
+      <br><br>
       <p id="resultText"></p>
       <div id = "result">
           <div id = "channels"></div>
@@ -66,6 +67,8 @@
       var url = '/search/' + option + '?' + queryString;
       fetch(url)
           .then(function(response) {
+              var resultText = document.getElementById("resultTextTitle");
+              resultText.textContent = "'" + searchInput + "' 검색결과"  
               return response.json();
           })
           .then(function(data) {
