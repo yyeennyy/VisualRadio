@@ -4,6 +4,8 @@ import time
 from flask import jsonify, Flask
 from natsort import natsorted
 from sqlalchemy import text
+import psutil
+import gc
 
 # for split
 from split_module.split import start_split
@@ -232,9 +234,6 @@ def split(broadcast, name, date):
             db.session.commit()
         else:
             pass  # 해당 wav 모델 인스턴스가 없을 경우 처리
-        
-    
-
 
     return 0
 
@@ -249,6 +248,10 @@ import whisper
 from itertools import groupby
 import threading
 
+import queue
+th_q = queue.Queue()
+th_q_fin = queue.Queue()
+
 def stt(broadcast, name, date):
     logger.debug("[stt] 시작")
     start_time = time.time()
@@ -259,16 +262,24 @@ def stt(broadcast, name, date):
     section_list = os.listdir(section_dir)
 
     # sec_n.wav를 stt하기 시작
-    threads = []
     for section in section_list:
         logger.debug(f"[stt] stt할 파일 : {section}")
-        # thread로 stt 진행
+        # 스레드로 stt 진행
         thread = threading.Thread(target=stt_proccess,
-                                  args=(broadcast, name, date, section))
-        threads.append(thread)
-        thread.start()
-    for thread in threads:
+                                args=(broadcast, name, date, section))
+        th_q.put(thread)  # 대기 큐에 스레드 추가
+
+    # 대기 중인 스레드를 순차적으로 시작
+    while not th_q.empty():
+        if len(threading.enumerate()) < 5:
+            this_th = th_q.get()
+            logger.debug(f"{this_th.name} 시작! - 현재 실행중 쓰레드 개수 {len(threading.enumerate())}")
+            this_th.start()
+            
+
+    for thread in th_q_fin:
         thread.join()
+
     end_time = time.time()
     logger.debug(f"[stt] 완료 : 소요시간 {int((end_time-start_time)//60)}분 {int((end_time-start_time)%60)}초")
     # DB - stt를 True로 갱신
@@ -280,6 +291,8 @@ def stt(broadcast, name, date):
             db.session.commit()
         else:
             logger.debug(f"[stt] [오류] {broadcast} {name} {date} 가 있어야 하는데, DB에서 찾지 못함")
+
+
 
 def stt_proccess(broadcast, name, date, section):
     # 경로 설정
@@ -301,6 +314,7 @@ def stt_proccess(broadcast, name, date, section):
 import speech_recognition as sr
 from pydub import AudioSegment
 def go_fast_stt(src_path, dst_path, interval, save_name):
+
     logger.debug(f"[stt] google  : {save_name} 진행 중")
     os.makedirs(dst_path, exist_ok=True)
     with wave.open(src_path, 'rb') as wav_file:
@@ -329,7 +343,7 @@ def go_fast_stt(src_path, dst_path, interval, save_name):
             pass
         start_time = end_time
         end_time += interval * 1000
-    r = None
+    del r
     # 최종 data 저장하기
     data = {'end_time':format_time(duration), 'scripts':[json.loads(s) for s in scripts]}
     os.makedirs(f"{dst_path}", exist_ok=True)
@@ -338,19 +352,18 @@ def go_fast_stt(src_path, dst_path, interval, save_name):
         json.dump(data, f, ensure_ascii=False)
     return data
 
+# 일단 한번에 2개만 동시 처리하도록 하자
 def go_whisper_stt(src_path, dst_path, save_name):
     logger.debug(f"[stt] whisper : {save_name} 진행 중")
     os.makedirs(dst_path, exist_ok=True)
     filename = f"{dst_path}/{save_name}"
-    # whisper 세팅
     device = "cpu"    #device = "cuda" if torch.cuda.is_available() else "cpu"
     language = "ko"
+
     model = whisper.load_model("tiny").to(device)
-    # 로딩 확인을 위한 쓰레드
-    # whisper stt 실행
     results = model.transcribe(
         src_path, language=language, temperature=0.0, word_timestamps=True)
-    model = None
+    del model
 
     # 스크립트 만들기
     scripts = []
@@ -804,3 +817,9 @@ def find_similar_strings(target, string):
     if finded:
         return contained
     return None
+
+def memory_usage():
+    # current process RAM usage
+    p = psutil.Process()
+    rss = p.memory_info().rss / 2 ** 20 # Bytes to MB
+    return rss
