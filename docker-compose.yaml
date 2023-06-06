@@ -27,7 +27,7 @@ services:
       - "./db_setting/:/docker-entrypoint-initdb.d/"
   visual-radio:
     container_name: visual-radio
-    build: .
+    build: ./VisualRadio
     # image: yenyeny1/visual-radio:0.1
     restart: always
     ports: 
@@ -56,3 +56,16 @@ services:
       - TZ=Asia/Seoul
     depends_on:
       - visual-radio
+      - collector
+  collector:
+    container_name: collector
+    build: ./Collector
+    restart: always
+    volumes:
+      - ./Collector:/app
+    ports:
+      - 8080:8080
+    networks:
+      - db-net
+    environment:
+      - TZ=Asia/Seoul

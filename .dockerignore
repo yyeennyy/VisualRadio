@@ -4,8 +4,5 @@ VisualRadio/MyTest
 VisualRadio/radio_storage
 *.wav
 .git
-.java
 README.md
 *.xml
-radio.bat
-radio_mbcfm4u.py
