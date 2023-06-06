@@ -1,3 +1,5 @@
+package Collector;
+
 import java.io.BufferedReader;
 // import java.io.File;
 import java.io.IOException;
@@ -10,19 +12,21 @@ import java.net.URL;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
+import java.time.LocalTime;
+import java.time.Duration;
 
 public class Client {
     public static void main(String[] args) {
-
-        // ScheduledExecutorService 생성
+        LocalTime currentTime = LocalTime.now();
+        LocalTime targetTime = LocalTime.of(23, 43); 
+        long initialDelay = Duration.between(currentTime, targetTime).toSeconds();
+        System.out.println(initialDelay);
+        if (initialDelay < 0) {
+            // 이미 오전 11시를 지난 경우, 다음날 오전 11시로 초기 지연을 계산
+            initialDelay += Duration.ofDays(1).toSeconds();
+        }
         ScheduledExecutorService executorService = Executors.newScheduledThreadPool(1);
-        // 작업을 동시에 실행할 경우 괄호 안에 작업 개수를 넣어주면 됨 ex) 2
-        // ScheduledExecutorService executorService = Executors.newScheduledThreadPool(2);
-        
-        // 작업 스케줄링
-        executorService.scheduleAtFixedRate(new recordRadio("MBCfm4u", "11:00"), 0, 24, TimeUnit.HOURS); // 이석훈의 브런치 카페
-        // 작업 추가할 경우, 아래에 추가하면 됨
-        // executorService.scheduleAtFixedRate(new recordRadio("MBC", "12:00"), 0, 24, TimeUnit.HOURS);
+        executorService.scheduleAtFixedRate(new recordRadio("test", "11:00"), 0, 24*60*60, TimeUnit.SECONDS);
     }
 
     // 실행할 작업 태스크
@@ -77,7 +81,6 @@ public class Client {
                 
                 // 응답 받기
                 int responseCode = connection.getResponseCode();
-
                 if (responseCode == HttpURLConnection.HTTP_OK) {
                     // 응답 데이터 받아오기
                     BufferedReader reader = new BufferedReader(new InputStreamReader(connection.getInputStream()));
@@ -96,7 +99,9 @@ public class Client {
                     
                     String radio_name = parseResponseData(responseData, "radio_name");
                     int record_len = Integer.parseInt(parseResponseData(responseData, "record_len"));
-
+                    System.out.println("[응답 받음] " + radio_name +" "+ String.valueOf(record_len));
+                    
+                    
                     // radio.bat 파일 실행
                     // ProcessBuilder processBuilder = new ProcessBuilder("cmd.exe", "/c", "./radio.bat", broadcast, radio_name, String.valueOf(record_len));
                     // String[] command = { "bash", "-c", "./radio.sh" };
@@ -121,38 +126,39 @@ public class Client {
                     //     System.out.println("fail!");
                     // }
 
-                    try {
-                        // ProcessBuilder를 사용하여 명령어 실행
-                        ProcessBuilder pwdProcessBuilder = new ProcessBuilder("pwd");
-                        pwdProcessBuilder.redirectErrorStream(true);
-                        Process pwdProcess = pwdProcessBuilder.start();
-            
-                        // 명령어 실행 결과 읽기
-                        BufferedReader bReader = new BufferedReader(new InputStreamReader(pwdProcess.getInputStream()));
-                        String tmp;
-                        while ((tmp = bReader.readLine()) != null) {
-                            System.out.println(tmp);
-                        }
-                        reader.close();
-            
-                        // 프로세스 종료 코드 확인
-                        int exitCode = pwdProcess.waitFor();
-                        System.out.println("Exit Code: " + exitCode);
-                    } catch (IOException | InterruptedException e) {
-                        e.printStackTrace();
-                    }
+                    // try {
+                    //     // ProcessBuilder를 사용하여 명령어 실행
+                    //     ProcessBuilder pwdProcessBuilder = new ProcessBuilder("pwd");
+                    //     pwdProcessBuilder.redirectErrorStream(true);
+                    //     Process pwdProcess = pwdProcessBuilder.start();
 
-                    ProcessBuilder chmodProcessBuilder = new ProcessBuilder("chmod", "+x", "radio.sh");
-                    Process chmodProcess = chmodProcessBuilder.start();
-                    int chmodExitCode = chmodProcess.waitFor();
-                    if (chmodExitCode == 0) {
-                        System.out.println("permission!");
-                    } else {
-                        System.out.println("fail!");
-                    }
+                    //     // 명령어 실행 결과 읽기
+                    //     BufferedReader bReader = new BufferedReader(new InputStreamReader(pwdProcess.getInputStream()));
+                    //     String tmp;
+                    //     while ((tmp = bReader.readLine()) != null) {
+                    //         System.out.println(tmp);
+                    //     }
+                    //     reader.close();
+
+                    //     // 프로세스 종료 코드 확인
+                    //     int exitCode = pwdProcess.waitFor();
+                    //     System.out.println("Exit Code: " + exitCode);
+                    // } catch (IOException | InterruptedException e) {
+                    //     e.printStackTrace();
+                    // }
+
+                    // ProcessBuilder chmodProcessBuilder = new ProcessBuilder("chmod", "+x", "radio.sh");
+                    // Process chmodProcess = chmodProcessBuilder.start();
+                    // int chmodExitCode = chmodProcess.waitFor();
+                    // if (chmodExitCode == 0) {
+                    //     System.out.println("permission!");
+                    // } else {
+                    //     System.out.println("fail!");
+                    // }
                     
                     // radio.sh 파일 실행
                     String os = System.getProperty("os.name").toLowerCase();
+                    System.out.println(os);
                     ProcessBuilder processBuilder;
 
                     if (os.contains("win")) {
@@ -196,14 +202,14 @@ public class Client {
             if (responseData == null) {
                 return null;
             }
-
             responseData = responseData.replace("{", "");
             responseData = responseData.replace("}", "");
 
-            String[] keyValuePairs = responseData.split(", ");
+            String[] keyValuePairs = responseData.split(",");
             for (String pair : keyValuePairs) {
-                String[] parts = pair.split(": ");
-                if (parts.length == 2 && parts[0].equals("\"" + key + "\"")) {
+                pair = pair.replace("\"", "").replace("\\", "");
+                String[] parts = pair.split(":");
+                if (parts.length == 2 && parts[0].equals(key)) {
                     String value = parts[1];
                     // 따옴표 제거
                     value = value.replace("\"", "");

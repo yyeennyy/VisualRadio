@@ -1,5 +1,5 @@
 from flask import Blueprint
-from flask import Flask, request, jsonify, send_file, render_template, request
+from flask import Flask, request, jsonify, send_file, render_template, request, make_response
 import sys
 sys.path.append('./VisualRadio')
 import services
@@ -14,16 +14,57 @@ auth = Blueprint('auth', __name__)
 from VisualRadio import CreateLogger
 logger = CreateLogger("우리가1등(^o^)b")
 
+# ------ 의미 x
+@auth.route('/cnn', methods=['GET'])
+def cnn():
+    # 딕셔너리를 얻는다: 각 sec_n.wav를 키로 하고, 그것을 2차 split한 작은조각들의 start_time을 담은 리스트가 값인 딕셔니리임
+    # 예를 들면 {sec_0.wav:[0.02:023, 0.12:942, ...], sec_1.wav:[~~, ~~, ~~, ...], ...}
+    section_start_time_summary = services.test_cnn('TEST', 'brunchcafe', '2023-06-02')
+    logger.debug("[cnn test] 2차 분할 얻기 끝")
+    # 2차 split을 얻었으니, 그것을 대상으로 stt를 진행하게 된다. (그래서 stt 경로 관련 부분 수정해둠)
+    # stt과정의 정상 동작 확인을 위함 (특히 경로문제!)
+    services.stt('TEST', 'brunchcafe', '2023-06-02')
+    logger.debug("[cnn test] 2차분할 wav들을 stt하기 끝")
 
+    # stt를 진행하면 결과물은 아래와 같다.
+    # 2차 sec들의 stt 결과물
+    # 1차 sec_n.wav 이름을 key로 하고, 2차분할 개수만큼 start_time 리스트가 값인, 딕셔너리 (위에서 얻은 데이터임)
+
+    # 확인해보기: 위 테스트 경로에 대해, 
+    # 확인1: sec_1의 2차분할 결과 확인)  raw_stt/sec_1/sec_n.wav가 잘 2차분할되어서 만들어졌을까??
+    # 확인2: sec_n의 start_time값 확인) 전체raw_stt/sec_n에 대한 start_time 리스트가 잘 만들어졌는지 확인해보기도 하자. 
+
+    tmp = []
+    path = f"./VisualRadio/radio_storage/cnn/cnn/2023-06-07"
+    os.makedirs(f"{path}/split_wav", exist_ok=True)
+    section_name = 'sec_1'
+    os.makedirs(f"{path}/raw_stt/{section_name}", exist_ok=True)
+    dst_path = f"{path}/raw_stt/{section_name}"
+    tmp.append(os.listdir(dst_path))
+    tmp.append(section_start_time_summary)
+    logger.debug(f"[cnn test] 얻었다 - {tmp}")
+    return tmp
+
+# 확인 이후에 해야할 것: raw_stt/sec_n 하위의 작은 wav들과,
+# 그 sec_n 하위 wav에 대한 start_time 정보를 사용하여,
+# 최종 script를 제작해야 한다!!!!!
+# def make_final_script_after_cnn(broadcast, name, date, start_time):
 
 # --------------------------------------------------------------------------------- 수집기
+@auth.errorhandler(404)
 @auth.route('/collector', methods=["POST"])
 def collector():
     params = json.loads(request.get_data())
     broadcast = params['broadcast']
     time = params['start_time']
-    logger.debug(broadcast, time)
-    return services.collector_needs(broadcast, time)
+    logger.debug(f"{broadcast} {time}")
+    result = services.collector_needs(broadcast, time)
+    if result == None:
+        # 응답 헤더와 상태 코드를 설정하여 에러 메시지 정보를 전달합니다.
+        logger.debug(f"[collector error] 그러한 라디오({broadcast, time})가 DB에 없음")
+        response = make_response(f"그러한 라디오({broadcast, time})가 DB에 없음", 404)
+        return response
+    return result
 
 # --------------------------------------------------------------------------------- 페이지
 @auth.route('/admin')
@@ -68,10 +109,13 @@ def admin_update():
 def process_audio_file(broadcast, name, date):
     logger.debug(f"{broadcast} {name} {date}")
     services.split(broadcast, name, date)
+    services.split_cnn(broadcast, name, date)
     services.stt(broadcast, name, date)
-    services.make_script(broadcast, name, date)
-    services.register_listener(broadcast, name, date)
-    services.sum_wav_sections(broadcast, name, date)
+    # TODO: stt까지는 얻었으니까 그 데이터가지고 make_script 이후 과정 정상화해야함
+    logger.warn("[업로드] [스크립트] 2차분할 후 스크립트 제작에 대한 처리 필요")
+    # services.make_script(broadcast, name, date)
+    # services.register_listener(broadcast, name, date)
+    # services.sum_wav_sections(broadcast, name, date)
     logger.debug("[업로드] 오디오 처리 완료")
     return "ok"
 

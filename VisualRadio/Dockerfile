@@ -14,6 +14,10 @@ RUN pip3 install git+https://github.com/openai/whisper.git
 RUN pip install SpeechRecognition
 RUN pip install natsort
 RUN pip install librosa
+RUN pip install pandas
+RUN pip install tensorflow
+RUN pip install matplotlib
+RUN pip install Flask-Caching
 
 EXPOSE 5001
 
