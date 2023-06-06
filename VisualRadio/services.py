@@ -34,7 +34,7 @@ from sqlalchemy.exc import IntegrityError
 from VisualRadio import db, app
 
 
-# ------- 아직의미없이 넣음
+# for cnn split
 import os
 import pandas as pd
 import numpy as np
@@ -43,42 +43,6 @@ import librosa.display
 import tensorflow as tf
 import soundfile as sf
 from VisualRadio.test import save_split
-# 2차 분할 결과 얻기 - 문제 없음 확인 완료
-def test_cnn(broadcast, name, date):
-    model_path = './VisualRadio/split_good_model.h5'
-    path = f"./VisualRadio/radio_storage/{broadcast}/{name}/{date}"
-    splited_path = path + "/split_wav" # 1차 split 이후이므로 이 경로는 반드시 존재함
-    section_wav_origin_names = os.listdir(splited_path)
-    section_start_time_summary = {}
-    for target_section in section_wav_origin_names:
-        test_path = f"{splited_path}/{target_section}" # 1차 splited한 sec_n.wav임
-        output_path = f"{path}/split_final/{target_section[:-4]}"  # 2차 split 결과를 저장할 디렉토리 생성
-        os.makedirs(output_path, exist_ok=True)
-        ment_range = save_split(test_path, model_path, output_path) # 2차 split 시작하기
-
-        for range in ment_range:
-            start_time = format_time(range[0])
-            # end_time = format_time(range[1])
-            section_start_time_summary[target_section] = start_time
-
-    # 각 sec_n별로 start_time과 end_time이 존재! 대분류 sec_n.wav에 대해서 총 길이는 구하면되고
-    # 각 sec_n별로 stt하므로, 그냥 작은조각의 start_time만 기재하면 됨.
-
-    # to make script with list of start_time by secondary-sections.. 음.. 필요한건
-    # 1. 큰 sec_1.wav
-    # 2. 작은 sec_0.wav, sec_1.wav, ...
-    # 3. 작은 sec들의 start_time list
-
-
-    # 예측) 위 데이터를 가진 상태로 stt를 진행하면 결과물은 아래와 같다.
-    # section_mini의 stt 결과물
-    # section_mini의 start_time 리스트 (위에서 얻은 데이터임)
-
-    #그래서 일단 반환하고 생각하자!
-    return section_start_time_summary
-
-
-
 
 
 
@@ -244,6 +208,39 @@ def audio_save_db(broadcast, name, date):
         db.session.commit()
 
 
+def split_cnn(broadcast, name, date):
+    model_path = './VisualRadio/split_good_model.h5'
+    path = f"./VisualRadio/radio_storage/{broadcast}/{name}/{date}"
+    splited_path = path + "/split_wav" # 1차 split 이후이므로 이 경로는 반드시 존재함
+    section_wav_origin_names = os.listdir(splited_path)
+    section_start_time_summary = {}
+    for target_section in section_wav_origin_names:
+        test_path = f"{splited_path}/{target_section}" # 1차 splited한 sec_n.wav임
+        output_path = f"{path}/split_final/{target_section[:-4]}"  # 2차 split 결과를 저장할 디렉토리 생성
+        os.makedirs(output_path, exist_ok=True)
+        ment_range = save_split(test_path, model_path, output_path) # 2차 split 시작하기
+
+        for range in ment_range:
+            start_time = format_time(range[0])
+            # end_time = format_time(range[1])
+            section_start_time_summary[target_section] = start_time
+
+    # 각 sec_n별로 start_time과 end_time이 존재! 대분류 sec_n.wav에 대해서 총 길이는 구하면되고
+    # 각 sec_n별로 stt하므로, 그냥 작은조각의 start_time만 기재하면 됨.
+
+    # to make script with list of start_time by secondary-sections.. 음.. 필요한건
+    # 1. 큰 sec_1.wav
+    # 2. 작은 sec_0.wav, sec_1.wav, ...
+    # 3. 작은 sec들의 start_time list
+
+
+    # 예측) 위 데이터를 가진 상태로 stt를 진행하면 결과물은 아래와 같다.
+    # section_mini의 stt 결과물
+    # section_mini의 start_time 리스트 (위에서 얻은 데이터임)
+
+    #그래서 일단 반환하고 생각하자!
+    return section_start_time_summary
+
 # ★
 def split(broadcast, name, date):
     path = f"./VisualRadio/radio_storage/{broadcast}/{name}/{date}"
@@ -360,13 +357,12 @@ def stt_proccess(broadcast, name, date, section_name, section_mini):
     interval = 10  # seconds
     go_fast_stt(src_path, dst_path + "/google", interval, save_name)
 
-    logger.debug(f"[stt] {save_name} 완전히 완료")
+    logger.debug(f"[stt] 끝끝! {section_name}/{section_mini}")
 
 import speech_recognition as sr
 from pydub import AudioSegment
 def go_fast_stt(src_path, dst_path, interval, save_name):
-
-    logger.debug(f"[stt] google  : {save_name} 진행 중")
+    logger.debug(f"[stt] {dst_path}/{save_name} 진행 중")
     os.makedirs(dst_path, exist_ok=True)
     with wave.open(src_path, 'rb') as wav_file:
       sample_rate = wav_file.getframerate() 
@@ -401,11 +397,12 @@ def go_fast_stt(src_path, dst_path, interval, save_name):
     filename = f"{dst_path}/{save_name}"
     with open(filename, 'w', encoding='utf-8') as f:
         json.dump(data, f, ensure_ascii=False)
+    logger.debug(f"[stt] {dst_path}/{save_name} 진행 완료")
     return data
 
 # 일단 한번에 2개만 동시 처리하도록 하자
 def go_whisper_stt(src_path, dst_path, save_name):
-    logger.debug(f"[stt] whisper : {save_name} 진행 중")
+    logger.debug(f"[stt] {dst_path}/{save_name} 진행 중")
     os.makedirs(dst_path, exist_ok=True)
     filename = f"{dst_path}/{save_name}"
     device = "cpu"    #device = "cuda" if torch.cuda.is_available() else "cpu"
@@ -459,7 +456,7 @@ def go_whisper_stt(src_path, dst_path, save_name):
     os.makedirs(f"{dst_path}", exist_ok=True)
     with open(filename, 'w', encoding='utf-8') as f:
         json.dump(data, f, ensure_ascii=False)
-    logger.debug(f"[stt] whisper : {save_name} 완료")
+    logger.debug(f"[stt] {dst_path}/{save_name} 진행 완료")
     return data
 
 
