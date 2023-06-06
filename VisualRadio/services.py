@@ -43,13 +43,45 @@ import librosa.display
 import tensorflow as tf
 import soundfile as sf
 from VisualRadio.test import save_split
+# 2차 분할 결과 얻기 - 문제 없음 확인 완료
+def test_cnn(broadcast, name, date):
+    model_path = './VisualRadio/split_good_model.h5'
+    path = f"./VisualRadio/radio_storage/{broadcast}/{name}/{date}"
+    splited_path = path + "/split_wav" # 1차 split 이후이므로 이 경로는 반드시 존재함
+    section_wav_origin_names = os.listdir(splited_path)
+    section_start_time_summary = {}
+    for target_section in section_wav_origin_names:
+        test_path = f"{splited_path}/{target_section}" # 1차 splited한 sec_n.wav임
+        output_path = f"{path}/split_final/{target_section[:-4]}"  # 2차 split 결과를 저장할 디렉토리 생성
+        os.makedirs(output_path, exist_ok=True)
+        ment_range = save_split(test_path, model_path, output_path) # 2차 split 시작하기
 
-def test_cnn():
-    # def save_split(test_path, model_path, output_path):
-    test_path = './VisualRadio/MyTest/sec_1.wav'
-    model_path = './VisualRadio/MyTest/split_good_model.h5'
-    output_path = './VisualRadio/MyTest/model_result'
-    save_split(test_path, model_path, output_path)
+        for range in ment_range:
+            start_time = format_time(range[0])
+            # end_time = format_time(range[1])
+            section_start_time_summary[target_section] = start_time
+
+    # 각 sec_n별로 start_time과 end_time이 존재! 대분류 sec_n.wav에 대해서 총 길이는 구하면되고
+    # 각 sec_n별로 stt하므로, 그냥 작은조각의 start_time만 기재하면 됨.
+
+    # to make script with list of start_time by secondary-sections.. 음.. 필요한건
+    # 1. 큰 sec_1.wav
+    # 2. 작은 sec_0.wav, sec_1.wav, ...
+    # 3. 작은 sec들의 start_time list
+
+
+    # 예측) 위 데이터를 가진 상태로 stt를 진행하면 결과물은 아래와 같다.
+    # section_mini의 stt 결과물
+    # section_mini의 start_time 리스트 (위에서 얻은 데이터임)
+
+    #그래서 일단 반환하고 생각하자!
+    return section_start_time_summary
+
+
+
+
+
+
 
 # --------------------------------------------- collector
 def collector_needs(broadcast, time):
@@ -266,54 +298,61 @@ import threading
 
 import queue
 th_q = queue.Queue()
-th_q_fin = queue.Queue()
+th_q_fin = []
 
 def stt(broadcast, name, date):
     logger.debug("[stt] 시작")
     start_time = time.time()
     # 모든 sec_n.wav를 stt할 것이다
     path = f"./VisualRadio/radio_storage/{broadcast}/{name}/{date}"
-    section_dir = f'{path}/split_wav'
-    os.makedirs(section_dir, exist_ok=True)
-    section_list = os.listdir(section_dir)
 
-    for section in section_list:
-        logger.debug(f"[stt] stt할 파일 : {section}")
-        thread = threading.Thread(target=stt_proccess,
-                                args=(broadcast, name, date, section))
-        th_q.put(thread)
+    section_dir = f'{path}/split_final'       # 2차분할 결과로 반드시 존재
+    section_list = os.listdir(section_dir)  
 
-    while not th_q.empty():
-        if len(threading.enumerate()) < 5:
-            this_th = th_q.get()
-            logger.debug(f"{this_th.name} 시작! - 현재 실행중 쓰레드 개수 {len(threading.enumerate())}")
-            this_th.start()
+    for section_name in section_list: # 2차분할 결과 다루기 - section_name는 sec_1, sec_2 네임포맷의 디렉토리
+        stt_targets_of_this_section = os.listdir(f"{section_dir}/{section_name}")  # sec_n의 2차분할 wav 리스트
 
-    for thread in th_q_fin:
-        thread.join()
+        for section_mini in stt_targets_of_this_section: # section_mini는 2차분할 결과인, 작은 wav다
+            logger.debug(f"[stt] stt할 파일 : {section_name}의 {section_mini} 파일 | 대기큐에 넣음")
+            thread = threading.Thread(target=stt_proccess,
+                                    args=(broadcast, name, date, section_name, section_mini))
+            th_q.put(thread)
 
-    end_time = time.time()
-    logger.debug(f"[stt] 완료 : 소요시간 {int((end_time-start_time)//60)}분 {int((end_time-start_time)%60)}초")
-    
-    # DB - stt를 True로 갱신
-    with app.app_context():
-        wav = Wav.query.filter_by(radio_name=name, radio_date=date).first()
-        if wav:
-            wav.stt = True
-            db.session.add(wav)
-            db.session.commit()
-        else:
-            logger.debug(f"[stt] [오류] {broadcast} {name} {date} 가 있어야 하는데, DB에서 찾지 못함")
+        while not th_q.empty():
+            if len(threading.enumerate()) < 6:
+                this_th = th_q.get()
+                logger.debug(f"{this_th.name} 시작! - 현재 실행중 쓰레드 개수 {len(threading.enumerate())}")
+                this_th.start()
+                th_q_fin.append(this_th)
+
+        for thread in th_q_fin:
+            thread.join()
+
+        end_time = time.time()
+        logger.debug(f"[stt] 완료 : 소요시간 {int((end_time-start_time)//60)}분 {int((end_time-start_time)%60)}초")
+        
+        # DB - stt를 True로 갱신
+        with app.app_context():
+            wav = Wav.query.filter_by(radio_name=name, radio_date=date).first()
+            if wav:
+                wav.stt = True
+                db.session.add(wav)
+                db.session.commit()
+            else:
+                logger.debug(f"[stt] [오류] {broadcast} {name} {date} 가 있어야 하는데, DB에서 찾지 못함")
 
 
-def stt_proccess(broadcast, name, date, section):
+def stt_proccess(broadcast, name, date, section_name, section_mini):
+    # 파라미터의 section_name은 1차분할 결과인 sec_1, sec_2와 같은 이름이다.
+    # 파라미터의 section_mini는 2차분할 결과인 sec_n.wav와 같은 이름이다.
+
     # 경로 설정
-    save_name = section.replace(".wav", ".json")
+    save_name = section_mini.replace(".wav", ".json")
     path = f"./VisualRadio/radio_storage/{broadcast}/{name}/{date}"
-    os.makedirs(f"{path}/split_wav", exist_ok=True)
-    src_path = f"{path}/split_wav/{section}"
-    os.makedirs(f"{path}/raw_stt", exist_ok=True)
-    dst_path = f"{path}/raw_stt"
+    src_path = f"{path}/split_final/{section_name}/{section_mini}" # stt 처리 타겟
+    # stt결과 저장경로 설정하기
+    os.makedirs(f"{path}/raw_stt/{section_name}", exist_ok=True)
+    dst_path = f"{path}/raw_stt/{section_name}" 
     
     # whisper stt 결과 얻기
     go_whisper_stt(src_path, dst_path + "/whisper", save_name)
@@ -829,9 +868,3 @@ def find_similar_strings(target, string):
     if finded:
         return contained
     return None
-
-def memory_usage():
-    # current process RAM usage
-    p = psutil.Process()
-    rss = p.memory_info().rss / 2 ** 20 # Bytes to MB
-    return rss
