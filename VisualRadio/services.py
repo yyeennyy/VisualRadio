@@ -4,8 +4,9 @@ import time
 from flask import jsonify, Flask
 from natsort import natsorted
 from sqlalchemy import text
-import psutil
 import gc
+import torch
+from torch._C import *
 
 # for split
 from split_module.split import start_split
@@ -32,6 +33,24 @@ from sqlalchemy.exc import IntegrityError
 
 from VisualRadio import db, app
 
+
+# ------- 아직의미없이 넣음
+import os
+import pandas as pd
+import numpy as np
+import librosa
+import librosa.display
+import tensorflow as tf
+import soundfile as sf
+from VisualRadio.test import save_split
+
+def test_cnn():
+    # def save_split(test_path, model_path, output_path):
+    test_path = './VisualRadio/MyTest/sec_1.wav'
+    model_path = './VisualRadio/MyTest/split_good_model.h5'
+    output_path = './VisualRadio/MyTest/model_result'
+    save_split(test_path, model_path, output_path)
+
 # --------------------------------------------- collector
 def collector_needs(broadcast, time):
     with app.app_context():
@@ -41,13 +60,11 @@ def collector_needs(broadcast, time):
             WHERE broadcast=""" +'"'+ broadcast +'"'+
             'AND start_time=' +'"'+ time +'"'
         )
-        # logger.debug(query)
-        result = db.session.execute(query)
-        data = ""
-        for r in result:
-            data = json.loads((r[0]))
-            # logger.debug(data)
-        return json.dumps(data)
+        result = db.session.execute(query).first()
+        logger.debug(f"[test] {result[0]}")
+        if result == None:
+            return None
+        return json.dumps(result[0])
         
 # --------------------------------------------- 검색 기능
 def search_programs(search):
@@ -120,28 +137,28 @@ def get_like_cnt(bcc, name):
 # --------------------------------------------- main
 def get_all_radio():
     with app.app_context():
-            query = text("""
-                SELECT CONCAT(CONCAT('{"broadcast": "', broadcast, '", ', '"programs": [', GROUP_CONCAT(DISTINCT CONCAT('{"radio_name":"', radio_name, '", "like_cnt":"', like_cnt, '"}') SEPARATOR ', '),']}'))
-                FROM radio
-                GROUP BY broadcast;
-            """)
-            result = db.session.execute(query)
-            dict_list = []
-            for r in result:
-                # print(json.loads(r[0]))
-                dict_list.append(json.loads((r[0])))
+        query = text("""
+            SELECT CONCAT(CONCAT('{"broadcast": "', broadcast, '", ', '"programs": [', GROUP_CONCAT(DISTINCT CONCAT('{"radio_name":"', radio_name, '", "like_cnt":"', like_cnt, '"}') SEPARATOR ', '),']}'))
+            FROM radio
+            GROUP BY broadcast;
+        """)
+        result = db.session.execute(query)
+        dict_list = []
+        for r in result:
+            # print(json.loads(r[0]))
+            dict_list.append(json.loads((r[0])))
 
-            for i in range(len(dict_list)):
-                broadcast = dict_list[i]['broadcast']
-                for j in dict_list[i]['programs']:
-                    radio_name = j['radio_name']
-                    img_path = f"/static/main_imgs/{broadcast}/{radio_name}/main_img.jpeg"
-                    if os.path.isfile("./VisualRadio" + img_path):
-                        j['img'] = img_path
-                    else:
-                        j['img'] = "/static/images/default_main.png"
-            json_data = json.dumps(dict_list)
-            return json_data
+        for i in range(len(dict_list)):
+            broadcast = dict_list[i]['broadcast']
+            for j in dict_list[i]['programs']:
+                radio_name = j['radio_name']
+                img_path = f"/static/main_imgs/{broadcast}/{radio_name}/main_img.jpeg"
+                if os.path.isfile("./VisualRadio" + img_path):
+                    j['img'] = img_path
+                else:
+                    j['img'] = "/static/images/default_main.png"
+        json_data = json.dumps(dict_list)
+        return json_data
 
 
 # --------------------------------------------- sub1
@@ -204,12 +221,11 @@ def split(broadcast, name, date):
 
     # 이미 분할 정보가 있는지 확인
     with app.app_context():
-        # date_obj = datetime.strptime(date, '%Y-%m-%d %H:%M:%S')
-        wav = Wav.query.filter_by(radio_name=name, radio_date=str(date)).first()
+        wav = Wav.query.filter_by(broadcast=broadcast, radio_name=name, radio_date=date).first()
         if not wav:
             logger.debug("[split] 해당 라디오 데이터가 없습니다. 먼저 raw.wav를 등록하세요")
             return
-        if wav.section != 0:
+        elif wav.section != 0:
             logger.debug(f"[split] 분할 정보가 이미 있습니다 - {wav.section} 분할")
             return
         else:
@@ -261,27 +277,24 @@ def stt(broadcast, name, date):
     os.makedirs(section_dir, exist_ok=True)
     section_list = os.listdir(section_dir)
 
-    # sec_n.wav를 stt하기 시작
     for section in section_list:
         logger.debug(f"[stt] stt할 파일 : {section}")
-        # 스레드로 stt 진행
         thread = threading.Thread(target=stt_proccess,
                                 args=(broadcast, name, date, section))
-        th_q.put(thread)  # 대기 큐에 스레드 추가
+        th_q.put(thread)
 
-    # 대기 중인 스레드를 순차적으로 시작
     while not th_q.empty():
         if len(threading.enumerate()) < 5:
             this_th = th_q.get()
             logger.debug(f"{this_th.name} 시작! - 현재 실행중 쓰레드 개수 {len(threading.enumerate())}")
             this_th.start()
-            
 
     for thread in th_q_fin:
         thread.join()
 
     end_time = time.time()
     logger.debug(f"[stt] 완료 : 소요시간 {int((end_time-start_time)//60)}분 {int((end_time-start_time)%60)}초")
+    
     # DB - stt를 True로 갱신
     with app.app_context():
         wav = Wav.query.filter_by(radio_name=name, radio_date=date).first()
@@ -291,7 +304,6 @@ def stt(broadcast, name, date):
             db.session.commit()
         else:
             logger.debug(f"[stt] [오류] {broadcast} {name} {date} 가 있어야 하는데, DB에서 찾지 못함")
-
 
 
 def stt_proccess(broadcast, name, date, section):

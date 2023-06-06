@@ -1,5 +1,5 @@
 from flask import Blueprint
-from flask import Flask, request, jsonify, send_file, render_template, request
+from flask import Flask, request, jsonify, send_file, render_template, request, make_response
 import sys
 sys.path.append('./VisualRadio')
 import services
@@ -14,16 +14,27 @@ auth = Blueprint('auth', __name__)
 from VisualRadio import CreateLogger
 logger = CreateLogger("우리가1등(^o^)b")
 
-
+# ------ 의미 x
+@auth.route('/cnn', methods=['GET'])
+def cnn():
+    services.test_cnn()
+    return "ok"
 
 # --------------------------------------------------------------------------------- 수집기
+@auth.errorhandler(404)
 @auth.route('/collector', methods=["POST"])
 def collector():
     params = json.loads(request.get_data())
     broadcast = params['broadcast']
     time = params['start_time']
-    logger.debug(broadcast, time)
-    return services.collector_needs(broadcast, time)
+    logger.debug(f"{broadcast} {time}")
+    result = services.collector_needs(broadcast, time)
+    if result == None:
+        # 응답 헤더와 상태 코드를 설정하여 에러 메시지 정보를 전달합니다.
+        logger.debug(f"[collector error] 그러한 라디오({broadcast, time})가 DB에 없음")
+        response = make_response(f"그러한 라디오({broadcast, time})가 DB에 없음", 404)
+        return response
+    return result
 
 # --------------------------------------------------------------------------------- 페이지
 @auth.route('/admin')
