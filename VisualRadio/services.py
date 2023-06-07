@@ -44,6 +44,30 @@ import tensorflow as tf
 import soundfile as sf
 from VisualRadio.test import save_split
 
+def test_cnn(broadcast, name, date):
+    model_path = './VisualRadio/split_good_model.h5'
+    path = f"./VisualRadio/radio_storage/{broadcast}/{name}/{date}"
+    splited_path = path + "/split_wav" # 1차 split 이후이므로 이 경로는 반드시 존재함
+    section_wav_origin_names = os.listdir(splited_path)
+    section_start_time_summary = {}
+    for target_section in section_wav_origin_names:
+        test_path = f"{splited_path}/{target_section}" # 1차 splited한 sec_n.wav임
+        output_path = f"{path}/split_final/{target_section[:-4]}"  # 2차 split 결과를 저장할 디렉토리 생성
+        os.makedirs(output_path, exist_ok=True)
+        ment_range = save_split(test_path, model_path, output_path) # 2차 split 시작하기
+        if len(ment_range) == 0:
+            return {}
+        ment_start_times = []
+        for range in ment_range:
+            start_time = format_time(range[0])
+            # end_time = format_time(range[1])
+            ment_start_times.append(start_time)
+
+        section_start_time_summary[target_section] = ment_start_times
+        
+
+    return section_start_time_summary
+
 
 
 
@@ -220,10 +244,13 @@ def split_cnn(broadcast, name, date):
         os.makedirs(output_path, exist_ok=True)
         ment_range = save_split(test_path, model_path, output_path) # 2차 split 시작하기
 
+        ment_start_times = []
         for range in ment_range:
             start_time = format_time(range[0])
             # end_time = format_time(range[1])
-            section_start_time_summary[target_section] = start_time
+            ment_start_times.append(start_time)
+
+        section_start_time_summary[target_section] = ment_start_times
 
     # 각 sec_n별로 start_time과 end_time이 존재! 대분류 sec_n.wav에 대해서 총 길이는 구하면되고
     # 각 sec_n별로 stt하므로, 그냥 작은조각의 start_time만 기재하면 됨.
@@ -267,19 +294,21 @@ def split(broadcast, name, date):
     start_split(song_path, name, save_path)
 
     end_time = time.time()
-    logger.debug(f"[split] 분할 처리 시간: {end_time - start_time} seconds")
     os.makedirs(save_path, exist_ok=True)
     wav_files = [f for f in os.listdir(save_path) if f.endswith('.wav')]
 
     n = len(wav_files)
+    logger.debug(f"[split] {n}분할 처리 시간: {end_time - start_time} seconds")
+
     with app.app_context():
-        wav = Wav.query.filter_by(radio_name=name, radio_date=date).first()
+        wav = Wav.query.filter_by(broadcast=broadcast, radio_name=name, radio_date=date).first()
         if wav:
             wav.section = n
-            db.session.commit()
         else:
-            pass  # 해당 wav 모델 인스턴스가 없을 경우 처리
-
+            wav = Wav(radio_name=name, radio_date=date, broadcast=broadcast, raw=True, section=n, stt=False,
+                script=False, contents=False)
+            db.session.add(wav)
+        db.session.commit()
     return 0
 
 
@@ -316,7 +345,7 @@ def stt(broadcast, name, date):
             th_q.put(thread)
 
         while not th_q.empty():
-            if len(threading.enumerate()) < 6:
+            if len(threading.enumerate()) < 7:
                 this_th = th_q.get()
                 logger.debug(f"{this_th.name} 시작! - 현재 실행중 쓰레드 개수 {len(threading.enumerate())}")
                 this_th.start()
@@ -326,7 +355,7 @@ def stt(broadcast, name, date):
             thread.join()
 
         end_time = time.time()
-        logger.debug(f"[stt] 완료 : 소요시간 {int((end_time-start_time)//60)}분 {int((end_time-start_time)%60)}초")
+        logger.debug(f"[stt] {section_name} 완료 : 소요시간 {int((end_time-start_time)//60)}분 {int((end_time-start_time)%60)}초")
         
         # DB - stt를 True로 갱신
         with app.app_context():
@@ -463,6 +492,54 @@ def go_whisper_stt(src_path, dst_path, save_name):
 
 # ------------------------------------------------------------------------------------------ stt 이후 과정
 
+
+import wave
+import shutil
+import os
+from natsort import natsorted
+import json
+
+def before_script(broadcast, name, date, start_times, stt_tool_name):
+    path = f"./VisualRadio/radio_storage/{broadcast}/{name}/{date}"
+    raw_stt = f'{path}/raw_stt'
+    sec_n = os.listdir(raw_stt)
+
+    # sec_n
+    for key in sec_n:
+        sec_n_wav = f'{path}/split_wav/{key}.wav' #
+        segments = os.listdir(f'{raw_stt}/{key}/{stt_tool_name}') 
+        time_start = start_times[f'{key}.wav']
+        new_lines_sec_n = []
+        for idx, segment in enumerate(segments): # 각각의 sec_i.json에 대해서..
+            # print(segment) # sec_i.json
+            with open(f'{raw_stt}/{key}/{stt_tool_name}/{segment}', 'r', encoding='utf-8') as f:
+                data = json.loads(f.read())
+            lines = data["scripts"]
+            for line in lines:
+                # 시간정보 업데이트
+                new_lines_sec_n.append({'time':add_time(time_start[idx], line['time']), 'txt':line['txt']})
+        
+        # 최종 sec_n.json 생성 시작
+        result_sec_n = {}
+        # print("sec_n 라인: ", new_lines_sec_n)
+        with wave.open(sec_n_wav, 'rb') as wav_file:
+            sample_rate = wav_file.getframerate() 
+            num_frames = wav_file.getnframes()  
+            duration = num_frames / sample_rate  
+
+        result_sec_n['end_time'] = format_time(duration)
+        result_sec_n['scripts'] = new_lines_sec_n
+
+        filename = f'{key}.json'
+        # 파일 생성
+        os.makedirs(f'{path}/stt_final/{stt_tool_name}', exist_ok=True)
+        save_path = f'{path}/stt_final/{stt_tool_name}/{filename}'
+        if os.path.exists(save_path):
+            os.remove(save_path)
+        with open(f'{save_path}', 'w') as f:
+            f.write(json.dumps(result_sec_n, ensure_ascii=False))
+            
+
 # 최종 script.json을 생성한다.
 # google과 whisper의 stt 결과를 모두 고려한다.
 def make_script(broadcast, name, date):
@@ -470,8 +547,7 @@ def make_script(broadcast, name, date):
     path = f"./VisualRadio/radio_storage/{broadcast}/{name}/{date}"
 
     # google
-    stt_dir = f'{path}/raw_stt/google'
-    os.makedirs(stt_dir, exist_ok=True)
+    stt_dir = f'{path}/stt_final/google' # 반드시 존재
     stt_list = natsorted(os.listdir(stt_dir))
     targets = [os.path.join(stt_dir, name) for name in stt_list]
     os.makedirs(f"{path}/result/google", exist_ok=True)
@@ -483,8 +559,7 @@ def make_script(broadcast, name, date):
     make_script_2(targets, save_path)
 
     # whisper
-    stt_dir = f'{path}/raw_stt/whisper'
-    os.makedirs(stt_dir, exist_ok=True)
+    stt_dir = f'{path}/stt_final/whisper' # 반드시 존재
     stt_list = natsorted(os.listdir(stt_dir))
     targets = [os.path.join(stt_dir, name) for name in stt_list]
     os.makedirs(f"{path}/result/whisper", exist_ok=True)
@@ -553,11 +628,11 @@ def correct_applicant(broadcast, name, date):
     g_concat = []
     for w in wdata:
         w_time = w['time']
-        w_dtime = datetime.strptime(w_time, time_format).time()
+        w_dtime = convert_to_datetime(w_time)
         w_text = w['txt']
         for g in gdata:
             g_time = g['time'][:-4] + '.000'
-            g_dtime = datetime.strptime(g_time, time_format).time()
+            g_dtime = convert_to_datetime(g_time)
             g_text = g['txt']
             if w_dtime >= g_dtime: 
                 g_concat.append(g_text)
@@ -584,11 +659,11 @@ def correct_applicant(broadcast, name, date):
     this_is_true = {}
     tmp = set()
     for w_key in w_applicant:
-        w_time = datetime.strptime(w_key, time_format)
+        w_time = convert_to_datetime(w_key)
         w_element = w_applicant.get(w_key)
         for g_key in g_applicant:
             g_element = g_applicant.get(g_key)
-            g_time = datetime.strptime(g_key, time_format)
+            g_time = convert_to_datetime(g_key)
             # 기존: 겹치는 것만 고려했음
             if abs(w_time - g_time) <= timedelta(seconds=10):
                 if w_element[1] != g_element[1]:
@@ -615,10 +690,10 @@ def correct_applicant(broadcast, name, date):
     target_text = []   
     for g_key in google_alone:
         # print(g_key, google_alone.get(g_key))
-        g_time = datetime.strptime(g_key, time_format)
+        g_time = convert_to_datetime(g_key)
         for w in wdata:
             w_key = w['time']
-            w_time = datetime.strptime(w_key, time_format)
+            w_time = convert_to_datetime(w_key)
             if abs(g_time - w_time) < timedelta(seconds=10):
                 # print(w_key, w['txt']) # target임
                 target_text.append([w_key, w['txt'], google_alone.get(g_key)])
@@ -644,7 +719,7 @@ def correct_applicant(broadcast, name, date):
                 applicants_added_back[w_key] = added
         # if target_text[-1] == text:
             # logger.debug("--------- 청취자 찾기 끝 ---------")
-    # logger.debug(f"\n\n>> 최종 결과: {applicants_added_back}")
+    logger.debug(f"added back: {applicants_added_back}")
 
 
     # 찾은 결과를 실제로 반영한다.
@@ -865,3 +940,14 @@ def find_similar_strings(target, string):
     if finded:
         return contained
     return None
+
+
+def convert_to_datetime(time_str):
+    minutes, seconds = time_str.split(':')
+    seconds, milliseconds = seconds.split('.')
+    
+    hours = int(minutes) // 60
+    minutes = int(minutes) % 60
+    
+    time_obj = datetime.min + timedelta(hours=hours, minutes=minutes, seconds=int(seconds), milliseconds=int(milliseconds))
+    return time_obj

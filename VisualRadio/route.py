@@ -109,13 +109,13 @@ def admin_update():
 def process_audio_file(broadcast, name, date):
     logger.debug(f"{broadcast} {name} {date}")
     services.split(broadcast, name, date)
-    services.split_cnn(broadcast, name, date)
+    start_times = services.split_cnn(broadcast, name, date)
     services.stt(broadcast, name, date)
-    # TODO: stt까지는 얻었으니까 그 데이터가지고 make_script 이후 과정 정상화해야함
-    logger.warn("[업로드] [스크립트] 2차분할 후 스크립트 제작에 대한 처리 필요")
-    # services.make_script(broadcast, name, date)
-    # services.register_listener(broadcast, name, date)
-    # services.sum_wav_sections(broadcast, name, date)
+    services.before_script(broadcast, name, date, start_times, 'whisper')
+    services.before_script(broadcast, name, date, start_times, 'google')
+    services.make_script(broadcast, name, date)
+    services.register_listener(broadcast, name, date)
+    services.sum_wav_sections(broadcast, name, date)
     logger.debug("[업로드] 오디오 처리 완료")
     return "ok"
 
