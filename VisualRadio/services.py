@@ -44,29 +44,6 @@ import tensorflow as tf
 import soundfile as sf
 from VisualRadio.test import save_split
 
-def test_cnn(broadcast, name, date):
-    model_path = './VisualRadio/split_good_model.h5'
-    path = f"./VisualRadio/radio_storage/{broadcast}/{name}/{date}"
-    splited_path = path + "/split_wav" # 1차 split 이후이므로 이 경로는 반드시 존재함
-    section_wav_origin_names = os.listdir(splited_path)
-    section_start_time_summary = {}
-    for target_section in section_wav_origin_names:
-        test_path = f"{splited_path}/{target_section}" # 1차 splited한 sec_n.wav임
-        output_path = f"{path}/split_final/{target_section[:-4]}"  # 2차 split 결과를 저장할 디렉토리 생성
-        os.makedirs(output_path, exist_ok=True)
-        ment_range = save_split(test_path, model_path, output_path) # 2차 split 시작하기
-        if len(ment_range) == 0:
-            return {}
-        ment_start_times = []
-        for range in ment_range:
-            start_time = format_time(range[0])
-            # end_time = format_time(range[1])
-            ment_start_times.append(start_time)
-
-        section_start_time_summary[target_section] = ment_start_times
-        
-
-    return section_start_time_summary
 
 
 
@@ -252,20 +229,6 @@ def split_cnn(broadcast, name, date):
 
         section_start_time_summary[target_section] = ment_start_times
 
-    # 각 sec_n별로 start_time과 end_time이 존재! 대분류 sec_n.wav에 대해서 총 길이는 구하면되고
-    # 각 sec_n별로 stt하므로, 그냥 작은조각의 start_time만 기재하면 됨.
-
-    # to make script with list of start_time by secondary-sections.. 음.. 필요한건
-    # 1. 큰 sec_1.wav
-    # 2. 작은 sec_0.wav, sec_1.wav, ...
-    # 3. 작은 sec들의 start_time list
-
-
-    # 예측) 위 데이터를 가진 상태로 stt를 진행하면 결과물은 아래와 같다.
-    # section_mini의 stt 결과물
-    # section_mini의 start_time 리스트 (위에서 얻은 데이터임)
-
-    #그래서 일단 반환하고 생각하자!
     return section_start_time_summary
 
 # ★
@@ -503,7 +466,7 @@ def before_script(broadcast, name, date, start_times, stt_tool_name):
     path = f"./VisualRadio/radio_storage/{broadcast}/{name}/{date}"
     raw_stt = f'{path}/raw_stt'
     sec_n = os.listdir(raw_stt)
-
+    duration_dict = get_duration_dict(broadcast, name, date)
     # sec_n
     for key in sec_n:
         sec_n_wav = f'{path}/split_wav/{key}.wav' #
@@ -521,13 +484,8 @@ def before_script(broadcast, name, date, start_times, stt_tool_name):
         
         # 최종 sec_n.json 생성 시작
         result_sec_n = {}
-        # print("sec_n 라인: ", new_lines_sec_n)
-        with wave.open(sec_n_wav, 'rb') as wav_file:
-            sample_rate = wav_file.getframerate() 
-            num_frames = wav_file.getnframes()  
-            duration = num_frames / sample_rate  
 
-        result_sec_n['end_time'] = format_time(duration)
+        result_sec_n['end_time'] = format_time(duration_dict[key])
         result_sec_n['scripts'] = new_lines_sec_n
 
         filename = f'{key}.json'
@@ -538,7 +496,7 @@ def before_script(broadcast, name, date, start_times, stt_tool_name):
             os.remove(save_path)
         with open(f'{save_path}', 'w') as f:
             f.write(json.dumps(result_sec_n, ensure_ascii=False))
-            
+
 
 # 최종 script.json을 생성한다.
 # google과 whisper의 stt 결과를 모두 고려한다.
@@ -951,3 +909,42 @@ def convert_to_datetime(time_str):
     
     time_obj = datetime.min + timedelta(hours=hours, minutes=minutes, seconds=int(seconds), milliseconds=int(milliseconds))
     return time_obj
+
+def get_duration_dict(broadcast, name, date):
+    path = f"./VisualRadio/radio_storage/{broadcast}/{name}/{date}"
+    wav_path = f'{path}/split_wav'
+    stt_path = f'{path}/raw_stt'
+    sorted = natsorted(os.listdir(wav_path))
+    stts = natsorted(os.listdir(stt_path))
+
+    duration_dict = {}
+    all_duration = {}
+    for key in sorted:
+        key = key[:-4]
+        wav_file = f'{wav_path}/{key}.wav'
+        with wave.open(wav_file, 'rb') as f:
+            sample_rate = f.getframerate() 
+            num_frames = f.getnframes()  
+            duration = num_frames / sample_rate
+        all_duration[key] = duration
+
+    # 기준 : stts
+    # 이동 : sorted
+    p = 0
+    for idx, target in enumerate(stts):
+        duration_dict[target] = 0
+        while True:
+            if sorted[p][:-4] != target:
+                duration_dict[stts[idx-1]] += all_duration[sorted[p][:-4]]
+                # print(stts[idx-1], "에 ", sorted[p][:-4], "저장")
+                p += 1
+                continue
+            duration_dict[target] = all_duration[target]
+            # print(sorted[p], target)
+            p += 1
+            break
+
+    return duration_dict
+
+
+    
