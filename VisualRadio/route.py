@@ -73,9 +73,9 @@ def admin_update():
 
 def process_audio_file(broadcast, name, date):
     logger.debug(f"{broadcast} {name} {date}")
-    # services.split(broadcast, name, date)
+    services.split(broadcast, name, date)
     start_times = services.split_cnn(broadcast, name, date)
-    # services.stt(broadcast, name, date)
+    services.stt(broadcast, name, date)
     services.before_script(broadcast, name, date, start_times, 'whisper')
     services.before_script(broadcast, name, date, start_times, 'google')
     services.make_script(broadcast, name, date)
