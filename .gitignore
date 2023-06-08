@@ -748,7 +748,6 @@ pyrightconfig.json
 
 # Personal Settings
 *.wav
-*.txt
 credentials.json
 *.flac
 VisualRadio/radio_storage
