@@ -147,6 +147,7 @@ body {
     top: 0;
     left: 0;
     height: 100%;
+    border-radius: 100px;
     background-color: rgb(154, 48, 174);
     width: 0%;
     transition: width 0.1s ease-in-out;

@@ -74,14 +74,14 @@
     /* border: 1px solid black; */
     border-radius: 40px;
     background-color: rgba(223, 207, 244, 0.2);
-    display: flex;
+    /* display: flex;
     align-items: center;
-    justify-content: center;
+    justify-content: center; */
 }
 
-/* .calendar {
+.calendar {
     margin: 0 auto;
-} */
+}
 
 td {
     width: 60px;
