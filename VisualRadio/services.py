@@ -308,7 +308,7 @@ def stt(broadcast, name, date):
             th_q.put(thread)
 
         while not th_q.empty():
-            if len(threading.enumerate()) < 7:
+            if len(threading.enumerate()) < 8:
                 this_th = th_q.get()
                 logger.debug(f"{this_th.name} 시작! - 현재 실행중 쓰레드 개수 {len(threading.enumerate())}")
                 this_th.start()
@@ -400,7 +400,7 @@ def go_whisper_stt(src_path, dst_path, save_name):
     device = "cpu"    #device = "cuda" if torch.cuda.is_available() else "cpu"
     language = "ko"
 
-    model = whisper.load_model("tiny").to(device)
+    model = whisper.load_model("base").to(device)
     results = model.transcribe(
         src_path, language=language, temperature=0.0, word_timestamps=True)
     del model
@@ -470,7 +470,7 @@ def before_script(broadcast, name, date, start_times, stt_tool_name):
     # sec_n
     for key in sec_n:
         sec_n_wav = f'{path}/split_wav/{key}.wav' #
-        segments = os.listdir(f'{raw_stt}/{key}/{stt_tool_name}') 
+        segments = natsorted(os.listdir(f'{raw_stt}/{key}/{stt_tool_name}'))
         time_start = start_times[f'{key}.wav']
         new_lines_sec_n = []
         for idx, segment in enumerate(segments): # 각각의 sec_i.json에 대해서..
