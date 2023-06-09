@@ -7,6 +7,8 @@ from sqlalchemy import text
 import gc
 import torch
 from torch._C import *
+import psutil
+import random
 
 # for split
 from split_module.split import start_split
@@ -284,10 +286,9 @@ import wave
 import whisper
 from itertools import groupby
 import threading
-
+import gc
 import queue
 th_q = queue.Queue()
-th_q_fin = []
 
 def stt(broadcast, name, date):
     logger.debug("[stt] 시작")
@@ -306,19 +307,25 @@ def stt(broadcast, name, date):
             thread = threading.Thread(target=stt_proccess,
                                     args=(broadcast, name, date, section_name, section_mini))
             th_q.put(thread)
-
+            
+        th_q_fin = []
         while not th_q.empty():
-            if len(threading.enumerate()) < 8:
-                this_th = th_q.get()
-                logger.debug(f"{this_th.name} 시작! - 현재 실행중 쓰레드 개수 {len(threading.enumerate())}")
-                this_th.start()
-                th_q_fin.append(this_th)
+            if len(threading.enumerate()) < 7:
+                time.sleep(random.uniform(0.1, 1))
+                if memory_usage("stt") < 0.75:
+                    logger.debug(f'{memory_usage("stt")*100}%')
+                    this_th = th_q.get()
+                    logger.debug(f"{this_th.name} 시작! - 현재 실행중 쓰레드 개수 {len(threading.enumerate())}")
+                    this_th.start()
+                    th_q_fin.append(this_th)
 
         for thread in th_q_fin:
             thread.join()
+            del thread
 
         end_time = time.time()
         logger.debug(f"[stt] {section_name} 완료 : 소요시간 {int((end_time-start_time)//60)}분 {int((end_time-start_time)%60)}초")
+        gc.collect()
         
         # DB - stt를 True로 갱신
         with app.app_context():
@@ -383,6 +390,7 @@ def go_fast_stt(src_path, dst_path, interval, save_name):
         start_time = end_time
         end_time += interval * 1000
     del r
+    gc.collect()
     # 최종 data 저장하기
     data = {'end_time':format_time(duration), 'scripts':[json.loads(s) for s in scripts]}
     os.makedirs(f"{dst_path}", exist_ok=True)
@@ -392,26 +400,32 @@ def go_fast_stt(src_path, dst_path, interval, save_name):
     logger.debug(f"[stt] {dst_path}/{save_name} 진행 완료")
     return data
 
-# 일단 한번에 2개만 동시 처리하도록 하자
+
 def go_whisper_stt(src_path, dst_path, save_name):
-    logger.debug(f"[stt] {dst_path}/{save_name} 진행 중")
     os.makedirs(dst_path, exist_ok=True)
     filename = f"{dst_path}/{save_name}"
     device = "cpu"    #device = "cuda" if torch.cuda.is_available() else "cpu"
     language = "ko"
 
-    model = whisper.load_model("base").to(device)
-    results = model.transcribe(
-        src_path, language=language, temperature=0.0, word_timestamps=True)
-    del model
+    while True:
+        time.sleep(random.uniform(0.1, 1))
+        if memory_usage("stt") > 0.8:
+            continue
+        logger.debug(f"[stt] {dst_path}/{save_name} 진행 중")
+        model = whisper.load_model("small").to(device)
+        results = model.transcribe(
+            src_path, language=language, temperature=0.0, word_timestamps=True)
+        del model
+        gc.collect()
+        break
 
     # 스크립트 만들기
+    endings = ['에요', '해요', '예요', '지요', '네요', '[?]{1}', '[가-힣]{1,2}시다', '[가-힣]{1,2}니다', '어요', '구요', '군요', '어요', '아요', '은요', '이요', '든요', '워요', '드리고요', '되죠', '하죠', '까요', '게요', '시죠', '거야', '잖아']
     scripts = []
     lines = []
     times = []
     for result in results['segments']:
         text = result['text']
-        endings = ['에요', '해요', '예요', '지요', '네요', '[?]{1}', '[가-힣]{1,2}시다', '[가-힣]{1,2}니다', '어요', '구요', '군요', '어요', '아요', '은요', '이요', '든요', '워요', '드리고요', '되죠', '하죠', '까요', '게요', '시죠', '거야', '잖아']
         end_position = len(text)
         end_word = None
         for ending in endings:
@@ -449,6 +463,7 @@ def go_whisper_stt(src_path, dst_path, save_name):
     with open(filename, 'w', encoding='utf-8') as f:
         json.dump(data, f, ensure_ascii=False)
     logger.debug(f"[stt] {dst_path}/{save_name} 진행 완료")
+    gc.collect()
     return data
 
 
@@ -947,4 +962,10 @@ def get_duration_dict(broadcast, name, date):
     return duration_dict
 
 
-    
+
+def memory_usage(message: str = 'debug'):
+    # current process RAM usage
+    p = psutil.Process()
+    rss = p.memory_info().rss / 2 ** 20 # Bytes to MB
+    # print(f"[{message}] memory usage: {rss: 10.5f} MB |{type(rss)}| {(rss/5*8*1024)*100}%")
+    return rss/(16*1024)
