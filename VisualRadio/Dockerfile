@@ -18,7 +18,7 @@ RUN pip install pandas
 RUN pip install tensorflow
 RUN pip install matplotlib
 RUN pip install Flask-Caching
-RUN pip install pustil
+RUN pip install psutil
 
 EXPOSE 5001
 
