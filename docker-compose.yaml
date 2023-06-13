@@ -56,16 +56,16 @@ services:
       - TZ=Asia/Seoul
     depends_on:
       - visual-radio
-  #     - collector
-  # collector:
-  #   container_name: collector
-  #   build: ./Collector
-  #   restart: always
-  #   volumes:
-  #     - ./Collector:/app
-  #   ports:
-  #     - 8080:8080
-  #   networks:
-  #     - db-net
-  #   environment:
-  #     - TZ=Asia/Seoul
+  collector:
+    container_name: collector
+    build: ./Collector
+    restart: always
+    ports:
+      - 8080:8080
+    networks:
+      - db-net
+    depends_on:
+      - nginx
+      - visual-radio
+    environment:
+      - TZ=Asia/Seoul
