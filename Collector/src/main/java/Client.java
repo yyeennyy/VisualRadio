@@ -1,4 +1,4 @@
-package Collector;
+// package Collector.src.main.java;
 
 import java.io.BufferedReader;
 // import java.io.File;
@@ -14,19 +14,31 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.time.LocalTime;
 import java.time.Duration;
+import org.json.JSONObject;
+import java.util.logging.Level;
+import java.util.logging.Logger;
+
 
 public class Client {
+    private static final Logger logger = Logger.getLogger(Client.class.getName());
+
     public static void main(String[] args) {
+
         LocalTime currentTime = LocalTime.now();
-        LocalTime targetTime = LocalTime.of(23, 43); 
+        LocalTime targetTime = LocalTime.of(02, 28);  // 테스트시 이 시간정보랑 radio 테이블의 start_time정보랑 일치해야 한다
+        // 꼭 체크하기 : 
+        // radio테이블의 start_time이랑 위 targetTime이랑 일치하도록 수정했는지!
+        // radio테이블을 직접 수정하려고 할 때, mysql docker가 켜진 상태인지. 
         long initialDelay = Duration.between(currentTime, targetTime).toSeconds();
-        System.out.println(initialDelay);
         if (initialDelay < 0) {
-            // 이미 오전 11시를 지난 경우, 다음날 오전 11시로 초기 지연을 계산
+            // 설정한 시간까지 남은 대기시간 계산!
             initialDelay += Duration.ofDays(1).toSeconds();
         }
+        System.out.printf("[collector] %d초 이후에 작동 시작\n", initialDelay);
+
         ScheduledExecutorService executorService = Executors.newScheduledThreadPool(1);
-        executorService.scheduleAtFixedRate(new recordRadio("test", "11:00"), 0, 24*60*60, TimeUnit.SECONDS);
+        // 테스트용 설정: visual-radio 컨테이너가 충분히 켜질 시간을 준다: 15초로 설정
+        executorService.scheduleAtFixedRate(new recordRadio("test", String.valueOf(targetTime)), 15, 24*60*60, TimeUnit.SECONDS);
     }
 
     // 실행할 작업 태스크
@@ -40,42 +52,24 @@ public class Client {
         }
 
         public void run() {
+            // 필요한 데이터 설정 (방송사, 예약 시간 등)
+            String jsonStr = String.format("{\"broadcast\":\"%s\", \"start_time\":\"%s\"}", broadcast, start_time);
+            JSONObject json = new JSONObject(jsonStr);
+            logger.log(Level.FINE, "[collector] {0}", json);
+            logger.log(Level.FINE, "[collector] {0}", jsonStr);
+
             try {
                 // POST 요청 보내기
-                // URL url = new URL("http://localhost:5000");
-                // URI uri = new URI("http://localhost/collector");
-                URI uri = null;
-                try {
-                    uri = new URI("http://localhost/collector");
-                } catch (URISyntaxException e) {
-                    e.printStackTrace();
-                }
-                URL url = uri.toURL();
+                URL url = new URL("http://localhost/collector");
+                System.out.println(url);
                 HttpURLConnection connection = (HttpURLConnection) url.openConnection();
                 connection.setRequestProperty("Content-Type", "application/json;utf-8");
                 connection.setRequestProperty("Accept","application/json");
                 connection.setRequestMethod("POST");
                 connection.setDoOutput(true);
-                
-                // 필요한 데이터 설정 (방송사, 예약 시간 등)
-                // String requestBody = "broadcast=" + broadcast + "&start_time=" + start_time;
-                String jsonStr = String.format("{\"broadcast\":\"%s\", \"start_time\":\"%s\"}", broadcast, start_time);
 
-                // 요청 데이터 전송
-                // try(OutputStream os = connection.getOutputStream()){
-                //     byte[] input = jsonStr.getBytes("utf-8");
-                //     os.write(input, 0, input.length);
-                // }
-                // try(BufferedReader br = new BufferedReader(new InputStreamReader(connection.getInputStream(),"utf-8"))){
-                //     StringBuilder response = new StringBuilder();
-                //     String responseLine = null;
-                //     while((responseLine = br.readLine()) != null){
-                //         response.append(responseLine.trim());
-                //     }
-                //     System.out.println(response.toString());
-                // }
                 OutputStream outputStream = connection.getOutputStream();
-                outputStream.write(jsonStr.getBytes());
+                outputStream.write(json.toString().getBytes("UTF-8"));
                 outputStream.flush();
                 outputStream.close();
                 

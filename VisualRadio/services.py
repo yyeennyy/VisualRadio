@@ -60,9 +60,9 @@ def collector_needs(broadcast, time):
             'AND start_time=' +'"'+ time +'"'
         )
         result = db.session.execute(query).first()
-        logger.debug(f"[test] {result[0]}")
         if result == None:
             return None
+        logger.debug(f"[test] {result[0]}")
         return json.dumps(result[0])
         
 # --------------------------------------------- 검색 기능
