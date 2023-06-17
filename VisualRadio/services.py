@@ -44,7 +44,7 @@ import librosa
 import librosa.display
 import tensorflow as tf
 import soundfile as sf
-from VisualRadio.test import save_split
+from VisualRadio.split_module.split2 import save_split
 
 
 
@@ -212,7 +212,7 @@ def audio_save_db(broadcast, name, date):
 
 
 def split_cnn(broadcast, name, date):
-    model_path = './VisualRadio/split_good_model.h5'
+    model_path = './VisualRadio/split_module/split_good_model.h5'
     path = f"./VisualRadio/radio_storage/{broadcast}/{name}/{date}"
     splited_path = path + "/split_wav" # 1차 split 이후이므로 이 경로는 반드시 존재함
     section_wav_origin_names = os.listdir(splited_path)
