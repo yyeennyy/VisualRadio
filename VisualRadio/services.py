@@ -161,11 +161,20 @@ def get_all_radio():
 
 
 # --------------------------------------------- sub1
-def all_date_of(broadcast, radio_name, month):
+def all_date_of(broadcast, radio_name, year, month):
     with app.app_context():
         # month를 이용하여 시작일과 종료일 계산
-        start_date = datetime.strptime(f'2023-{month}-01', '%Y-%m-%d').date()
-        end_date = datetime.strptime(f'2023-{month}-01', '%Y-%m-%d').replace(day=1, month=start_date.month+1) - timedelta(days=1)
+        start_date = datetime.strptime(f'{year}-{month}-01', '%Y-%m-%d').date()
+        end_date = datetime.strptime(f'{year}-{month}-01', '%Y-%m-%d').replace(day=1, month=start_date.month+1) - timedelta(days=1)
+        
+        # ???
+        # 확인해보기 !!
+        if start_date.month == 12:
+            end_date = start_date.replace(day=31)  # 12월인 경우 마지막 날은 31일입니다.
+        else:
+            end_date = start_date.replace(day=1, month=start_date.month+1) - timedelta(days=1)
+        # 여기까지
+
         
         # 해당 월의 데이터 조회
         targets = Wav.query.filter_by(broadcast=broadcast, radio_name=radio_name).filter(Wav.radio_date >= start_date, Wav.radio_date <= end_date).all()
@@ -189,7 +198,7 @@ def audio_save_db(broadcast, name, date):
         radio = Radio.query.filter_by(broadcast=broadcast, radio_name=name).first()
         if not radio:
             logger.debug(f"[업로드] 새로운 라디오의 등장!! {broadcast} {name}")
-            radio = Radio(broadcast=broadcast, radio_name=name, start_time=None,  record_len=0, like_cnt=0)
+            radio = Radio(broadcast=broadcast, radio_name=name, start_time=None, record_len=0, like_cnt=0)
             db.session.add(radio)
 
         # wav 테이블에 해당회차 추가
