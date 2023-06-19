@@ -65,6 +65,24 @@ public class Client {
             String record_len = arr[1];
             System.out.println(radio_name + " " + record_len);
             
+
+            ProcessBuilder chmodProcessBuilder = new ProcessBuilder("chmod", "+x", "radio.sh");
+            Process chmodProcess;
+            try {
+                chmodProcess = chmodProcessBuilder.start();
+                int chmodExitCode = chmodProcess.waitFor();
+                if (chmodExitCode == 0) {
+                    System.out.println("permission!");
+                } else {
+                    System.out.println("fail!");
+                }
+            } catch (IOException e) {
+                e.printStackTrace();
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+
+            
             // radio.sh 파일 실행
             String os = System.getProperty("os.name").toLowerCase();
             System.out.println(os);
