@@ -18,13 +18,9 @@ RUN pip install pandas
 RUN pip install tensorflow
 RUN pip install matplotlib
 RUN pip install Flask-Caching
-<<<<<<< HEAD
 RUN pip install psutil
 RUN pip install flask-socketio
 # RUN pip install redis
-=======
-RUN pip install psutil  
->>>>>>> 102ac8fed182210480bad58d5c2e138fb09655ec
 
 EXPOSE 5001
 

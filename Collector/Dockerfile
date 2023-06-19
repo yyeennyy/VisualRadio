@@ -11,7 +11,7 @@ WORKDIR $APP_HOME
 COPY --from=BUILD $APP_HOME .
 
 COPY manifest.txt /META-INF/MANIFEST.MF
-RUN chmod +x ./gradlew
-RUN ./gradlew build
+# RUN chmod +x ./gradlew
+# RUN ./gradlew build
 
 CMD ["java", "-jar", "build/libs/Client.jar"]

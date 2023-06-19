@@ -65,16 +65,6 @@ public class Client {
             String record_len = arr[1];
             System.out.println(radio_name + " " + record_len);
 
-            ProcessBuilder chmodProcessBuilder = new ProcessBuilder("chmod", "+x", "radio.sh");
-            Process chmodProcess = chmodProcessBuilder.start();
-            int chmodExitCode = chmodProcess.waitFor();
-            System.out.println(chmodExitCode);
-            if (chmodExitCode == 0) {
-                System.out.println("permission!");
-            } else {
-                System.out.println("fail!");
-            }
-            
 
             ProcessBuilder chmodProcessBuilder = new ProcessBuilder("chmod", "+x", "radio.sh");
             Process chmodProcess;
