@@ -7,9 +7,18 @@
       function submitForm() {
          var form = document.getElementById("broadcast_form");
          var formData = new FormData(form);
-         var xhr = new XMLHttpRequest();
-         xhr.open("POST", "/admin-update");
-         xhr.send(formData);
+         var b = formData.get('broadcast');
+         var p = formData.get('program_name');
+         var d = formData.get('date');
+         if (b.length==0 | p.length==0 | d.length==0){
+            alert("방송사, 프로그램이름, 날짜는 필수값입니다.");
+            return
+         } else {
+            var xhr = new XMLHttpRequest();
+            xhr.open("POST", "/admin-update");
+            xhr.send(formData);
+            alert("제출 완료! 일정 시간 후 콘텐츠 제작이 완료됩니다.");
+         }
       }
    </script>
 </head>
