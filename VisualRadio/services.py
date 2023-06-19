@@ -165,10 +165,9 @@ def all_date_of(broadcast, radio_name, year, month):
     with app.app_context():
         # month를 이용하여 시작일과 종료일 계산
         start_date = datetime.strptime(f'{year}-{month}-01', '%Y-%m-%d').date()
-        end_date = datetime.strptime(f'{year}-{month}-01', '%Y-%m-%d').replace(day=1, month=start_date.month+1) - timedelta(days=1)
+        # end_date = datetime.strptime(f'{year}-{month}-01', '%Y-%m-%d').replace(day=1, month=start_date.month+1) - timedelta(days=1)
         
-        # ???
-        # 확인해보기 !!
+        # end_date 계산 부분 : 12월 달력 구현이 안되는 건 여기가 문제였다.
         if start_date.month == 12:
             end_date = start_date.replace(day=31)  # 12월인 경우 마지막 날은 31일입니다.
         else:

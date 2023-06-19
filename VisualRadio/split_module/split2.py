@@ -101,8 +101,3 @@ def save_split(test_path, model_path, output_path):
         sf.write(output_path+name, sliced_audio, sr)
         print(f"Segment {idx} 저장 완료: {name}")
     
-<<<<<<< HEAD
-    return ment_range
-=======
-    return ment_range
->>>>>>> shin
