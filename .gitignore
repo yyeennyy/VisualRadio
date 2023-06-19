@@ -752,3 +752,15 @@ credentials.json
 *.flac
 VisualRadio/radio_storage
 *.json
+
+# for Collector
+.classpath
+*.hprof
+.gradletasknamecache
+!gradle-wrapper.properties
+!gradle-wrapper.jar
+gradle-app.setting
+.gradle
+**/build/
+!src/**/build/
+*.hprof
