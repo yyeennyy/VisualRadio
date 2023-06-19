@@ -6,6 +6,7 @@ import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.net.HttpURLConnection;
 import java.net.URL;
+import java.nio.file.Paths;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
@@ -18,6 +19,7 @@ import java.util.logging.Logger;
 public class Client {
 
     public static void main(String[] args) {
+        String broadcast = "MBC FM4U";
 
         LocalTime currentTime = LocalTime.now();
         // 테스트시 이 시간정보랑 radio 테이블의 start_time정보랑 일치해야 한다
@@ -29,7 +31,7 @@ public class Client {
 
         // 테스트용 시간 설정
         MySQLConnector connector = new MySQLConnector();
-        String query = String.format("UPDATE radio SET start_time='%s' WHERE radio_name='brunchcafe'", targetTime);
+        String query = String.format("UPDATE radio SET start_time='%s' WHERE radio_name='brunchcafe'", targetTime, broadcast);
         System.out.println(query);
         connector.executeUpdateQuery(query);
 
@@ -42,7 +44,7 @@ public class Client {
 
         ScheduledExecutorService executorService = Executors.newScheduledThreadPool(1);
         // 테스트용 설정: visual-radio 컨테이너가 충분히 켜질 시간을 준다: 15초로 설정
-        executorService.scheduleAtFixedRate(new recordRadio("test", String.valueOf(targetTime)), initialDelay, 24*60*60, TimeUnit.SECONDS);
+        executorService.scheduleAtFixedRate(new recordRadio(broadcast, String.valueOf(targetTime)), initialDelay, 24*60*60, TimeUnit.SECONDS);
     }
 
     // 실행할 작업 태스크
@@ -90,8 +92,18 @@ public class Client {
 
             if (os.contains("win")) {
                 processBuilder = new ProcessBuilder("cmd.exe", "/c", "./radio.bat", broadcast, radio_name, String.valueOf(record_len));
-            } else if (os.contains("mac") | os.contains("linux")) {
-                processBuilder = new ProcessBuilder("/bin/sh", "./radio.sh", broadcast, radio_name, String.valueOf(record_len));
+            } else if (os.contains("mac") || os.contains("linux")) {
+                processBuilder = new ProcessBuilder("dos2unix", "radio.sh");
+                try {
+                    processBuilder.start().waitFor();
+                    System.out.println("리눅스 개행으로 바꿈");
+                    String currentPaht = Paths.get("").toAbsolutePath().toString();
+                    System.out.println(currentPaht);
+                } catch (InterruptedException | IOException e) {
+                    e.printStackTrace();
+                } 
+                String[] command = { "sh", "-x", "radio.sh", broadcast, radio_name, String.valueOf(record_len)};
+                processBuilder = new ProcessBuilder(command);
             } else {
                 System.out.println("지원하지 않는 운영 체제입니다.");
                 return;
@@ -108,7 +120,7 @@ public class Client {
 
                 // 프로세스 종료 코드 확인
                 if (exitCode == 0) {
-                    System.out.println("radio.bat 파일 실행 완료");
+                    System.out.println("radio.sh 파일 실행 완료");
                     System.out.println("time: " + start_time);
                     System.out.println("Broadcast: " + broadcast);
                     System.out.println("Radio Name: " + radio_name);
