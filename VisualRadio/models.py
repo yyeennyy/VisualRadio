@@ -2,27 +2,17 @@ from VisualRadio import db
 
 class Wav(db.Model):
     
-    broadcast = db.Column(db.String(20), nullable=False, default="None")
+    broadcast = db.Column(db.String(20), nullable=False, default="None", primary_key = True)
     radio_name = db.Column(db.String(50), primary_key=True)
     radio_date = db.Column(db.String(50), primary_key=True)
-    raw = db.Column(db.Boolean, default=False)
-    section = db.Column(db.Integer, nullable=False, default=0)
-    stt = db.Column(db.Boolean, nullable=False, default=False)
-    script = db.Column(db.Boolean, nullable=False, default=False)
-    contents = db.Column(db.Boolean, nullable=False, default=False)
 
-    def __init__(self, broadcast, radio_name, radio_date, raw, section, stt, script, contents):
+    def __init__(self, broadcast, radio_name, radio_date):
         self.broadcast = broadcast
         self.radio_name = radio_name
         self.radio_date = radio_date
-        self.raw = raw
-        self.section = section
-        self.stt = stt
-        self.script = script
-        self.contents = contents
 
     def __repr__(self):
-        return f"<Radio {self.broadcast} {self.radio_name} {self.radio_date} : (raw : {self.raw}), (section: {self.section}), (stt: {self.stt}), (script: {self.script}), (contents: {self.contents}))>\n"
+        return f"<Radio {self.broadcast} {self.radio_name} {self.radio_date}>\n"
 
 
 
@@ -63,3 +53,30 @@ class Listener(db.Model):
     def __repr__(self):
         return f"청취자: {self.broadcast} {self.radio_name} {self.radio_date} => 청취자 {self.code}"
 
+class Process(db.Model):
+    __tablename__ = 'process'
+    broadcast = db.Column(db.String(20), nullable=False, default="None", primary_key = True)
+    radio_name = db.Column(db.String(50), primary_key=True)
+    radio_date = db.Column(db.String(50), primary_key=True)
+    raw = db.Column(db.Integer, nullable=False)
+    split1 = db.Column(db.Integer, nullable=False)
+    split2 = db.Column(db.Integer, nullable=False)
+    end_stt = db.Column(db.Integer, nullable=False)
+    all_stt = db.Column(db.Integer, nullable=False)
+    script = db.Column(db.Integer, nullable=False)
+    sum = db.Column(db.Integer, nullable=False)
+
+    def __init__(self, broadcast, radio_name, radio_date, raw, split1, split2, end_stt, all_stt, script, sum):
+        self.broadcast = broadcast 
+        self.radio_name = radio_name
+        self.radio_date = radio_date
+        self.raw = raw
+        self.split1 = split1
+        self.split2 = split2 
+        self.end_stt = end_stt 
+        self.all_stt = all_stt
+        self.script = script
+        self.sum = sum
+
+    def __repr__(self):
+        return f"Radio: {self.broadcast} {self.radio_name} {self.radio_date} : raw : {self.raw}, split1 : {self.split1}, split2 : {self.split2}, end_stt : {self.end_stt}, all_stt : {self.all_stt}, script : {self.script}, sum : {self.sum}"

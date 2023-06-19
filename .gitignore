@@ -11,6 +11,9 @@ instance/*
 # Byte-compiled / optimized / DLL files
 __pycache__/
 
+# model
+VisualRadio/split_module/split_good_model.h5
+
 # C extensions
 *.so
 

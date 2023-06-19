@@ -36,76 +36,56 @@ def collect_test(test_path):
     
     return x_test
 
-def find_segments(result):
-    segments = []
-    start_0 = None
-    start_1 = None
-    count_0 = 0
-    count_1 = 0
+def modify_list(data_list, window_size=20, threshold_0 = 0.9, threshold_1=0.2):
+  # 주의!! threshold_1과 threshold_0은 합쳐서 1보다 커야함!
+  copy_list = data_list[:]
+  for i in range(len(data_list)- window_size+1):
+    contain_0 = data_list[i: i+window_size].count(0)
+    contain_1 = data_list[i: i+window_size].count(1)
+    if(contain_1 > window_size * threshold_1):
+      copy_list[i: i+window_size] = [1]*window_size
+    if(contain_0 > window_size * threshold_0):
+      copy_list[i: i+window_size] = [0]*window_size
 
-    for i, val in enumerate(result):
-        if val == 0:
-            if start_0 is None:
-                start_0 = i
-            count_0 += 1
+  res = copy_list.copy()
+  width = int(window_size*(1-threshold_1))
+  n = len(copy_list)
+  for i in range(n):
+      if copy_list[i] == 0:
+          start = max(0, i - width)
+          end = min(n, i + width + 1)
+          res[start:i] = [0] * (i - start)
+          res[i:end] = [0] * (end - i)
+  return res
+
+def extract_zero_segments(lst):
+    zero_segments = []
+    start = None
+    for i, num in enumerate(lst):
+        if num == 0:
+            if start is None:
+                start = i
         else:
-            if count_0 >= 3:
-                segments.append((0, start_0, i-1))
-            start_0 = None
-            count_0 = 0
-
-        if val == 1:
-            if start_1 is None:
-                start_1 = i
-            count_1 += 1
-        else:
-            if count_1 >= 8:
-                segments.append((1, start_1, i-1))
-            start_1 = None
-            count_1 = 0
-
-    if count_0 >= 3:
-        segments.append((0, start_0, len(result)-1))
-
-    if count_1 >= 8:
-        segments.append((1, start_1, len(result)-1))
-
-    return segments
+            if start is not None:
+                zero_segments.append([start, i-1])
+                start = None
+    if start is not None:
+        zero_segments.append([start, len(lst)])
+    return zero_segments
 
 def save_split(test_path, model_path, output_path):
     os.makedirs(output_path, exist_ok=True)
-    # x_train, y_train = collect_train(train_path)
     x_test = collect_test(test_path)
-
-    model = tf.keras.models.load_model(model_path)
-    if x_test.size != 0:
-        result = np.round(model.predict(x_test))
-        del model
-        segments = find_segments(result)
     
-    boolean = False
-    ment_range = []
-    start_t = 0
-    end_t = 0
-
-    for segment in segments:
-        segment_type, start, end = segment
-        if(boolean):
-            if(segment_type == 0):
-                end_t = end
-                continue
-            else:
-                boolean = False
-                ment_range.append([start_t, end_t])
-        
-        if(segment_type == 0):
-            boolean = True
-            start_t = start
-            end_t = end
-
-    if(boolean):
-        ment_range.append([start_t, end_t])
-
+    model = tf.keras.models.load_model(model_path)
+    
+    if x_test.size != 0:
+        result = np.squeeze(np.round(model.predict(x_test))).tolist()
+        del model
+    
+    mod_res = modify_list(result)
+    ment_range = extract_zero_segments(mod_res)
+    
     # 오디오 파일 로드
     audio, sr = librosa.load(test_path, sr=None)
 
@@ -120,5 +100,9 @@ def save_split(test_path, model_path, output_path):
         name = f"/sec_{idx}.wav"
         sf.write(output_path+name, sliced_audio, sr)
         print(f"Segment {idx} 저장 완료: {name}")
-
+    
+<<<<<<< HEAD
     return ment_range
+=======
+    return ment_range
+>>>>>>> shin

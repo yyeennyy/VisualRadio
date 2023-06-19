@@ -1,5 +1,5 @@
 import os
-from models import Wav, Radio, Listener
+from models import Wav, Radio, Listener, Process
 import time
 from flask import jsonify, Flask
 from natsort import natsorted
@@ -44,7 +44,7 @@ import librosa
 import librosa.display
 import tensorflow as tf
 import soundfile as sf
-from VisualRadio.test import save_split
+from VisualRadio.split_module.split2 import save_split
 
 
 
@@ -161,11 +161,20 @@ def get_all_radio():
 
 
 # --------------------------------------------- sub1
-def all_date_of(broadcast, radio_name, month):
+def all_date_of(broadcast, radio_name, year, month):
     with app.app_context():
         # month를 이용하여 시작일과 종료일 계산
-        start_date = datetime.strptime(f'2023-{month}-01', '%Y-%m-%d').date()
-        end_date = datetime.strptime(f'2023-{month}-01', '%Y-%m-%d').replace(day=1, month=start_date.month+1) - timedelta(days=1)
+        start_date = datetime.strptime(f'{year}-{month}-01', '%Y-%m-%d').date()
+        end_date = datetime.strptime(f'{year}-{month}-01', '%Y-%m-%d').replace(day=1, month=start_date.month+1) - timedelta(days=1)
+        
+        # ???
+        # 확인해보기 !!
+        if start_date.month == 12:
+            end_date = start_date.replace(day=31)  # 12월인 경우 마지막 날은 31일입니다.
+        else:
+            end_date = start_date.replace(day=1, month=start_date.month+1) - timedelta(days=1)
+        # 여기까지
+
         
         # 해당 월의 데이터 조회
         targets = Wav.query.filter_by(broadcast=broadcast, radio_name=radio_name).filter(Wav.radio_date >= start_date, Wav.radio_date <= end_date).all()
@@ -189,30 +198,32 @@ def audio_save_db(broadcast, name, date):
         radio = Radio.query.filter_by(broadcast=broadcast, radio_name=name).first()
         if not radio:
             logger.debug(f"[업로드] 새로운 라디오의 등장!! {broadcast} {name}")
-            radio = Radio(broadcast=broadcast, radio_name=name, start_time=None,  record_len=0, like_cnt=0)
+            radio = Radio(broadcast=broadcast, radio_name=name, start_time=None, record_len=0, like_cnt=0)
             db.session.add(radio)
-
         # wav 테이블에 해당회차 추가
-        wav = Wav.query.filter_by(radio_name=name, radio_date=str(date)).first()
-        if wav:
-            logger.debug(f"[업로드][경고] {name} {date}가 이미 있습니다 (덮어쓰기를 진행합니다)")
-            # 기존 객체 수정
-            wav.broadcast = broadcast
-            wav.raw = True
-            wav.section = 0
-            wav.stt = False
-            wav.script = False
-            wav.contnets = False
-        else:
-            wav = Wav(radio_name=name, radio_date=date, broadcast=broadcast, raw=True, section=0, stt=False,
-                        script=False, contents=False)
+        wav = Wav.query.filter_by(broadcast = broadcast, radio_name=name, radio_date=str(date)).first()
+        if not wav:
+            wav = Wav(radio_name=name, radio_date=date, broadcast=broadcast)
             db.session.add(wav)
-        
+        process = Process.query.filter_by(broadcast = broadcast, radio_name=name, radio_date=str(date)).first()
+        if process:
+            # 기존 객체 수정
+            process.raw = 1
+            process.split1 = 0
+            process.split2 = 0
+            process.end_stt = 0
+            process.all_stt = 0
+            process.script = 0
+            process.sum = 0
+        else:
+            process = Process(radio_name=name, radio_date=date, broadcast=broadcast, raw=1, split1=0, split2=0, end_stt=0,
+                      all_stt=0, script=0, sum=0)
+            db.session.add(process)
         db.session.commit()
 
-
+# ment_range = []
 def split_cnn(broadcast, name, date):
-    model_path = './VisualRadio/split_good_model.h5'
+    model_path = './VisualRadio/split_module/split_good_model.h5'
     path = f"./VisualRadio/radio_storage/{broadcast}/{name}/{date}"
     splited_path = path + "/split_wav" # 1차 split 이후이므로 이 경로는 반드시 존재함
     section_wav_origin_names = os.listdir(splited_path)
@@ -230,6 +241,17 @@ def split_cnn(broadcast, name, date):
             ment_start_times.append(start_time)
 
         section_start_time_summary[target_section] = ment_start_times
+        
+    with app.app_context():
+        process = Process.query.filter_by(broadcast=broadcast, radio_name=name, radio_date=str(date)).first()
+        if process:
+            process.split2 = 1
+        else:
+            process = Process(broadcast=broadcast, radio_name = name, radio_date = date, raw=1, split1=1, split2=1,
+                              end_stt=0, all_stt=0, script=0, sum=0)
+
+            db.session.add(process)
+        db.session.commit()
 
     return section_start_time_summary
 
@@ -242,12 +264,12 @@ def split(broadcast, name, date):
 
     # 이미 분할 정보가 있는지 확인
     with app.app_context():
-        wav = Wav.query.filter_by(broadcast=broadcast, radio_name=name, radio_date=date).first()
-        if not wav:
+        process = Process.query.filter_by(broadcast=broadcast, radio_name=name, radio_date=date).first()
+        if not process:
             logger.debug("[split] 해당 라디오 데이터가 없습니다. 먼저 raw.wav를 등록하세요")
             return
-        elif wav.section != 0:
-            logger.debug(f"[split] 분할 정보가 이미 있습니다 - {wav.section} 분할")
+        elif process.split1 != 0:
+            logger.debug(f"[split] 분할 정보가 이미 있습니다")
             return
         else:
             logger.debug("[split] 분할 로직을 시작합니다")
@@ -267,13 +289,19 @@ def split(broadcast, name, date):
 
     with app.app_context():
         wav = Wav.query.filter_by(broadcast=broadcast, radio_name=name, radio_date=date).first()
-        if wav:
-            wav.section = n
-        else:
-            wav = Wav(radio_name=name, radio_date=date, broadcast=broadcast, raw=True, section=n, stt=False,
-                script=False, contents=False)
+        if not wav:
+            wav = Wav(radio_name=name, radio_date=date, broadcast=broadcast)
             db.session.add(wav)
+        process = Process.query.filter_by(broadcast=broadcast, radio_name=name, radio_date=str(date)).first()
+        if process:
+            process.split1 = 1
+        else:
+            process = Process(broadcast=broadcast, radio_name = name, radio_date = date, raw=1, split1=1, split2=0,
+                              end_stt=0, all_stt=0, script=0, sum=0)
+
+            db.session.add(process)
         db.session.commit()
+        
     return 0
 
 
@@ -289,6 +317,14 @@ import threading
 import gc
 import queue
 th_q = queue.Queue()
+stt_count = 0
+num_file = 0
+
+def count_files(directory):
+    count = 0
+    for root, dirs, files in os.walk(directory):
+        count += len(files)
+    return count
 
 def stt(broadcast, name, date):
     logger.debug("[stt] 시작")
@@ -299,6 +335,20 @@ def stt(broadcast, name, date):
     section_dir = f'{path}/split_final'       # 2차분할 결과로 반드시 존재
     section_list = os.listdir(section_dir)  
 
+    global num_file
+    num_file = count_files(section_dir)
+    
+    with app.app_context():
+        process = Process.query.filter_by(broadcast=broadcast, radio_name=name, radio_date=str(date)).first()
+        if process:
+            process.all_stt = num_file
+        else:
+            process = Process(broadcast=broadcast, radio_name = name, radio_date = date, raw=1, split1=1, split2=1,
+                              end_stt=0, all_stt=num_file, script=0, sum=0)
+
+            db.session.add(process)
+        db.session.commit()
+    
     for section_name in section_list: # 2차분할 결과 다루기 - section_name는 sec_1, sec_2 네임포맷의 디렉토리
         stt_targets_of_this_section = os.listdir(f"{section_dir}/{section_name}")  # sec_n의 2차분할 wav 리스트
 
@@ -329,12 +379,8 @@ def stt(broadcast, name, date):
         
         # DB - stt를 True로 갱신
         with app.app_context():
-            wav = Wav.query.filter_by(radio_name=name, radio_date=date).first()
-            if wav:
-                wav.stt = True
-                db.session.add(wav)
-                db.session.commit()
-            else:
+            process = Process.query.filter_by(broadcast = broadcast, radio_name=name, radio_date=date).first()
+            if not process:
                 logger.debug(f"[stt] [오류] {broadcast} {name} {date} 가 있어야 하는데, DB에서 찾지 못함")
 
 
@@ -348,14 +394,26 @@ def stt_proccess(broadcast, name, date, section_name, section_mini):
     src_path = f"{path}/split_final/{section_name}/{section_mini}" # stt 처리 타겟
     # stt결과 저장경로 설정하기
     os.makedirs(f"{path}/raw_stt/{section_name}", exist_ok=True)
-    dst_path = f"{path}/raw_stt/{section_name}" 
-    
+    dst_path = f"{path}/raw_stt/{section_name}"
     # whisper stt 결과 얻기
     go_whisper_stt(src_path, dst_path + "/whisper", save_name)
     # google stt 결과 얻기
     interval = 10  # seconds
     go_fast_stt(src_path, dst_path + "/google", interval, save_name)
+    
+    global stt_count
+    stt_count+=1
+    
+    with app.app_context():
+        process = Process.query.filter_by(broadcast=broadcast, radio_name=name, radio_date=str(date)).first()
+        if process:
+            process.end_stt = stt_count
+        else:
+            process = Process(broadcast=broadcast, radio_name = name, radio_date = date, raw=1, split1=1, split2=1,
+                              end_stt=stt_count, all_stt=num_file, script=0, sum=0)
 
+            db.session.add(process)
+        db.session.commit()
     logger.debug(f"[stt] 끝끝! {section_name}/{section_mini}")
 
 import speech_recognition as sr
@@ -412,7 +470,7 @@ def go_whisper_stt(src_path, dst_path, save_name):
         if memory_usage("stt") > 0.8:
             continue
         logger.debug(f"[stt] {dst_path}/{save_name} 진행 중")
-        model = whisper.load_model("small").to(device)
+        model = whisper.load_model("tiny").to(device)
         results = model.transcribe(
             src_path, language=language, temperature=0.0, word_timestamps=True)
         del model
@@ -546,13 +604,14 @@ def make_script(broadcast, name, date):
     # 각 section의 stt결과를 합쳐 찐막 scripts를 만든다.
     correct_applicant(broadcast, name, date)
     logger.debug("[make_script] 사연자 보정 완료 => 최종 script.json 생성")
-
+    
+    global stt_count, num_file
     # DB - script를 True로 갱신
     with app.app_context():
-        wav = Wav.query.filter_by(radio_name=name, radio_date=date).first()
-        if wav:
-            wav.script = True
-            db.session.add(wav)
+        process = Process.query.filter_by(broadcast=broadcast, radio_name=name, radio_date=str(date)).first()
+        if process:
+            process.script = 1
+            db.session.add(process)
             db.session.commit()
         else:
             logger.debug(f"[make_script] [오류] {name} {date} 가 있어야 하는데, DB에서 찾지 못함")
@@ -767,6 +826,9 @@ def generate_images_by_section(broadcast, name, date, section_start_list):
     with open(f"{path}/result/section_image.json", 'w', encoding='utf-8') as f:
         json.dump(sec_img_data, f, ensure_ascii=False)
     logger.debug("[make_script] section_image.json 생성 완료!!!")
+    
+    
+
 
 
 def add_time(time1, time2):
@@ -831,7 +893,20 @@ def sum_wav_sections(broadcast, name, date):
     # # sr을 줄이는 코드!!
     # change_sr(dst_path, 24000)
     
+    global stt_count, num_file
+    
+    with app.app_context():
+        process = Process.query.filter_by(broadcast=broadcast, radio_name=name, radio_date=str(date)).first()
+        if process:
+            process.sum = 1
+            db.session.add(process)
+            db.session.commit()
+        else:
+            logger.debug(f"[make_script] [오류] {name} {date} 가 있어야 하는데, DB에서 찾지 못함")
+    
     logger.debug("[contents] wav section들 이어붙이기 완료")
+    
+
 
 
 # 계획 없음 (멘트 섹션 찾기)
@@ -847,6 +922,19 @@ def get_all_radio_programs():
         all_wavs = Wav.query.all()
         all_wavs_json = [{'broadcast':wav.broadcast, 'radio_name': wav.radio_name, 'date': wav.radio_date} for wav in all_wavs]
     return all_wavs_json
+
+def get_radio_process(broadcast, radio_name, radio_date):
+    with app.app_context():
+        # wav 테이블의 pk값을 가져온다.
+        # pk는 복합키로 있음
+        process = Process.query.filter(Process.broadcast==broadcast, Process.radio_name==radio_name, Process.radio_date==str(radio_date)).first()
+        # if(process.split1 == 0):
+        #     return 
+        all = end = 0 
+        all += 4+ process.all_stt
+        end += process.split1 + process.split2 + process.end_stt + process.script + process.sum
+        all_process = {'end': end, 'all': all}
+    return all_process
 
 
 ###################################### tools ###################################

@@ -50,6 +50,11 @@ def get_all():
     all = services.get_all_radio_programs()
     return jsonify(all)
 
+@auth.route("<string:broadcast>/<string:radio_name>/<string:radio_date>/get_process", methods=['GET'])
+def get_process(broadcast, radio_name, radio_date):
+    process = services.get_radio_process(broadcast, radio_name, radio_date)
+    return jsonify(process)
+
 
 
 # --------------------------------------------------------------------------------- admin페이지의 업로드 프로세스
@@ -154,9 +159,9 @@ def load_main_img(broadcast, radio_name):
         img_path = "/static/images/default_main.png"
     return json.dumps({'main_photo':img_path})
 
-@auth.route('/<string:broadcast>/<string:radio_name>/<string:month>/all', methods=['GET'])
-def load_month_info(broadcast, radio_name, month):
-    return json.dumps(services.all_date_of(broadcast, radio_name, month))
+@auth.route('/<string:broadcast>/<string:radio_name>/<string:year>/<string:month>/all', methods=['GET'])
+def load_month_info(broadcast, radio_name, year, month):
+    return json.dumps(services.all_date_of(broadcast, radio_name, year, month))
 
 @auth.route('/<string:radio_name>/radio_info', methods=['GET'])
 def load_radio_info(radio_name):
