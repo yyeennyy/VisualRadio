@@ -130,7 +130,11 @@ def unlike(bcc, name):
 def get_like_cnt(bcc, name):
     with app.app_context():
         radio = Radio.query.filter_by(broadcast=bcc, radio_name=name).first()
-        return radio.like_cnt
+        if radio:
+            return radio.like_cnt
+        else:
+            logger.debug('[오류 발생!] 해당하는 라디오를 찾지 못했습니다.')
+            return None
 
 
 # --------------------------------------------- main
@@ -414,7 +418,7 @@ def stt_proccess(broadcast, name, date, section_name, section_mini):
             db.session.add(process)
         db.session.commit()
     logger.debug(f"[stt] 끝끝! {section_name}/{section_mini}")
-
+ 
 import speech_recognition as sr
 from pydub import AudioSegment
 def go_fast_stt(src_path, dst_path, interval, save_name):
@@ -469,7 +473,7 @@ def go_whisper_stt(src_path, dst_path, save_name):
         if memory_usage("stt") > 0.8:
             continue
         logger.debug(f"[stt] {dst_path}/{save_name} 진행 중")
-        model = whisper.load_model("tiny").to(device)
+        model = whisper.load_model("base").to(device)
         results = model.transcribe(
             src_path, language=language, temperature=0.0, word_timestamps=True)
         del model
