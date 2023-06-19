@@ -16,6 +16,13 @@ repositories {
     jcenter()
 }
 
+
+configurations {
+    implementation {
+        canBeResolved = true
+    }
+}
+
 dependencies {
     // This dependency is exported to consumers, that is to say found on their compile classpath.
     api 'org.apache.commons:commons-math3:3.6.1'
@@ -27,6 +34,7 @@ dependencies {
     testImplementation 'junit:junit:4.12'
 
     implementation 'org.json:json:20211205'
+    implementation 'mysql:mysql-connector-java:8.0.32'
 }
 
 jar {
@@ -38,6 +46,6 @@ jar {
             'Class-Path': configurations.runtimeClasspath.files.collect { it.getName() }.join(' '),
             'Main-Class': 'Client'
         )
-  }
+    }
+    from { configurations.implementation.collect { it.isDirectory() ? it : zipTree(it) } }
 }
-
