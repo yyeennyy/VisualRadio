@@ -64,6 +64,8 @@ services:
       - 8080:8080
     networks:
       - db-net
+    volumes:
+      - ./VisualRadio/radio_storage:/Collector/radio_storage
     depends_on:
       - nginx
       - visual-radio
