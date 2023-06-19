@@ -20,7 +20,6 @@ public class Client {
     public static void main(String[] args) {
 
         LocalTime currentTime = LocalTime.now();
-<<<<<<< HEAD
         // 테스트시 이 시간정보랑 radio 테이블의 start_time정보랑 일치해야 한다
         String[] h_m = String.valueOf(currentTime).split(":");
         int h = Integer.parseInt(h_m[0]);
@@ -34,12 +33,6 @@ public class Client {
         System.out.println(query);
         connector.executeUpdateQuery(query);
 
-=======
-        LocalTime targetTime = LocalTime.of(02, 28);  // 테스트시 이 시간 정보랑 radio 테이블의 start_time정보랑 일치해야 한다
-        // 꼭 체크하기 : 
-        // radio 테이블의 start_time이랑 위 targetTime이랑 일치하도록 수정했는지!
-        // radio 테이블을 직접 수정하려고 할 때, mysql docker가 켜진 상태인지. 
->>>>>>> 102ac8fed182210480bad58d5c2e138fb09655ec
         long initialDelay = Duration.between(currentTime, targetTime).toSeconds();
         if (initialDelay < 0) {
             // 설정한 시간까지 남은 대기시간 계산!
