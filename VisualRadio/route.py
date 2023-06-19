@@ -50,6 +50,11 @@ def get_all():
     all = services.get_all_radio_programs()
     return jsonify(all)
 
+@auth.route("<string:broadcast>/<string:radio_name>/<string:radio_date>/get_process", methods=['GET'])
+def get_process(broadcast, radio_name, radio_date):
+    process = services.get_radio_process(broadcast, radio_name, radio_date)
+    return jsonify(process)
+
 
 
 # --------------------------------------------------------------------------------- admin페이지의 업로드 프로세스
