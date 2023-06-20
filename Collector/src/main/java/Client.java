@@ -19,6 +19,17 @@ import java.util.logging.Logger;
 public class Client {
 
     public static void main(String[] args) {
+        // LocalTime currentTime = LocalTime.now();
+        // LocalTime targetTime = LocalTime.of(23, 43); 
+        // long initialDelay = Duration.between(currentTime, targetTime).toSeconds();
+        // System.out.println(initialDelay);
+        // if (initialDelay < 0) {
+        //     // 이미 오전 11시를 지난 경우, 다음날 오전 11시로 초기 지연을 계산
+        //     initialDelay += Duration.ofDays(1).toSeconds();
+        // }
+        // ScheduledExecutorService executorService = Executors.newScheduledThreadPool(1);
+        // executorService.scheduleAtFixedRate(new recordRadio("MBC FM4U", "11:00"), initialDelay, 24*60*60, TimeUnit.SECONDS);
+
         String broadcast = "MBC FM4U";
 
         LocalTime currentTime = LocalTime.now();

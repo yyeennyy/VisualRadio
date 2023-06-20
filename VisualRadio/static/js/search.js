@@ -1,9 +1,14 @@
-const channelsElement = document.getElementById("channels");
+const channelsElement = document.getElementById("resultchannels");
+const resultTextTitle = document.getElementById("resultTextTitle");
+const resultContainer = document.getElementById("resultContainer");
 
 document.getElementById('searchForm').addEventListener('submit', function(event) {
     // 선택옵션 가져오기
     var searchOptionRadios = document.getElementsByName("searchOption");
     var option;
+
+    resultTextTitle.style.display = 'block';
+    resultContainer.style.display = 'flex';
 
     for (var i = 0; i < searchOptionRadios.length; i++) {
     if (searchOptionRadios[i].checked) {
@@ -11,7 +16,7 @@ document.getElementById('searchForm').addEventListener('submit', function(event)
             break;
         }
     }
-    document.getElementById("channels").innerHTML="";
+    document.getElementById("resultchannels").innerHTML="";
 
     document.getElementById("resultText").textContent="";
     event.preventDefault(); // 폼 제출 기본 동작 막기
@@ -42,7 +47,7 @@ document.getElementById('searchForm').addEventListener('submit', function(event)
             }
         })
         .catch(function(error) {
-            console.log(error)
+            console.log(error);
         });
 });
 
