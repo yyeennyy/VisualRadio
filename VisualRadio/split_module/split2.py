@@ -100,4 +100,4 @@ def save_split(test_path, model_path, output_path):
         name = f"/sec_{idx}.wav"
         sf.write(output_path+name, sliced_audio, sr)
         print(f"Segment {idx} 저장 완료: {name}")
-    
+    return ment_range
