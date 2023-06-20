@@ -19,7 +19,7 @@ RUN pip install tensorflow
 RUN pip install matplotlib
 RUN pip install Flask-Caching
 RUN pip install psutil
-RUN pip install flask-socketio
+# RUN pip install flask-socketio
 # RUN pip install redis
 
 EXPOSE 5001
