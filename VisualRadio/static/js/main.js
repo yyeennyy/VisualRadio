@@ -156,3 +156,15 @@ function getInfo() {
 // }
 
 getInfo()
+
+const goPro = document.getElementById('goPrograms')
+const goAdm = document.getElementById('goAdmin')
+
+goPro.addEventListener("click", function (event) {
+  const clickDiv = event.currentTarget;
+  window.location.href = "/programs";
+});
+goAdm.addEventListener("click", function (event) {
+  const clickDiv = event.currentTarget;
+  window.location.href = "/admin";
+});

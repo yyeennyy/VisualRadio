@@ -14,6 +14,7 @@ window.onload = function() {
   getImg(broadcast, radio_name, date).then(() => {
     startImageChecking();
   })
+  startSectionChecking()
   const progress = document.querySelector('.progress');
   const progressBar = document.querySelector('.progress-bar')
   const currentTimeText = document.getElementById('currentTime');
@@ -234,6 +235,7 @@ function preload(url) {
 function startImageChecking() {
   setInterval(() => {
       showImg();
+      // showContents();
     }, 1);
   }
 
@@ -280,6 +282,83 @@ playPausediv.addEventListener("click", function() {
     playPausediv.innerHTML = '<img class="btn" src = "/static/images/playBtn.png" ><i class="fa fa-play"></i>';
   }
 });
+
+// showContents()
+
+function startSectionChecking() {
+  setInterval(() => {
+      // showImg();
+      showContents();
+    }, 1000);
+  }
+
+function showContents(){
+  fetch(`/${broadcast}/${radio_name}/${date}/section`)
+    .then(response => response.json())
+    .then(data => {
+      console.log(data)
+      const audioCurrentTime = audio.currentTime;
+      
+    //   for (var i = 0; i < data.length; i++) {
+    //     var item = data[i];
+    //     var startTime = timeStringToFloat(item.start_time);
+    //     var endTime = timeStringToFloat(item.end_time);
+    
+    //     // 현재 재생 시간이 start_time과 end_time 사이에 있는 경우
+    //     if (startTime <= audioCurrentTime && audioCurrentTime <= endTime) {
+    //         // 해당 type에 맞는 이미지를 띄워줌
+    //         if (item.type === 1) {
+    //             showImage('image1.jpg');
+    //         } else if (item.type === 2) {
+    //             showImage('image2.jpg');
+    //         }
+    //         break;
+    //     }
+    // }
+    
+    for (const item of data) {
+      if (item.type === 1 || item.type === 2) {
+        // console.log(11111111)
+        const startTime = timeStringToFloat(item.start_time);
+        const endTime = timeStringToFloat(item.end_time);
+        console.log(startTime)
+        console.log(audioCurrentTime)
+        if (audioCurrentTime >= startTime && audioCurrentTime <= endTime) {
+          console.log(11111111112222222222)
+          if(item.type == 1)displayImage('/static/images/ading.png');
+          else displayImage();
+          return;
+        }
+      }
+  }
+  removeImage();
+    })
+}
+
+
+function displayImage(imageUrl){
+    // 이미지를 화면에 표시하는 함수
+    const imageElement = document.getElementById('episode');
+    const imageSection = document.getElementById('section1');
+    const titleSection = document.getElementById('section2');
+    imageElement.setAttribute('src', imageUrl)
+    imageSection.style.display = 'none';
+    titleSection.style.display = 'none';
+}
+
+function removeImage() {
+  // 이미지를 제거하는 함수
+  const imageElement = document.getElementById('episode');
+  const imageSection = document.getElementById('section1');
+  const titleSection = document.getElementById('section2');
+
+  if (imageElement) {
+    imageElement.removeAttribute('src'); // 이미지 요소의 src 속성 제거
+    imageSection.style.display = 'block';
+    titleSection.style.display = 'block';
+  }
+}
+
 
 // let isScrolling = false;
 
