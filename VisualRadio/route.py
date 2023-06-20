@@ -7,12 +7,19 @@ import json
 import os
 import threading
 
+
 auth = Blueprint('auth', __name__)
 
 
 # 로거
 from VisualRadio import CreateLogger
 logger = CreateLogger("우리가1등(^o^)b")
+
+# ---------------- 임시 테스트 (로딩속도 개선)
+
+@auth.route('/sosososo', methods=['GET', 'POST'])
+def sosososo():
+    return render_template('sosososo.html')
 
 
 # --------------------------------------------------------------------------------- 수집기
@@ -174,6 +181,13 @@ def to_sub2():
 
 
 # --------------------------------------------------------------------------------- sub2
+
+
+# 해당회차 청취자 모음
+@auth.route('/<string:broadcast>/<string:name>/<string:date>/listeners', methods=['GET'])
+def get_listeners(broadcast, name, date):
+    result = services.get_this_listeners(broadcast, name, date)
+    return json.dump(result)
 
 # 지정된 회차의 스크립트 요청
 @auth.route('/<string:broadcast>/<string:name>/<string:date>/script', methods=['GET'])

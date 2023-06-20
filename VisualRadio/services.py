@@ -185,7 +185,20 @@ def all_date_of(broadcast, radio_name, year, month):
         return date_json
 
 
-# ----------------------------------------------
+# ---------------------------------------------- sub2 
+# sub2에서 청취자 정보를 사이드에 띄우기 위해, 해당회차 listeners_list를 리턴한다.
+def get_this_listeners(broadcast, name, date):
+    with app.app_context():
+        listeners = db.session.query(Listener).filter_by(broadcast=broadcast, radio_name=name, radio_date=date).all()
+    listeners_list = []
+    for code in listeners:
+        listeners_list.append({'code':code})
+    logger.debug(listeners_list)
+    return listeners_list
+
+
+
+# ----------------------------------------------------
 
 def set_db():
     pass
@@ -783,28 +796,27 @@ def register_listener(broadcast, radio_name, radio_date):
         data = json.load(f)
     regex = "(?<!\d)(?<!\d )\d{4}(?! \d)(?!\d)" # 전화번호처럼 연속된 8자리(공백포함)는 인식하지 않는 정규표현식임
     listener_set = set()
-    preview_text_dict = {}
+    preview_text_list = []
     for line in data:
         person_list = re.findall(regex, line['txt'])
         if len(person_list) == 0:
             continue
         listener_set = set.union(listener_set, person_list)
+        # TODO: 개선하고 싶다. txt의 앞뒤를 가져오고 싶다. 그치만 지금은 한 문장에 대해서만 적용해보자.
         for person in person_list:
-            start_idx = line['txt'].find(person)
-            if len(line['txt']) > 30+start_idx:
-                preview_text = line['txt'][start_idx:30+start_idx]
-            else:
-                preview_text = line['txt']
-            preview_text_dict[person] = preview_text
-    with app.app_context():
-        try:
-            db.session.query(Listener).filter_by(broadcast=broadcast, radio_name=radio_name, radio_date=radio_date).delete()
-            for listener in listener_set:
-                db.session.add(Listener(broadcast=broadcast, radio_name=radio_name, radio_date=radio_date, code=listener, preview_text=preview_text_dict.get(listener)))
-            db.session.commit()
-        except IntegrityError as e:
-            # 모든 정보 delete 후 add하고 있으므로 이 Error는 없을 것으로 예상
-            logger.debug("IntegrityError occurred: 이미 DB에 <사연자+프로그램회차>정보 있을 가능성 높음")
+            preview_text_list.append({'code':person, 'txt':line['txt'], 'time':line['time']}) # 없어도 될듯? 각 person에 대해서 그떄그떄 처리해주면 되니까.
+            # 현재회차의 해당 person에 대해 DB에 반영
+            with app.app_context():
+                try:
+                    db.session.query(Listener).filter_by(broadcast=broadcast, radio_name=radio_name, radio_date=radio_date).delete()
+                    for listener in listener_set:
+                        db.session.add(Listener(broadcast=broadcast, radio_name=radio_name, radio_date=radio_date, code=person, preview_text=line['txt'], time=line['time']))
+                    db.session.commit()
+                except IntegrityError as e:
+                    # 모든 정보 delete 후 add하고 있으므로 이 Error는 없을 것으로 예상
+                    logger.debug("IntegrityError occurred: 이미 DB에 <사연자+프로그램회차>정보 있을 가능성 높음")
+            # TODO: 현재 line['txt']에 대해 textrank적용 => keyword들 추출 => keyword DB테이블에 이 회차, 청취자, keyword 레코드 삽입하기!
+
     logger.debug(f"[find_listner] 청취자 업뎃완료: {listener_set} at {broadcast} {radio_date} {radio_date}")
 
 

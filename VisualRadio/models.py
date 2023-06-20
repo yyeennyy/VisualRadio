@@ -42,16 +42,18 @@ class Listener(db.Model):
     radio_date = db.Column(db.String(50), primary_key=True)
     code = db.Column(db.Integer, nullable=False, primary_key=True)
     preview_text = db.Column(db.String(200), nullable=False, default="")
+    time = db.Column(db.String(20), nullable=False, default="")
 
-    def __init__(self, broadcast, radio_name, radio_date, code, preview_text):
+    def __init__(self, broadcast, radio_name, radio_date, code, preview_text, time):
         self.broadcast = broadcast
         self.radio_name = radio_name
         self.radio_date = radio_date
         self.code = code
         self.preview_text = preview_text
+        self.time = time
     
     def __repr__(self):
-        return f"청취자: {self.broadcast} {self.radio_name} {self.radio_date} => 청취자 {self.code}"
+        return f"{self.code}"
 
 class Process(db.Model):
     __tablename__ = 'process'
