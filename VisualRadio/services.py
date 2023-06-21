@@ -113,10 +113,14 @@ def search_listeners(search):
 def like(bcc, name):
     with app.app_context():
         radio = Radio.query.filter_by(broadcast=bcc, radio_name=name).first()
-        radio.like_cnt += 1
-        cnt = radio.like_cnt
-        db.session.add(radio)
-        db.session.commit()
+        if radio:
+            radio.like_cnt += 1
+            cnt = radio.like_cnt
+            db.session.add(radio)
+            db.session.commit()
+        else:
+            logger.debug('해당하는 radio를 찾지 못했어요.,!')
+
     return cnt
     
 def unlike(bcc, name):
@@ -291,7 +295,7 @@ def split_cnn(broadcast, name, date):
             db.session.add(process)
         db.session.commit()
 
-    return section_start_time_summary
+    return section_start_time_summary, ment_range # 이 부분 수정해 바보야!!!!
 
 # ★
 def split(broadcast, name, date):
@@ -997,7 +1001,7 @@ def format_time(time_in_seconds):
     time_in_seconds = float(time_in_seconds)
     minutes, seconds = divmod(int(time_in_seconds), 60)
     milliseconds = int((time_in_seconds - int(time_in_seconds)) * 1000)
-    return "{:d}:{:02d}.{:03d}".format(minutes, seconds, milliseconds)
+    return "{:d}:{:02d}.{:03d}".format(minutes, seconds, milliseconds) 
 
 def applicant_number(text):
     if "문자" in text and ("샵" in text or "#" in text):

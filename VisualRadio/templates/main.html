@@ -17,15 +17,40 @@
                     <img id = "logoImg" src="/static/images/logo.png">
                 </div>
             </a>
-            <div id = "menu">
+            <!-- <div id = "menu">
                 <ul>
                     <a href="/search"><li id = "search">검색</li></a>
                     <li id = "rank">인기순위</li>
                     <li id = "myPick">내가 찜한 컨텐츠</li>
                 </ul>
+            </div> -->
+        </div>
+        <div id="searchOptionBox">
+            <table id = "searchOption">
+              <tr>
+                <td><input type="radio" name="searchOption" value="program" class = "check" checked></td>
+                <td><label for="program">프로그램 찾기</label></td>
+                <td><input type="radio" name="searchOption" value="listener" class = "check"></td>
+                <td><label for="listener">청취자 찾기</label></td>
+              </tr>
+            </table>    
+            <form id="searchForm">
+              <input type="text" id="searchInput" placeholder="검색어를 입력하세요" size="120">
+              <button type="submit">검색</button>
+            </form>
+        </div>
+        <div id="resultTextTitle"></div>
+        <div id="resultContainer">
+            <br><br>
+            <p id="resultText"></p>
+            <div id = "result">
+                <div id = "resultchannels"></div>
             </div>
         </div>
         <div id = "channels"></div>
     </div>
+    <script type="module" src="/static/js/search.js"></script>
+    <div id='goAdmin'>goAdmin!!!</div>
+    <div id='goPrograms'>goPrograms!!</div>
 </body>
 </html>
