@@ -359,22 +359,22 @@ def stt(broadcast, name, date):
             logger.debug(f"[stt] stt할 파일 : {section_name}의 {section_mini} 파일 | 대기큐에 넣음")
             thread = threading.Thread(target=stt_proccess,
                                     args=(broadcast, name, date, section_name, section_mini))
-            th_q.put(thread)
+            # th_q.put(thread)
             
-        th_q_fin = []
-        while not th_q.empty():
-            if len(threading.enumerate()) < 7:
-                time.sleep(random.uniform(0.1, 1))
-                if memory_usage("stt") < 0.75:
-                    logger.debug(f'{memory_usage("stt")*100}%')
-                    this_th = th_q.get()
-                    logger.debug(f"{this_th.name} 시작! - 현재 실행중 쓰레드 개수 {len(threading.enumerate())}")
-                    this_th.start()
-                    th_q_fin.append(this_th)
+        # th_q_fin = []
+        # while not th_q.empty():
+            # if len(threading.enumerate()) < 7:
+                # time.sleep(random.uniform(0.1, 1))
+                # if memory_usage("stt") < 0.75:
+        logger.debug(f'{memory_usage("stt")*100}%')
+        # this_th = th_q.get()
+        logger.debug(f"{this_th.name} 시작! - 현재 실행중 쓰레드 개수 {len(threading.enumerate())}")
+        this_th.start()
+        th_q_fin.append(this_th)
 
         for thread in th_q_fin:
             thread.join()
-            del thread
+        #     del thread
 
         end_time = time.time()
         logger.debug(f"[stt] {section_name} 완료 : 소요시간 {int((end_time-start_time)//60)}분 {int((end_time-start_time)%60)}초")
@@ -468,17 +468,17 @@ def go_whisper_stt(src_path, dst_path, save_name):
     device = "cpu"    #device = "cuda" if torch.cuda.is_available() else "cpu"
     language = "ko"
 
-    while True:
-        time.sleep(random.uniform(0.1, 1))
-        if memory_usage("stt") > 0.8:
-            continue
-        logger.debug(f"[stt] {dst_path}/{save_name} 진행 중")
-        model = whisper.load_model("base").to(device)
-        results = model.transcribe(
-            src_path, language=language, temperature=0.0, word_timestamps=True)
-        del model
-        gc.collect()
-        break
+    # while True:
+        # time.sleep(random.uniform(0.1, 1))
+        # if memory_usage("stt") > 0.8:
+            # continue
+    logger.debug(f"[stt] {dst_path}/{save_name} 진행 중")
+    model = whisper.load_model("base").to(device)
+    results = model.transcribe(
+        src_path, language=language, temperature=0.0, word_timestamps=True)
+    del model
+    gc.collect()
+        # break
 
     # 스크립트 만들기
     endings = ['에요', '해요', '예요', '지요', '네요', '[?]{1}', '[가-힣]{1,2}시다', '[가-힣]{1,2}니다', '어요', '구요', '군요', '어요', '아요', '은요', '이요', '든요', '워요', '드리고요', '되죠', '하죠', '까요', '게요', '시죠', '거야', '잖아']
