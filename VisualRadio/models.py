@@ -37,9 +37,10 @@ class Radio(db.Model):
 
 class Listener(db.Model):
     __tablename__ = 'listener'
-    broadcast = db.Column(db.String(50), primary_key=True)
-    radio_name = db.Column(db.String(50), primary_key=True)
-    radio_date = db.Column(db.String(50), primary_key=True)
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    broadcast = db.Column(db.String(50))
+    radio_name = db.Column(db.String(50))
+    radio_date = db.Column(db.String(50))
     code = db.Column(db.Integer, nullable=False, primary_key=True)
     preview_text = db.Column(db.String(200), nullable=False, default="")
     time = db.Column(db.String(20), nullable=False, default="")
@@ -82,3 +83,19 @@ class Process(db.Model):
 
     def __repr__(self):
         return f"Radio: {self.broadcast} {self.radio_name} {self.radio_date} : raw : {self.raw}, split1 : {self.split1}, split2 : {self.split2}, end_stt : {self.end_stt}, all_stt : {self.all_stt}, script : {self.script}, sum : {self.sum}"
+
+class Keyword(db.Model):
+    __tablename__ = 'keyword'
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    broadcast = db.Column(db.String(20), nullable=False, default="None")
+    radio_name = db.Column(db.String(50))
+    radio_date = db.Column(db.String(50))
+    code = db.Column(db.String(10), nullable=False)
+    keyword = db.Column(db.String(20), nullable=False)
+
+    def __init__(self, broadcast, radio_name, radio_date, code, keyword):
+        self.broadcast = broadcast 
+        self.radio_name = radio_name
+        self.radio_date = radio_date
+        self.code = code
+        self.keyword = keyword
