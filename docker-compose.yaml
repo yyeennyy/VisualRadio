@@ -40,7 +40,7 @@ services:
     depends_on:
       - mysql
     environment:
-      - TZ=Asia/Seoul
+      TZ : "Asia/Seoul"
   nginx:
     container_name: nginx
     image: yenyeny1/nginx:latest
@@ -53,7 +53,7 @@ services:
     networks:
       - db-net
     environment:
-      - TZ=Asia/Seoul
+      TZ: "Asia/Seoul"
     depends_on:
       - visual-radio
   collector:
@@ -70,5 +70,5 @@ services:
       - nginx
       - visual-radio
     environment:
-      - TZ=Asia/Seoul
+      TZ: "Asia/Seoul"
     platform: linux/amd64
