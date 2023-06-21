@@ -10,12 +10,12 @@ window.onload = function() {
   document.getElementById('info').innerHTML = `${radio_name}  ${date}`
 
   getScript(broadcast, radio_name, date).then(() => startSubtitles());
+  get_listeners();
   getWave(broadcast, radio_name, date);
   getImg(broadcast, radio_name, date).then(() => {
     startImageChecking();
   })
   startSectionChecking()
-  get_listeners();
   const progress = document.querySelector('.progress');
   const progressBar = document.querySelector('.progress-bar')
   const currentTimeText = document.getElementById('currentTime');
@@ -383,20 +383,36 @@ function get_listeners(){
   let url = `/${broadcast}/${radio_name}/${date}/listeners`;
 
   fetch(url)
-    .then(response => response.json())
-    .then(data => {
-      const parsedData = JSON.parse(data);
-      const listenerBox = document.getElementById("listenerBox");
-      // data를 반복하여 listenerBox에 한 줄씩 추가
+  .then(response => response.json())
+  .then(data => {
+    const parsedData = JSON.parse(data);
+    if (parsedData[0]['code']==''){
+      return
+    } else {
+      var textAboveListener = document.getElementById("textAboveListener");
+      var listenerBox = document.getElementById("listenerBox");
+      listenerBox.style.visibility = "visible";
+      textAboveListener.style.visibility = "visible";
+      console.log('바꿈')
       parsedData.forEach(listener => {
-        const code = listener['code']
-        const keys = listener['keyword']
+        const code = listener['code'];
+        const keys = listener['keyword'];
+        const time = listener['time'];
         const listenerLine = document.createElement("div");
+        listenerLine.classList.add("hover-zoom", "hover-zoom:hover");
         listenerLine.textContent = code + "님: " + keys;
         listenerBox.appendChild(listenerLine);
+
+        // 클릭 리스너 등록
+        listenerLine.addEventListener("click", function() {
+          audio.currentTime = timeStringToFloat(time);
+          showImageAtCurrentTime();
+        });
       });
-    })
-    .catch(error => {
-      console.log("Error fetching JSON data:", error);
-    });
+    }
+  })
+  .catch(error => {
+    console.log("Error fetching JSON data:", error);
+  });
+
 }

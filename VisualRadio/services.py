@@ -197,23 +197,26 @@ def all_date_of(broadcast, radio_name, year, month):
 
 # ---------------------------------------------- sub2 
 # sub2에서 청취자 정보를 사이드에 띄우기 위해, 해당회차 listeners_list를 리턴한다.
-def get_this_listeners_and_keyword(broadcast, name, date):
+def get_this_listeners_keyword_time(broadcast, name, date):
     with app.app_context():
         # keywords 테이블에서 해당 회차 청취자(code)와 (keyword) json으로 리턴 (그룹 바이 회차)
         query = text("""
-            SELECT CONCAT('{"code":"',code,'", "keywords":"',GROUP_CONCAT(DISTINCT keyword SEPARATOR ','),'"}')
+            SELECT code, group_concat(keyword SEPARATOR ','), group_concat(time SEPARATOR ',')
             FROM keyword
             WHERE broadcast = '""" + broadcast + "' AND radio_name = '" + name + "' AND radio_date = '" + date 
             + "'GROUP BY code")
+
         result = db.session.execute(query).all()
         if result == None:
-            return json.dumps({'keyword':'', 'code':''})
+            return json.dumps({'keyword':'', 'code':'', 'time':''})
         answer = []
         ################# (임시: result_list에서 랜덤 2개 키워드 뽑아 '쉼표로 구분된 문자열로' 주기) #############
         for r in result:
+            code = r[0]
+            key_list = r[1].split(",")
+            times = r[2].split(",")
+            time = times[0]
             dict_object = json.loads(r[0])
-            key_list = dict_object['keywords'].split(",")
-            key_list = [key.replace("'", '') for key in key_list]
             sample_size = 2
             if len(key_list) >= sample_size:
                 random_key = random.sample(key_list, sample_size)
@@ -222,7 +225,7 @@ def get_this_listeners_and_keyword(broadcast, name, date):
                 # 샘플링된 키들을 사용하는 코드 작성
             else:
                 joined_string = ''.join(key_list)
-            answer.append({'code':dict_object['code'], 'keyword':joined_string})
+            answer.append({'code':code, 'keyword':joined_string, 'time':time})
         ####################################################################################
         return json.dumps(answer, ensure_ascii=False)
 
@@ -829,13 +832,13 @@ def register_listener(broadcast, radio_name, radio_date):
     # preview_text_list = []
     for line in data:
         # 라인별 person_list 찾기
-        logger.debug(f"[ㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡ]lineㅡㅡㅡㅡ{line}")
+        # logger.debug(f"[ㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡ]lineㅡㅡㅡㅡ{line}")
         person_list = re.findall(regex, line['txt'])
         if len(person_list) == 0:
             continue
         # 찾았으
         listener_set = set.union(listener_set, person_list)
-        logger.debug(f"[ㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡ]listenre setㅡㅡㅡㅡ{listener_set}")
+        # logger.debug(f"[ㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡ]listenre setㅡㅡㅡㅡ{listener_set}")
 
         # TODO: 개선하고 싶다. txt의 앞뒤를 가져오고 싶다. 그치만 지금은 한 문장에 대해서만 적용해보자.
         # for person in person_list:
@@ -854,7 +857,7 @@ def register_listener(broadcast, radio_name, radio_date):
                     stop_words = ['님', '하', '제가', '지', '고요', '저', '드', '들', '가', '보']
                     result = [keyword[0] for keyword in keywords if keyword[0] not in stop_words]
                     for r in result:
-                        keyword = Keyword(broadcast=broadcast, radio_name=radio_name, radio_date=radio_date, code=listener, keyword=r)
+                        keyword = Keyword(broadcast=broadcast, radio_name=radio_name, radio_date=radio_date, code=listener, keyword=r, time=line['time'])
                         db.session.add(keyword)
                     db.session.commit()
             except IntegrityError as e:

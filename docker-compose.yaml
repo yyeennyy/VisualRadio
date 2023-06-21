@@ -72,6 +72,6 @@ services:
     environment:
       - TZ=Asia/Seoul
     # 윈도우 전용!
-    # platform: linux/amd64
+    platform: linux/amd64
     # 맥 전용!
-    platform: linux/arm64/v8
+    # platform: linux/arm64/v8

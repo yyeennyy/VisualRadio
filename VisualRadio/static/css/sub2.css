@@ -215,3 +215,13 @@ p {
     bottom: -50px;
     right: -77px;
 }
+
+.hover-zoom {
+    cursor: zoom-in;
+    transition: transform 0.2s;
+}
+
+.hover-zoom:hover {
+transform: scale(1.1);
+cursor: pointer;
+}
