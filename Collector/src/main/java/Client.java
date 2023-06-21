@@ -19,43 +19,46 @@ import java.util.logging.Logger;
 public class Client {
 
     public static void main(String[] args) {
-        // LocalTime currentTime = LocalTime.now();
-        // LocalTime targetTime = LocalTime.of(23, 43); 
-        // long initialDelay = Duration.between(currentTime, targetTime).toSeconds();
-        // System.out.println(initialDelay);
-        // if (initialDelay < 0) {
-        //     // 이미 오전 11시를 지난 경우, 다음날 오전 11시로 초기 지연을 계산
-        //     initialDelay += Duration.ofDays(1).toSeconds();
-        // }
-        // ScheduledExecutorService executorService = Executors.newScheduledThreadPool(1);
-        // executorService.scheduleAtFixedRate(new recordRadio("MBC FM4U", "11:00"), initialDelay, 24*60*60, TimeUnit.SECONDS);
-
-        String broadcast = "MBC FM4U";
-
         LocalTime currentTime = LocalTime.now();
-        // 테스트시 이 시간정보랑 radio 테이블의 start_time정보랑 일치해야 한다
-        String[] h_m = String.valueOf(currentTime).split(":");
-        int h = Integer.parseInt(h_m[0]);
-        int m = Integer.parseInt(h_m[1]);
-        LocalTime targetTime = LocalTime.of(h, (m+1) % 60);
-        System.out.println(String.valueOf(targetTime));
-
-        // 테스트용 시간 설정
-        MySQLConnector connector = new MySQLConnector();
-        String query = String.format("UPDATE radio SET start_time='%s' WHERE radio_name='brunchcafe'", targetTime, broadcast);
-        System.out.println(query);
-        connector.executeUpdateQuery(query);
-
+        LocalTime targetTime = LocalTime.of(13, 32); 
         long initialDelay = Duration.between(currentTime, targetTime).toSeconds();
+
         if (initialDelay < 0) {
-            // 설정한 시간까지 남은 대기시간 계산!
+            // 이미 오전 11시를 지난 경우, 다음날 오전 11시로 초기 지연을 계산
             initialDelay += Duration.ofDays(1).toSeconds();
         }
+
         System.out.printf("[collector] %d초 이후에 작동 시작\n", initialDelay);
 
         ScheduledExecutorService executorService = Executors.newScheduledThreadPool(1);
-        // 테스트용 설정: visual-radio 컨테이너가 충분히 켜질 시간을 준다: 15초로 설정
-        executorService.scheduleAtFixedRate(new recordRadio(broadcast, String.valueOf(targetTime)), initialDelay, 24*60*60, TimeUnit.SECONDS);
+        executorService.scheduleAtFixedRate(new recordRadio("MBC FM4U", "13:32"), initialDelay, 24*60*60, TimeUnit.SECONDS);
+
+        // String broadcast = "MBC FM4U";
+
+        // LocalTime currentTime = LocalTime.now();
+        // // 테스트시 이 시간정보랑 radio 테이블의 start_time정보랑 일치해야 한다
+        // String[] h_m = String.valueOf(currentTime).split(":");
+        // int h = Integer.parseInt(h_m[0]);
+        // int m = Integer.parseInt(h_m[1]);
+        // LocalTime targetTime = LocalTime.of(h, (m+1) % 60);
+        // System.out.println(String.valueOf(targetTime));
+
+        // // 테스트용 시간 설정
+        // MySQLConnector connector = new MySQLConnector();
+        // String query = String.format("UPDATE radio SET start_time='%s' WHERE radio_name='brunchcafe'", targetTime, broadcast);
+        // System.out.println(query);
+        // connector.executeUpdateQuery(query);
+
+        // long initialDelay = Duration.between(currentTime, targetTime).toSeconds();
+        // if (initialDelay < 0) {
+        //     // 설정한 시간까지 남은 대기시간 계산!
+        //     initialDelay += Duration.ofDays(1).toSeconds();
+        // }
+        // System.out.printf("[collector] %d초 이후에 작동 시작\n", initialDelay);
+
+        // ScheduledExecutorService executorService = Executors.newScheduledThreadPool(1);
+        // // 테스트용 설정: visual-radio 컨테이너가 충분히 켜질 시간을 준다: 15초로 설정
+        // executorService.scheduleAtFixedRate(new recordRadio(broadcast, String.valueOf(targetTime)), initialDelay, 24*60*60, TimeUnit.SECONDS);
     }
 
     // 실행할 작업 태스크
@@ -94,7 +97,6 @@ public class Client {
             } catch (InterruptedException e) {
                 e.printStackTrace();
             }
-
             
             // radio.sh 파일 실행
             String os = System.getProperty("os.name").toLowerCase();
@@ -108,12 +110,12 @@ public class Client {
                 try {
                     processBuilder.start().waitFor();
                     System.out.println("리눅스 개행으로 바꿈");
-                    String currentPaht = Paths.get("").toAbsolutePath().toString();
-                    System.out.println(currentPaht);
+                    String currentPath = Paths.get("").toAbsolutePath().toString();
+                    System.out.println(currentPath);
                 } catch (InterruptedException | IOException e) {
                     e.printStackTrace();
                 } 
-                String[] command = { "sh", "-x", "radio.sh", broadcast, radio_name, String.valueOf(record_len)};
+                String[] command = { "sh", "-x", "--yes", "radio.sh", broadcast, radio_name, String.valueOf(record_len)};
                 processBuilder = new ProcessBuilder(command);
             } else {
                 System.out.println("지원하지 않는 운영 체제입니다.");
@@ -124,6 +126,11 @@ public class Client {
             try {
                 process = processBuilder.start();
                     
+                BufferedReader errorReader = new BufferedReader(new InputStreamReader(process.getErrorStream()));
+                String line;
+                while ((line = errorReader.readLine()) != null) {
+                    System.out.println(line); // 오류 메시지를 터미널에 출력합니다.
+            }
                 // 프로세스가 완료될 때까지 대기
                 int exitCode = process.waitFor();
                 
