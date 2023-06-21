@@ -14,6 +14,7 @@ window.onload = function() {
   getImg(broadcast, radio_name, date).then(() => {
     startImageChecking();
   })
+  get_listeners();
   const progress = document.querySelector('.progress');
   const progressBar = document.querySelector('.progress-bar')
   const currentTimeText = document.getElementById('currentTime');
@@ -297,3 +298,26 @@ playPausediv.addEventListener("click", function() {
 //     audio.addEventListener('timeupdate', hilightSubtitle);
 //   }, 100);
 // });
+
+
+function get_listeners(){
+  let url = `/${broadcast}/${radio_name}/${date}/listeners`;
+
+  fetch(url)
+    .then(response => response.json())
+    .then(data => {
+      const parsedData = JSON.parse(data);
+      const listenerBox = document.getElementById("listenerBox");
+      // data를 반복하여 listenerBox에 한 줄씩 추가
+      parsedData.forEach(listener => {
+        const code = listener['code']
+        const keys = listener['keyword']
+        const listenerLine = document.createElement("div");
+        listenerLine.textContent = code + "님: " + keys;
+        listenerBox.appendChild(listenerLine);
+      });
+    })
+    .catch(error => {
+      console.log("Error fetching JSON data:", error);
+    });
+}
