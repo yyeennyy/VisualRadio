@@ -89,6 +89,10 @@ body {
     height: 550px;
 }
 
+#episode {
+    border-radius: 30px;
+}
+
 #section1, #section2 {
     float: left;
     width: 50%;
@@ -127,7 +131,7 @@ body {
     overflow-y: scroll;
 }
 
-#part1, #part2 {
+#opening, #part1, #part2 {
     width: 70px;
     height: 70px;
 }

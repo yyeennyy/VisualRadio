@@ -326,7 +326,7 @@ function showContents(){
         console.log(audioCurrentTime)
         if (audioCurrentTime >= startTime && audioCurrentTime <= endTime) {
           console.log(11111111112222222222)
-          if(item.type == 1)displayImage('/static/images/ading.png');
+          if (item.type == 1) displayImage('/static/images/ading.png');
           else displayImage();
           return;
         }
@@ -335,7 +335,6 @@ function showContents(){
   removeImage();
     })
 }
-
 
 function displayImage(imageUrl){
     // 이미지를 화면에 표시하는 함수
