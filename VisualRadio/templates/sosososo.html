@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>파일 요청</title>
+</head>
+<body>
+  <button id="request-button">파일 요청</button>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.3.2/socket.io.js"></script>
+  <script>
+    const socket = io('http://localhost');
+    // const socket = io();  // 현재 페이지의 호스트와 포트에 소켓 연결 요청
+
+    document.getElementById('request-button').addEventListener('click', () => {
+      socket.emit('file-request');
+    });
+
+    // socket.on('message', (data) => {
+    //   console.log('[message] 서버로부터 받은 파일:', data);
+    // });
+    socket.on('connect', (data) => {
+      console.log('[connect] 서버로부터 받은 파일:', data);
+    });
+  </script>
+</body>
+</html>

@@ -19,8 +19,12 @@ RUN pip install tensorflow
 RUN pip install matplotlib
 RUN pip install Flask-Caching
 RUN pip install psutil
-RUN pip install flask-socketio
+RUN pip install konlpy
+# RUN pip install flask-socketio
 # RUN pip install redis
+
+# installing java jdk and java jre
+RUN apt-get install -y default-jdk default-jre
 
 EXPOSE 5001
 

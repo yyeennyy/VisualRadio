@@ -1,11 +1,11 @@
 import os
-from models import Wav, Radio, Listener, Process
+from models import Wav, Radio, Listener, Process, Keyword
 import time
-from flask import jsonify, Flask
+# from flask import jsonify, Flask
 from natsort import natsorted
 from sqlalchemy import text
 import gc
-import torch
+# import torch
 from torch._C import *
 import psutil
 import random
@@ -47,7 +47,9 @@ import soundfile as sf
 from VisualRadio.split_module.split2 import save_split
 
 
-
+# for etc
+from konlpy.tag import Komoran
+import math
 
 
 # --------------------------------------------- collector
@@ -111,10 +113,14 @@ def search_listeners(search):
 def like(bcc, name):
     with app.app_context():
         radio = Radio.query.filter_by(broadcast=bcc, radio_name=name).first()
-        radio.like_cnt += 1
-        cnt = radio.like_cnt
-        db.session.add(radio)
-        db.session.commit()
+        if radio:
+            radio.like_cnt += 1
+            cnt = radio.like_cnt
+            db.session.add(radio)
+            db.session.commit()
+        else:
+            logger.debug('해당하는 radio를 찾지 못했어요.,!')
+
     return cnt
     
 def unlike(bcc, name):
@@ -189,7 +195,40 @@ def all_date_of(broadcast, radio_name, year, month):
         return date_json
 
 
-# ----------------------------------------------
+# ---------------------------------------------- sub2 
+# sub2에서 청취자 정보를 사이드에 띄우기 위해, 해당회차 listeners_list를 리턴한다.
+def get_this_listeners_and_keyword(broadcast, name, date):
+    with app.app_context():
+        # keywords 테이블에서 해당 회차 청취자(code)와 (keyword) json으로 리턴 (그룹 바이 회차)
+        query = text("""
+            SELECT CONCAT('{"code":"',code,'", "keywords":"',GROUP_CONCAT(DISTINCT keyword SEPARATOR ','),'"}')
+            FROM keyword
+            WHERE broadcast = '""" + broadcast + "' AND radio_name = '" + name + "' AND radio_date = '" + date 
+            + "'GROUP BY code")
+        result = db.session.execute(query).all()
+        if result == None:
+            return json.dumps({'keyword':'', 'code':''})
+        answer = []
+        ################# (임시: result_list에서 랜덤 2개 키워드 뽑아 '쉼표로 구분된 문자열로' 주기) #############
+        for r in result:
+            dict_object = json.loads(r[0])
+            key_list = dict_object['keywords'].split(",")
+            key_list = [key.replace("'", '') for key in key_list]
+            sample_size = 2
+            if len(key_list) >= sample_size:
+                random_key = random.sample(key_list, sample_size)
+                logger.warn(f"랜덤키: {random_key}")
+                joined_string = ', '.join(random_key)
+                # 샘플링된 키들을 사용하는 코드 작성
+            else:
+                joined_string = ''.join(key_list)
+            answer.append({'code':dict_object['code'], 'keyword':joined_string})
+        ####################################################################################
+        return json.dumps(answer, ensure_ascii=False)
+
+
+
+# ----------------------------------------------------
 
 def set_db():
     pass
@@ -256,7 +295,7 @@ def split_cnn(broadcast, name, date):
             db.session.add(process)
         db.session.commit()
 
-    return section_start_time_summary
+    return section_start_time_summary, ment_range # 이 부분 수정해 바보야!!!!
 
 # ★
 def split(broadcast, name, date):
@@ -787,31 +826,47 @@ def register_listener(broadcast, radio_name, radio_date):
         data = json.load(f)
     regex = "(?<!\d)(?<!\d )\d{4}(?! \d)(?!\d)" # 전화번호처럼 연속된 8자리(공백포함)는 인식하지 않는 정규표현식임
     listener_set = set()
-    preview_text_dict = {}
+    # preview_text_list = []
     for line in data:
+        # 라인별 person_list 찾기
+        logger.debug(f"[ㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡ]lineㅡㅡㅡㅡ{line}")
         person_list = re.findall(regex, line['txt'])
         if len(person_list) == 0:
             continue
+        # 찾았으
         listener_set = set.union(listener_set, person_list)
-        for person in person_list:
-            start_idx = line['txt'].find(person)
-            if len(line['txt']) > 30+start_idx:
-                preview_text = line['txt'][start_idx:30+start_idx]
-            else:
-                preview_text = line['txt']
-            preview_text_dict[person] = preview_text
-    with app.app_context():
-        try:
-            db.session.query(Listener).filter_by(broadcast=broadcast, radio_name=radio_name, radio_date=radio_date).delete()
-            for listener in listener_set:
-                db.session.add(Listener(broadcast=broadcast, radio_name=radio_name, radio_date=radio_date, code=listener, preview_text=preview_text_dict.get(listener)))
-            db.session.commit()
-        except IntegrityError as e:
-            # 모든 정보 delete 후 add하고 있으므로 이 Error는 없을 것으로 예상
-            logger.debug("IntegrityError occurred: 이미 DB에 <사연자+프로그램회차>정보 있을 가능성 높음")
-    logger.debug(f"[find_listner] 청취자 업뎃완료: {listener_set} at {broadcast} {radio_date} {radio_date}")
+        logger.debug(f"[ㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡ]listenre setㅡㅡㅡㅡ{listener_set}")
 
+        # TODO: 개선하고 싶다. txt의 앞뒤를 가져오고 싶다. 그치만 지금은 한 문장에 대해서만 적용해보자.
+        # for person in person_list:
+            # preview_text_list.append({'code':person, 'txt':line['txt'], 'time':line['time']}) # 없어도 될듯? 각 person에 대해서 그떄그떄 처리해주면 되니까.
+            # 현재회차의 해당 person에 대해 DB에 반영
+        with app.app_context():
+            try:
+                for listener in listener_set:
+                    text = line['txt']
+                    db.session.add(Listener(broadcast=broadcast, radio_name=radio_name, radio_date=radio_date, code=listener, preview_text=text, time=line['time']))
+                    # TODO: 현재 line['txt']에 대해 textrank적용 => keyword들 추출 => keyword DB테이블에 이 회차, 청취자, keyword 레코드 삽입하기!
+                    ############### 키워드 추출 #################
+                    # 유의: 키워드를 뽑으면서, 키워드가 없다면 아예 DB에 추가할 대상 문장이 아님.
+                    # 전체 문장 내에서 핵심이 되는 키워드는? <= 일단 판단하지 말고, ㄱㅊ은 형태소는 다 넣자
+                    keywords = extract_keywords(text)
+                    stop_words = ['님', '하', '제가', '지', '고요', '저', '드', '들', '가', '보']
+                    result = [keyword[0] for keyword in keywords if keyword[0] not in stop_words]
+                    for r in result:
+                        keyword = Keyword(broadcast=broadcast, radio_name=radio_name, radio_date=radio_date, code=listener, keyword=r)
+                        db.session.add(keyword)
+                    db.session.commit()
+            except IntegrityError as e:
+                logger.debug("IntegrityError occurred............")
+                ##########################################
+    logger.debug(f"[find_listner] 청취자 업뎃완료: {listener_set} at {broadcast} {radio_name} {radio_date}")
 
+def extract_keywords(sentence):
+    komoran = Komoran()
+    pos_tags = komoran.pos(sentence)
+    keywords = [word for word in pos_tags if word[1]=='NNG' or word[1]=='XR' or word[1]=='NNP' or word[1]=='MAG']
+    return keywords
 
 
 import random
@@ -946,7 +1001,7 @@ def format_time(time_in_seconds):
     time_in_seconds = float(time_in_seconds)
     minutes, seconds = divmod(int(time_in_seconds), 60)
     milliseconds = int((time_in_seconds - int(time_in_seconds)) * 1000)
-    return "{:d}:{:02d}.{:03d}".format(minutes, seconds, milliseconds)
+    return "{:d}:{:02d}.{:03d}".format(minutes, seconds, milliseconds) 
 
 def applicant_number(text):
     if "문자" in text and ("샵" in text or "#" in text):

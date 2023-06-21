@@ -7,12 +7,19 @@ import json
 import os
 import threading
 
+
 auth = Blueprint('auth', __name__)
 
 
 # 로거
 from VisualRadio import CreateLogger
 logger = CreateLogger("우리가1등(^o^)b")
+
+# ---------------- 임시 테스트 (로딩속도 개선)
+
+@auth.route('/sosososo', methods=['GET', 'POST'])
+def sosososo():
+    return render_template('sosososo.html')
 
 
 # --------------------------------------------------------------------------------- 수집기
@@ -79,7 +86,7 @@ def admin_update():
 def process_audio_file(broadcast, name, date):
     logger.debug(f"{broadcast} {name} {date}")
     services.split(broadcast, name, date)
-    start_times = services.split_cnn(broadcast, name, date)
+    start_times, _ = services.split_cnn(broadcast, name, date)
     services.stt(broadcast, name, date)
     services.before_script(broadcast, name, date, start_times, 'whisper')
     services.before_script(broadcast, name, date, start_times, 'google')
@@ -175,6 +182,13 @@ def to_sub2():
 
 # --------------------------------------------------------------------------------- sub2
 
+
+# 해당회차 청취자와 키워드 리턴!! (sub2의 사이드에 띄울 청취자 참여 바로가기?)
+@auth.route('/<string:broadcast>/<string:name>/<string:date>/listeners', methods=['GET'])
+def get_listeners(broadcast, name, date):
+    result = services.get_this_listeners_and_keyword(broadcast, name, date)
+    return json.dumps(result)
+
 # 지정된 회차의 스크립트 요청
 @auth.route('/<string:broadcast>/<string:name>/<string:date>/script', methods=['GET'])
 def get_script(broadcast, name, date):
@@ -211,9 +225,29 @@ def get_images(broadcast, name, date):
 @auth.route('/<string:broadcast>/<string:name>/<string:date>/wave', methods=['GET'])
 def get_wave(broadcast, name, date):
     # TODO: 섹션을 합쳐서 리턴한다.
-
     return send_file(f"radio_storage/{broadcast}/{name}/{date}/sum.wav", mimetype="audio/wav", as_attachment=False)
 
+
+@auth.route('/<string:broadcast>/<string:radio_name>/<string:radio_date>/section', methods= ['GET'])
+def load_index_info(broadcast, radio_name, radio_date) :
+    section_time = [{'start_time' : "0:00.000",
+                     'end_time'   : "0:06.000",
+                     'type'       : 0},
+                    {'start_time' : '0:6.000',
+                     'end_time'   : '0:13.000',
+                     'type'       : 1},
+                    {'start_time' : "0:13.000",
+                     'end_time'   : "0:20.000",
+                     'type'       : 0},
+                    {'start_time' : "0:20.000",
+                     'end_time'   : "0:25.000",
+                     'type'       : 2},
+                    {'start_time' : "0:25.000",
+                     'end_time'   : "0:35.000",
+                     'type'       : 0}]
+    # section_time = services.get_segment(broadcast, radio_name, radio_date) # 지금은 split_cnn이지만 나중에 다른 함수를 통해서 전체 구간을 던져줍니당
+    # 던져주는 형태는 [{start_time : ~, end_time : ~ , type : ~ }, ...]                                                                      
+    return json.dumps(section_time)
 
 # # 고정음성 요청
 # @auth.route('/<string:radio_name>/<string:date>/fixed/<string:name>', methods=['GET'])

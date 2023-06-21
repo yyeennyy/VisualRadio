@@ -173,11 +173,45 @@ p {
     cursor: pointer;
     margin-top: -30px;
     margin-bottom: 5px;
-
 }
 
 .btn {
     width: 30px;
     height: 30px;
     object-fit: cover;
+}
+
+.episode {
+    width: 100%; /* 또는 필요한 너비 설정 */
+  }
+  
+  .episode img {
+    width: 100%; /* 또는 필요한 너비 설정 */
+    height: auto; /* 너비에 맞게 이미지의 높이를 자동으로 조절 */
+  }
+
+#listenerBox {
+    width: 160px;
+    height: 150px;
+    background-color: rgba(255, 255, 255, 0);
+    position: absolute;
+    bottom: -50px;
+    right: -100px;
+    border: 2px solid rgba(106, 0, 138, 0.49);
+    border-radius: 20%;
+
+    /* 내용 글씨 정렬 */
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    justify-content: center;
+    padding-left: 12px; 
+}
+
+    
+#textAboveListener{
+    position: absolute;
+    height: 200px;
+    bottom: -50px;
+    right: -77px;
 }

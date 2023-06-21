@@ -3,8 +3,9 @@ from flask import redirect, url_for, request, Flask
 from flask_cors import CORS
 import logging
 import logging.handlers
-
 from flask_sqlalchemy import SQLAlchemy
+# from flask_socketio import SocketIO
+# from VisualRadio.socket_events import socketio_init
 
 #TODO: 마이그레이션
 # for using alembic! with SQLAlchemy.. 
@@ -40,6 +41,7 @@ def CreateLogger(logger_name):
 
 db = SQLAlchemy()
 app = Flask(__name__)
+# socketio = SocketIO()
 
 logger = CreateLogger("우리가1등(^o^)b")
 
@@ -63,6 +65,11 @@ def create_app():
     with app.app_context():
         db.create_all() 
         logger.debug("[DB] 세팅 완료")
+
+
+    # socketio
+    # socketio.init_app(app)
+    # socketio_init(socketio)
     
     # Entity가 변경되었을 때(예:컬럼추가), 데이터베이스를 마이그레이션 한다. 
 
