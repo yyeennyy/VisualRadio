@@ -399,6 +399,7 @@ function get_listeners(){
         const keys = listener['keyword'];
         const time = listener['time'];
         const listenerLine = document.createElement("div");
+        listenerLine.id = "listenerLine"
         listenerLine.classList.add("hover-zoom", "hover-zoom:hover");
         listenerLine.textContent = code + "님: " + keys;
         listenerBox.appendChild(listenerLine);
