@@ -1,6 +1,7 @@
 const channelsElement = document.getElementById("resultchannels");
 const resultTextTitle = document.getElementById("resultTextTitle");
 const resultContainer = document.getElementById("resultContainer");
+const channels = document.getElementById("channels");
 
 document.getElementById('searchForm').addEventListener('submit', function(event) {
     // 선택옵션 가져오기
@@ -9,6 +10,7 @@ document.getElementById('searchForm').addEventListener('submit', function(event)
 
     resultTextTitle.style.display = 'block';
     resultContainer.style.display = 'flex';
+    channels.style.display = 'none';
 
     for (var i = 0; i < searchOptionRadios.length; i++) {
     if (searchOptionRadios[i].checked) {
