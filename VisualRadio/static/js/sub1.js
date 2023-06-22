@@ -8,6 +8,8 @@ window.onload = function () {
     showInfo(radio_name); 
     showLikeCnt(broadcast, radio_name);
     getCookie(broadcast, radio_name);
+    setLikeImage(broadcast, radio_name);
+    // checkCookie(broadcast, radio_name);
 };   // 웹 페이지가 로드되면 buildCalendar 실행
 
 var urlParams = new URLSearchParams(window.location.search); 
@@ -145,3 +147,59 @@ function showLikeCnt(broadcast, radio_name) {
         likeCountElement.innerHTML = data['like_cnt'];
     })
 }
+function setLikeImage(broadcast, radio_name) {
+    // const likeElement = document.getElementById("like");
+    const heartImage = document.getElementById("imgControl");
+    const cookieValue = getCookie(broadcast, radio_name);
+    if (cookieValue === "true") {
+      heartImage.src = '/static/images/heart.png';
+    } else {
+      heartImage.src = '/static/images/before_heart.png';
+    }
+  }
+
+const heartImg = document.getElementById('imgControl')
+
+heartImg.addEventListener('click', function() {
+    const likeCountElement = document.getElementById('likecnt');
+    const broadcast = urlParams.get('broadcast').replace(/\/$/, '');
+    const radio_name = urlParams.get('radio_name');
+  
+    const cookieValue = getCookie(broadcast, radio_name);
+  
+    if (cookieValue === 'true') {
+      heartImg.src = '/static/images/before_heart.png';
+      const url = `/unlike/${broadcast}/${radio_name}`;
+      likeCountElement.innerHTML = parseInt(likeCountElement.innerHTML) - 1;
+      setCookie(broadcast, radio_name, 'false', 365);
+
+      fetch(url)
+        .then(response => {
+        if (!response.ok) {
+            throw new Error("실패ㅠㅠ");
+        }
+        // 성공적으로 요청을 보낸 후의 처리
+        console.log("성공!!!");
+        })
+        .catch(error => {
+        console.error('Error:', error);
+        });
+    } else {
+      heartImg.src = '/static/images/heart.png';
+      const url = `/like/${broadcast}/${radio_name}`;
+      likeCountElement.innerHTML = parseInt(likeCountElement.innerHTML) + 1;
+      setCookie(broadcast, radio_name, 'true', 365);
+
+      fetch(url)
+        .then(response => {
+        if (!response.ok) {
+            throw new Error("실패ㅠㅠ");
+        }
+        // 성공적으로 요청을 보낸 후의 처리
+        console.log("성공!!!");
+        })
+        .catch(error => {
+        console.error('Error:', error);
+        });
+    }
+  });

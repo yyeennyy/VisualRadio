@@ -15,6 +15,7 @@ window.onload = function() {
     startImageChecking();
   })
   startSectionChecking()
+  get_listeners();
   const progress = document.querySelector('.progress');
   const progressBar = document.querySelector('.progress-bar')
   const currentTimeText = document.getElementById('currentTime');
@@ -325,7 +326,7 @@ function showContents(){
         console.log(audioCurrentTime)
         if (audioCurrentTime >= startTime && audioCurrentTime <= endTime) {
           console.log(11111111112222222222)
-          if(item.type == 1)displayImage('/static/images/ading.png');
+          if (item.type == 1) displayImage('/static/images/ading.png');
           else displayImage();
           return;
         }
@@ -334,7 +335,6 @@ function showContents(){
   removeImage();
     })
 }
-
 
 function displayImage(imageUrl){
     // 이미지를 화면에 표시하는 함수
@@ -376,3 +376,26 @@ function removeImage() {
 //     audio.addEventListener('timeupdate', hilightSubtitle);
 //   }, 100);
 // });
+
+
+function get_listeners(){
+  let url = `/${broadcast}/${radio_name}/${date}/listeners`;
+
+  fetch(url)
+    .then(response => response.json())
+    .then(data => {
+      const parsedData = JSON.parse(data);
+      const listenerBox = document.getElementById("listenerBox");
+      // data를 반복하여 listenerBox에 한 줄씩 추가
+      parsedData.forEach(listener => {
+        const code = listener['code']
+        const keys = listener['keyword']
+        const listenerLine = document.createElement("div");
+        listenerLine.textContent = code + "님: " + keys;
+        listenerBox.appendChild(listenerLine);
+      });
+    })
+    .catch(error => {
+      console.log("Error fetching JSON data:", error);
+    });
+}
