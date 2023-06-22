@@ -15,12 +15,14 @@ auth = Blueprint('auth', __name__)
 from VisualRadio import CreateLogger
 logger = CreateLogger("우리가1등(^o^)b")
 
-# ---------------- 임시 테스트 (로딩속도 개선)
+# ------------------------------------- 서치 컨텐츠 라우트
 
-@auth.route('/sosososo', methods=['GET', 'POST'])
-def sosososo():
-    return render_template('sosososo.html')
-
+@auth.route("/search/contents")
+def search_contents() :
+    search = request.args.get('search')
+    data = services.search_contents(search)
+    # logger.debug(f"[search] 검색 결과 {data}")
+    return json.dumps(data)
 
 # --------------------------------------------------------------------------------- 수집기
 @auth.errorhandler(404)
@@ -85,12 +87,12 @@ def admin_update():
 
 def process_audio_file(broadcast, name, date):
     logger.debug(f"{broadcast} {name} {date}")
-    # services.split(broadcast, name, date)
-    # start_times, _ = services.split_cnn(broadcast, name, date)
-    # services.stt(broadcast, name, date)
-    # services.before_script(broadcast, name, date, start_times, 'whisper')
-    # services.before_script(broadcast, name, date, start_times, 'google')
-    # services.make_script(broadcast, name, date)
+    services.split(broadcast, name, date)
+    start_times, _ = services.split_cnn(broadcast, name, date)
+    services.stt(broadcast, name, date)
+    services.before_script(broadcast, name, date, start_times, 'whisper')
+    services.before_script(broadcast, name, date, start_times, 'google')
+    services.make_script(broadcast, name, date)
     services.register_listener(broadcast, name, date)
     services.sum_wav_sections(broadcast, name, date)
     logger.debug("[업로드] 오디오 처리 완료")
