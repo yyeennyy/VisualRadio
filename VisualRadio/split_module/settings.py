@@ -40,10 +40,10 @@ FFT_WINDOW_SIZE = 0.2
 frequency resolution but lower time resolution in the spectrogram.
 """
 
-DB_PATH = "hash.db"
+DB_PATH = "./VisualRadio/split_module/DB/hash.db"
 """ Path to the database file to use. """
 
-FIX_DB_PATH = "fix.db"
+FIX_DB_PATH = "./VisualRadio/split_module/DB/fix.db"
 """ Path to the fix_sound_time database file to use. """
 
 NUM_WORKERS = 24

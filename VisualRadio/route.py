@@ -248,7 +248,7 @@ def load_index_info(broadcast, radio_name, radio_date) :
     #                  'end_time'   : "0:35.000",
     #                  'type'       : 0}]
     section_time = services.get_segment(broadcast, radio_name, radio_date) # 지금은 split_cnn이지만 나중에 다른 함수를 통해서 전체 구간을 던져줍니당
-    logger.debug(f"section_time : {section_time}")
+    # logger.debug(f"section_time : {section_time}")
     # 던져주는 형태는 [{start_time : ~, end_time : ~ , type : ~ }, ...]                                                                      
     return json.dumps(section_time)
 
