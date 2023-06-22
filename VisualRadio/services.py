@@ -358,7 +358,7 @@ def get_segment(broadcast, name, date):
             logger.debug(f"오류!! 아직 해당 라디오의 구간 정보가 db에 저장되지 않았습니다. {name} {date}")
             return
         else:
-            logger.debug(f"db에서 정보 로드 완료!! : {wav.radio_section}")
+            logger.debug(f"db에서 정보 로드 완료!!")
             res = wav.radio_section.replace("'", "\"")
             return json.loads(res)
 
@@ -430,7 +430,7 @@ def split_cnn(broadcast, name, date):
             wav.radio_section = str(content_section_list)
         else:
             wav = Wav(broadcast = broadcast, radio_name = name, radio_date = date, radio_section = str(content_section_list))
-            logger.debug(str(content_section_list))
+            # logger.debug(str(content_section_list))
             db.session.add(wav)
         db.session.commit()
 

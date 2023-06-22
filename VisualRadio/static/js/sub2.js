@@ -297,7 +297,7 @@ function showContents(){
   fetch(`/${broadcast}/${radio_name}/${date}/section`)
     .then(response => response.json())
     .then(data => {
-      console.log(data)
+      // console.log(data)
       const audioCurrentTime = audio.currentTime;
       
     //   for (var i = 0; i < data.length; i++) {
@@ -322,10 +322,10 @@ function showContents(){
         // console.log(11111111)
         const startTime = timeStringToFloat(item.start_time);
         const endTime = timeStringToFloat(item.end_time);
-        console.log(startTime)
-        console.log(audioCurrentTime)
+        // console.log(startTime)
+        // console.log(audioCurrentTime)
         if (audioCurrentTime >= startTime && audioCurrentTime <= endTime) {
-          console.log(11111111112222222222)
+          // console.log(11111111112222222222)
           if (item.type == 1) displayImage('/static/images/ading.png');
           else displayImage();
           return;
