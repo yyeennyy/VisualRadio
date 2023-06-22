@@ -911,7 +911,7 @@ def register_listener(broadcast, radio_name, radio_date):
         logger.debug(f"[find_listner] 경고: 만들어진 script가 없음 {broadcast} {radio_name} {radio_date}")
     with open(script_file, 'r', encoding='utf-8') as f:
         data = json.load(f)
-    regex = "(?<!\d)(?<!\d )\d{4}(?! \d)(?!\d)" # 전화번호처럼 연속된 8자리(공백포함)는 인식하지 않는 정규표현식임
+    regex = "(?<![0-9])(?<![0-9] )[0-9]{4}(?!년| 년)(?! [0-9])(?![0-9])" # 전화번호처럼 연속된 8자리(공백포함)는 인식하지 않는 정규표현식임
     listener_set = set()
     # preview_text_list = []
     for line in data:
