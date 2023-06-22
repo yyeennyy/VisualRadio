@@ -15,12 +15,14 @@ auth = Blueprint('auth', __name__)
 from VisualRadio import CreateLogger
 logger = CreateLogger("우리가1등(^o^)b")
 
-# ---------------- 임시 테스트 (로딩속도 개선)
+# ------------------------------------- 서치 컨텐츠 라우트
 
-@auth.route('/sosososo', methods=['GET', 'POST'])
-def sosososo():
-    return render_template('sosososo.html')
-
+@auth.route("/search/contents")
+def search_contents() :
+    search = request.args.get('search')
+    data = services.search_contents(search)
+    # logger.debug(f"[search] 검색 결과 {data}")
+    return json.dumps(data)
 
 # --------------------------------------------------------------------------------- 수집기
 @auth.errorhandler(404)
@@ -98,7 +100,7 @@ def process_audio_file(broadcast, name, date):
 
 def audio_save(broadcast, program_name, date, audiofile):
     path = f"./VisualRadio/radio_storage/{broadcast}/{program_name}/{date}/"
-    # 문제점: brunchcafe와 이석훈의브런치카페는 동일한 프로그램임. 추후 이 점 고려해야 할 것임
+    # 문제점: brunchcafe와 이석훈의브런치카페는 동일한 프로그램임. 추후 이 점 고려해야E 할 것임
     # DB에서 체크하는 방식으로 변경해야 함
     if os.path.exists(path + '/raw.wav'):
         logger.debug("[업로드] 이미 raw.wav가 존재함")
@@ -186,7 +188,7 @@ def to_sub2():
 # 해당회차 청취자와 키워드 리턴!! (sub2의 사이드에 띄울 청취자 참여 바로가기?)
 @auth.route('/<string:broadcast>/<string:name>/<string:date>/listeners', methods=['GET'])
 def get_listeners(broadcast, name, date):
-    result = services.get_this_listeners_and_keyword(broadcast, name, date)
+    result = services.get_this_listeners_keyword_time(broadcast, name, date)
     return json.dumps(result)
 
 # 지정된 회차의 스크립트 요청

@@ -197,10 +197,10 @@ p {
 #listenerBox {
     width: 160px;
     height: 150px;
-    background-color: rgba(255, 255, 255, 0);
+    background-color: rgba(255, 255, 255, 0.451);
     position: absolute;
     bottom: -50px;
-    right: -100px;
+    right: -150px;
     border: 2px solid rgba(106, 0, 138, 0.49);
     border-radius: 20%;
 
@@ -212,10 +212,23 @@ p {
     padding-left: 12px; 
 }
 
-    
 #textAboveListener{
     position: absolute;
     height: 200px;
-    bottom: -50px;
-    right: -77px;
+    bottom: -70px;
+    right: -115px;
+}
+
+.hover-zoom {
+    cursor: zoom-in;
+    transition: transform 0.2s;
+}
+
+.hover-zoom:hover {
+    transform: scale(1.1);
+    cursor: pointer;
+}
+
+#listenerLine {
+    text-align: left;
 }

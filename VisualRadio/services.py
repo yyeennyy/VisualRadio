@@ -52,6 +52,90 @@ from konlpy.tag import Komoran
 import math
 
 
+# ----------- 옌 컨텐츠 검색 구현중 -----------
+def search_contents(search_word):
+    script_paths = search_scriptfile_under("VisualRadio/radio_storage", "result")
+    search_result = []
+    
+    for script_path in script_paths:
+        with open(script_path, 'r') as file:
+            data = json.load(file)
+            prev_txt = None
+            next_txt = None
+            current_txt = None
+            for item in data:
+                if 'txt' in item and search_word in item['txt']:
+                    current_txt = item['txt']
+                    # 이전, 현재, 다음 item['txt'] 값을 합쳐 contents 만들기
+                    txt_list = []
+                    if prev_txt:
+                        txt_list.append(prev_txt)
+                    txt_list.append(current_txt)
+                    if next_txt:
+                        txt_list.append(next_txt)
+                    contents = " ".join(txt_list)
+
+                    # script_path에서 변수 추출
+                    broadcast = extract_broadcast(script_path)
+                    radio_name = extract_radio_name(script_path)
+                    radio_date = extract_radio_date(script_path)
+                    # 결과를 딕셔너리로 생성하고 search_result에 추가
+                    result = {
+                        'broadcast': broadcast,
+                        'radio_name': radio_name,
+                        'radio_date': radio_date,
+                        'contents': contents
+                    }
+                    search_result.append(result)
+                # 이전, 현재, 다음 item['txt'] 값을 업데이트
+                prev_txt = current_txt
+                current_txt = next_txt
+                next_txt = None
+                # 다음 item이 존재하는 경우 다음 item['txt'] 값을 업데이트
+                if item is not data[-1]:
+                    next_txt = data[data.index(item) + 1]['txt']
+                # 다음 반복 과정을 건너뛰는 경우
+                if next_txt and search_word in next_txt:
+                    continue
+    return search_result
+
+def search_scriptfile_under(basepath, target_dir):
+    result_dir_path = None
+    for root, dirs, files in os.walk(basepath):
+        if target_dir in dirs:
+            result_dir_path = os.path.join(root, target_dir)
+            break
+    # "script.json" 파일 확인
+    script_path_list = []
+    if result_dir_path:
+        script_path = os.path.join(result_dir_path, "script.json")
+        if os.path.isfile(script_path):
+            print("script.json 파일 경로:", script_path)
+            script_path_list.append(script_path)
+        else:
+            print("script.json 파일이 존재하지 않습니다.")
+    else:
+        print("result 디렉토리를 찾을 수 없습니다.")
+
+    return script_path_list
+
+def extract_broadcast(script_path):
+    parts = script_path.split("/")
+    if len(parts) >= 4:
+        return parts[3]  # "VisualRadio/radio_storage/broadcast/radio_name/radio_date/result/script.json"에서 'broadcast' 값 추출
+    return None
+def extract_radio_name(script_path):
+    parts = script_path.split("/")
+    if len(parts) >= 5:
+        return parts[4]  
+def extract_radio_date(script_path):
+    parts = script_path.split("/")
+    if len(parts) >= 6:
+        return parts[5]
+    return None
+
+
+
 # --------------------------------------------- collector
 def collector_needs(broadcast, time):
     with app.app_context():
@@ -197,23 +281,26 @@ def all_date_of(broadcast, radio_name, year, month):
 
 # ---------------------------------------------- sub2 
 # sub2에서 청취자 정보를 사이드에 띄우기 위해, 해당회차 listeners_list를 리턴한다.
-def get_this_listeners_and_keyword(broadcast, name, date):
+def get_this_listeners_keyword_time(broadcast, name, date):
     with app.app_context():
         # keywords 테이블에서 해당 회차 청취자(code)와 (keyword) json으로 리턴 (그룹 바이 회차)
         query = text("""
-            SELECT CONCAT('{"code":"',code,'", "keywords":"',GROUP_CONCAT(DISTINCT keyword SEPARATOR ','),'"}')
+            SELECT code, group_concat(keyword SEPARATOR ','), group_concat(time SEPARATOR ',')
             FROM keyword
             WHERE broadcast = '""" + broadcast + "' AND radio_name = '" + name + "' AND radio_date = '" + date 
             + "'GROUP BY code")
+
         result = db.session.execute(query).all()
         if result == None:
-            return json.dumps({'keyword':'', 'code':''})
+            return json.dumps({'keyword':'', 'code':'', 'time':''})
         answer = []
         ################# (임시: result_list에서 랜덤 2개 키워드 뽑아 '쉼표로 구분된 문자열로' 주기) #############
         for r in result:
+            code = r[0]
+            key_list = r[1].split(",")
+            times = r[2].split(",")
+            time = times[0]
             dict_object = json.loads(r[0])
-            key_list = dict_object['keywords'].split(",")
-            key_list = [key.replace("'", '') for key in key_list]
             sample_size = 2
             if len(key_list) >= sample_size:
                 random_key = random.sample(key_list, sample_size)
@@ -222,7 +309,7 @@ def get_this_listeners_and_keyword(broadcast, name, date):
                 # 샘플링된 키들을 사용하는 코드 작성
             else:
                 joined_string = ''.join(key_list)
-            answer.append({'code':dict_object['code'], 'keyword':joined_string})
+            answer.append({'code':code, 'keyword':joined_string, 'time':time})
         ####################################################################################
         return json.dumps(answer, ensure_ascii=False)
 
@@ -450,22 +537,22 @@ def stt(broadcast, name, date):
             logger.debug(f"[stt] stt할 파일 : {section_name}의 {section_mini} 파일 | 대기큐에 넣음")
             thread = threading.Thread(target=stt_proccess,
                                     args=(broadcast, name, date, section_name, section_mini))
-            th_q.put(thread)
+            # th_q.put(thread)
             
-        th_q_fin = []
-        while not th_q.empty():
-            if len(threading.enumerate()) < 6:
-                time.sleep(random.uniform(0.1, 1))
-                if memory_usage("stt") < 0.75:
-                    logger.debug(f'{memory_usage("stt")*100}%')
-                    this_th = th_q.get()
-                    logger.debug(f"{this_th.name} 시작! - 현재 실행중 쓰레드 개수 {len(threading.enumerate())}")
-                    this_th.start()
-                    th_q_fin.append(this_th)
+        # th_q_fin = []
+        # while not th_q.empty():
+            # if len(threading.enumerate()) < 7:
+                # time.sleep(random.uniform(0.1, 1))
+                # if memory_usage("stt") < 0.75:
+        logger.debug(f'{memory_usage("stt")*100}%')
+        # this_th = th_q.get()
+        logger.debug(f"{this_th.name} 시작! - 현재 실행중 쓰레드 개수 {len(threading.enumerate())}")
+        this_th.start()
+        th_q_fin.append(this_th)
 
         for thread in th_q_fin:
             thread.join()
-            del thread
+        #     del thread
 
         end_time = time.time()
         logger.debug(f"[stt] {section_name} 완료 : 소요시간 {int((end_time-start_time)//60)}분 {int((end_time-start_time)%60)}초")
@@ -559,17 +646,17 @@ def go_whisper_stt(src_path, dst_path, save_name):
     device = "cpu"    #device = "cuda" if torch.cuda.is_available() else "cpu"
     language = "ko"
 
-    while True:
-        time.sleep(random.uniform(0.1, 1))
-        if memory_usage("stt") > 0.8:
-            continue
-        logger.debug(f"[stt] {dst_path}/{save_name} 진행 중")
-        model = whisper.load_model("base").to(device)
-        results = model.transcribe(
-            src_path, language=language, temperature=0.0, word_timestamps=True)
-        del model
-        gc.collect()
-        break
+    # while True:
+        # time.sleep(random.uniform(0.1, 1))
+        # if memory_usage("stt") > 0.8:
+            # continue
+    logger.debug(f"[stt] {dst_path}/{save_name} 진행 중")
+    model = whisper.load_model("base").to(device)
+    results = model.transcribe(
+        src_path, language=language, temperature=0.0, word_timestamps=True)
+    del model
+    gc.collect()
+        # break
 
     # 스크립트 만들기
     endings = ['에요', '해요', '예요', '지요', '네요', '[?]{1}', '[가-힣]{1,2}시다', '[가-힣]{1,2}니다', '어요', '구요', '군요', '어요', '아요', '은요', '이요', '든요', '워요', '드리고요', '되죠', '하죠', '까요', '게요', '시죠', '거야', '잖아']
@@ -876,18 +963,18 @@ def register_listener(broadcast, radio_name, radio_date):
         logger.debug(f"[find_listner] 경고: 만들어진 script가 없음 {broadcast} {radio_name} {radio_date}")
     with open(script_file, 'r', encoding='utf-8') as f:
         data = json.load(f)
-    regex = "(?<!\d)(?<!\d )\d{4}(?! \d)(?!\d)" # 전화번호처럼 연속된 8자리(공백포함)는 인식하지 않는 정규표현식임
+    regex = "(?<![0-9])(?<![0-9] )[0-9]{4}(?!년| 년)(?! [0-9])(?![0-9])" # 전화번호처럼 연속된 8자리(공백포함)는 인식하지 않는 정규표현식임
     listener_set = set()
     # preview_text_list = []
     for line in data:
         # 라인별 person_list 찾기
-        logger.debug(f"[ㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡ]lineㅡㅡㅡㅡ{line}")
+        # logger.debug(f"[ㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡ]lineㅡㅡㅡㅡ{line}")
         person_list = re.findall(regex, line['txt'])
         if len(person_list) == 0:
             continue
         # 찾았으
         listener_set = set.union(listener_set, person_list)
-        logger.debug(f"[ㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡ]listenre setㅡㅡㅡㅡ{listener_set}")
+        # logger.debug(f"[ㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡ]listenre setㅡㅡㅡㅡ{listener_set}")
 
         # TODO: 개선하고 싶다. txt의 앞뒤를 가져오고 싶다. 그치만 지금은 한 문장에 대해서만 적용해보자.
         # for person in person_list:
@@ -906,7 +993,7 @@ def register_listener(broadcast, radio_name, radio_date):
                     stop_words = ['님', '하', '제가', '지', '고요', '저', '드', '들', '가', '보']
                     result = [keyword[0] for keyword in keywords if keyword[0] not in stop_words]
                     for r in result:
-                        keyword = Keyword(broadcast=broadcast, radio_name=radio_name, radio_date=radio_date, code=listener, keyword=r)
+                        keyword = Keyword(broadcast=broadcast, radio_name=radio_name, radio_date=radio_date, code=listener, keyword=r, time=line['time'])
                         db.session.add(keyword)
                     db.session.commit()
             except IntegrityError as e:
