@@ -1,3 +1,8 @@
+window.onload = function () { 
+  getCookie(broadcast, radio_name);
+  setLikeImage(broadcast, radio_name);
+}; 
+
 const channelsElement = document.getElementById("channels");
 
 function createRadioBroadcast(broadcast) {
@@ -76,7 +81,7 @@ function getInfo() {
               const url = `/like/${broadcast}/${radio_name}`;
               
               // 쿠키 생성
-              setCookie(broadcast, radio_name, "true", 7);
+              setCookie(broadcast, radio_name, "true", 365);
               const cookieValue = getCookie(broadcast, radio_name);
               console.log(cookieValue);
               
@@ -99,7 +104,7 @@ function getInfo() {
               const unlikeUrl = `/unlike/${broadcast}/${radio_name}`;
 
               // 쿠키 생성
-              setCookie(broadcast, radio_name, "false", 7);
+              setCookie(broadcast, radio_name, "false", 365);
               const cookieValue = getCookie(broadcast, radio_name);
               console.log(cookieValue);
 
