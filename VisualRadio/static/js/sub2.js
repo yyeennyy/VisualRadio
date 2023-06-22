@@ -8,7 +8,7 @@ window.onload = function() {
   radio_name = urlParams.get('radio_name');
   date = urlParams.get('date');
   document.getElementById('info').innerHTML = `${radio_name}  ${date}`
-
+  getContents()
   getScript(broadcast, radio_name, date).then(() => startSubtitles());
   get_listeners();
   getWave(broadcast, radio_name, date);
@@ -162,15 +162,6 @@ function getWave(broadcast, radio_name, date) {
   xhr.send();
 }
 
-
-// function getWave(radio_name, date) {
-//   fetch(`${source}/${radio_name}/${date}/wave`)
-//   .then((response) => response.json())
-//   .then((data) =>
-//       document.getElementById('audio').src =  data.wave)
-// }
-
-
 function parseTime(timeString) {
   const [min, secMillisec] = timeString.split(':');
   const [sec, millisec] = secMillisec.split('.');
@@ -293,31 +284,26 @@ function startSectionChecking() {
     }, 1000);
   }
 
-function showContents(){
-  fetch(`/${broadcast}/${radio_name}/${date}/section`)
+// var contents = [];
+
+
+let contents;
+
+function getContents() {
+  return fetch(`/${broadcast}/${radio_name}/${date}/section`)
     .then(response => response.json())
-    .then(data => {
-      // console.log(data)
-      const audioCurrentTime = audio.currentTime;
-      
-    //   for (var i = 0; i < data.length; i++) {
-    //     var item = data[i];
-    //     var startTime = timeStringToFloat(item.start_time);
-    //     var endTime = timeStringToFloat(item.end_time);
+    .then(imgUrl => {
+      contents = imgUrl;
+      return imgUrl;
+    });
+}
+
+
+function showContents(){
+    const audioCurrentTime = audio.currentTime;
+    // console.log(contents)
     
-    //     // 현재 재생 시간이 start_time과 end_time 사이에 있는 경우
-    //     if (startTime <= audioCurrentTime && audioCurrentTime <= endTime) {
-    //         // 해당 type에 맞는 이미지를 띄워줌
-    //         if (item.type === 1) {
-    //             showImage('image1.jpg');
-    //         } else if (item.type === 2) {
-    //             showImage('image2.jpg');
-    //         }
-    //         break;
-    //     }
-    // }
-    
-    for (const item of data) {
+    for (const item of contents) {
       if (item.type === 1 || item.type === 2) {
         // console.log(11111111)
         const startTime = timeStringToFloat(item.start_time);
@@ -333,8 +319,7 @@ function showContents(){
       }
   }
   removeImage();
-    })
-}
+    }
 
 function displayImage(imageUrl){
     // 이미지를 화면에 표시하는 함수
