@@ -310,7 +310,7 @@ function showContents(){
         const endTime = timeStringToFloat(item.end_time);
         // console.log(startTime)
         // console.log(audioCurrentTime)
-        if (audioCurrentTime >= startTime && audioCurrentTime <= endTime) {
+        if (audioCurrentTime >= startTime && audioCurrentTime <= endTime & timeStringToFloat("0:00.000")) {
           // console.log(11111111112222222222)
           if (item.type == 1) displayImage('/static/images/ading.png');
           else displayImage();
