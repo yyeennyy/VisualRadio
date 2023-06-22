@@ -328,6 +328,7 @@ def audio_save_db(broadcast, name, date):
         if not radio:
             logger.debug(f"[업로드] 새로운 라디오의 등장!! {broadcast} {name}")
             radio = Radio(broadcast=broadcast, radio_name=name, start_time=None, record_len=0, like_cnt=0)
+
             db.session.add(radio)
         # wav 테이블에 해당회차 추가
         wav = Wav.query.filter_by(broadcast = broadcast, radio_name=name, radio_date=str(date)).first()
@@ -345,6 +346,7 @@ def audio_save_db(broadcast, name, date):
             process.script = 0
             process.sum = 0
         else:
+            logger.debug("[업로드] Process 테이블에 추가")
             process = Process(radio_name=name, radio_date=date, broadcast=broadcast, raw=1, split1=0, split2=0, end_stt=0,
                       all_stt=0, script=0, sum=0)
             db.session.add(process)
@@ -537,35 +539,38 @@ def stt(broadcast, name, date):
             logger.debug(f"[stt] stt할 파일 : {section_name}의 {section_mini} 파일 | 대기큐에 넣음")
             thread = threading.Thread(target=stt_proccess,
                                     args=(broadcast, name, date, section_name, section_mini))
-            # th_q.put(thread)
-            
-        # th_q_fin = []
-        # while not th_q.empty():
-            # if len(threading.enumerate()) < 7:
-                # time.sleep(random.uniform(0.1, 1))
-                # if memory_usage("stt") < 0.75:
-        logger.debug(f'{memory_usage("stt")*100}%')
-        # this_th = th_q.get()
-        logger.debug(f"{this_th.name} 시작! - 현재 실행중 쓰레드 개수 {len(threading.enumerate())}")
-        this_th.start()
-        th_q_fin.append(this_th)
-
-        for thread in th_q_fin:
-            thread.join()
-        #     del thread
-
-        end_time = time.time()
-        logger.debug(f"[stt] {section_name} 완료 : 소요시간 {int((end_time-start_time)//60)}분 {int((end_time-start_time)%60)}초")
-        gc.collect()
+            th_q.put(thread)
         
-        # DB - stt를 True로 갱신
-        with app.app_context():
-            process = Process.query.filter_by(broadcast = broadcast, radio_name=name, radio_date=date).first()
-            if not process:
-                logger.debug(f"[stt] [오류] {broadcast} {name} {date} 가 있어야 하는데, DB에서 찾지 못함")
+    th_q_fin = []
+    while not th_q.empty():
+        # if len(threading.enumerate()) < 7:
+        time.sleep(random.uniform(0.1, 1))
+        if memory_usage("stt") < 0.70:
+            logger.debug(f'{th_q}')
+            logger.debug(f'{memory_usage("stt")*100}%')
+            this_th = th_q.get()
+            logger.debug(f"{this_th.name} 시작! - 현재 실행중 쓰레드 개수 {len(threading.enumerate())}")
+            this_th.start()
+            th_q_fin.append(this_th)
+
+    for thread in th_q_fin:
+        thread.join()
+        del thread
+
+    gc.collect()
+    
+    # DB - stt를 True로 갱신
+    with app.app_context():
+        process = Process.query.filter_by(broadcast = broadcast, radio_name=name, radio_date=date).first()
+        if not process:
+            logger.debug(f"[stt] [오류] {broadcast} {name} {date} 가 있어야 하는데, DB에서 찾지 못함")
+    end_time = time.time()
+    logger.debug(f"[stt] 총 stt 소요시간! 고생했다~ {end_time - start_time} second")
+    
 
 
 def stt_proccess(broadcast, name, date, section_name, section_mini):
+    logger.debug(f"[stt_process] 시작시작 {section_name} ---- {section_mini}")
     # 파라미터의 section_name은 1차분할 결과인 sec_1, sec_2와 같은 이름이다.
     # 파라미터의 section_mini는 2차분할 결과인 sec_n.wav와 같은 이름이다.
 
@@ -636,7 +641,7 @@ def go_fast_stt(src_path, dst_path, interval, save_name):
     filename = f"{dst_path}/{save_name}"
     with open(filename, 'w', encoding='utf-8') as f:
         json.dump(data, f, ensure_ascii=False)
-    logger.debug(f"[stt] {dst_path}/{save_name} 진행 완료")
+    # logger.debug(f"[stt] {dst_path}/{save_name} 진행 완료")
     return data
 
 
@@ -646,17 +651,18 @@ def go_whisper_stt(src_path, dst_path, save_name):
     device = "cpu"    #device = "cuda" if torch.cuda.is_available() else "cpu"
     language = "ko"
 
-    # while True:
-        # time.sleep(random.uniform(0.1, 1))
-        # if memory_usage("stt") > 0.8:
-            # continue
-    logger.debug(f"[stt] {dst_path}/{save_name} 진행 중")
-    model = whisper.load_model("base").to(device)
-    results = model.transcribe(
-        src_path, language=language, temperature=0.0, word_timestamps=True)
-    del model
-    gc.collect()
-        # break
+    while True:
+        time.sleep(random.uniform(0.1, 1))
+        if memory_usage("stt") > 0.7:
+            continue
+        # logger.debug(f"[stt] {dst_path}/{save_name} 진행 중")
+        model = whisper.load_model("small").to(device)
+        results = model.transcribe(
+            src_path, language=language, temperature=0.0, word_timestamps=True)
+        del model
+        gc.collect()
+        logger.debug(memory_usage("stt"))
+        break
 
     # 스크립트 만들기
     endings = ['에요', '해요', '예요', '지요', '네요', '[?]{1}', '[가-힣]{1,2}시다', '[가-힣]{1,2}니다', '어요', '구요', '군요', '어요', '아요', '은요', '이요', '든요', '워요', '드리고요', '되죠', '하죠', '까요', '게요', '시죠', '거야', '잖아']
@@ -983,7 +989,7 @@ def register_listener(broadcast, radio_name, radio_date):
         with app.app_context():
             try:
                 for listener in listener_set:
-                    text = line['txt']
+                    text = line['txt'][:100]
                     db.session.add(Listener(broadcast=broadcast, radio_name=radio_name, radio_date=radio_date, code=listener, preview_text=text, time=line['time']))
                     # TODO: 현재 line['txt']에 대해 textrank적용 => keyword들 추출 => keyword DB테이블에 이 회차, 청취자, keyword 레코드 삽입하기!
                     ############### 키워드 추출 #################
@@ -1253,4 +1259,5 @@ def memory_usage(message: str = 'debug'):
     p = psutil.Process()
     rss = p.memory_info().rss / 2 ** 20 # Bytes to MB
     # print(f"[{message}] memory usage: {rss: 10.5f} MB |{type(rss)}| {(rss/5*8*1024)*100}%")
-    return rss/(16*1024)
+    # logger.debug(rss/(128*1024))
+    return rss/(128*1024)

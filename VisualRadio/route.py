@@ -67,6 +67,17 @@ def get_process(broadcast, radio_name, radio_date):
 
 
 # --------------------------------------------------------------------------------- admin페이지의 업로드 프로세스
+
+@auth.route("/<string:broadcast>/<string:program_name>/<string:date>/check_wav", methods=['GET'])
+def check_wav(broadcast, program_name, date):
+    logger.debug("check_wav")
+    path = f"VisualRadio/radio_storage/{broadcast}/{program_name}/{date}/raw.wav"
+    if os.path.isfile(path):
+        logger.debug("[업로드] wav가 이미 있나? 있다.")
+        return jsonify({'wav':'true'})
+    else:
+        return jsonify({'wav':'false'})
+
 @auth.route('/admin-update', methods=['POST'])
 def admin_update():
     logger.debug(f"[업로드] 호출됨")
@@ -74,27 +85,32 @@ def admin_update():
     program_name = request.form.get('program_name')
     date = request.form.get('date')
     guest_info = request.form.get('guest_info')
-    audio_file = request.files.get('audio_file')
-    audio_save(broadcast, program_name, date, audio_file)
+    try:
+        audio_file = request.files.get('audio_file')
+        audio_save(broadcast, program_name, date, audio_file)
+    except:
+        audio_file = None
+    services.audio_save_db(broadcast, program_name, date)
     logger.debug(f"[업로드] 등록 완료: {broadcast}, {program_name}, {date}, {guest_info}")
 
     # 다른 프로세스를 백그라운드로 실행시키기
     logger.debug("[업로드] 음성처리 - 백그라운드로 시작")
     t = threading.Thread(target=process_audio_file, args=(broadcast, program_name, date))
     t.start()
-    return "ok"
+
+    return jsonify({'message': 'Success'})
 
 
 def process_audio_file(broadcast, name, date):
     logger.debug(f"{broadcast} {name} {date}")
     services.split(broadcast, name, date)
     start_times = services.split_cnn(broadcast, name, date)
-    # services.stt(broadcast, name, date)
-    # services.before_script(broadcast, name, date, start_times, 'whisper')
-    # services.before_script(broadcast, name, date, start_times, 'google')
-    # services.make_script(broadcast, name, date)
-    # services.register_listener(broadcast, name, date)
-    # services.sum_wav_sections(broadcast, name, date)
+    services.stt(broadcast, name, date)
+    services.before_script(broadcast, name, date, start_times, 'whisper')
+    services.before_script(broadcast, name, date, start_times, 'google')
+    services.make_script(broadcast, name, date)
+    services.register_listener(broadcast, name, date)
+    services.sum_wav_sections(broadcast, name, date)
     logger.debug("[업로드] 오디오 처리 완료")
     return "ok"
 
@@ -102,12 +118,11 @@ def audio_save(broadcast, program_name, date, audiofile):
     path = f"./VisualRadio/radio_storage/{broadcast}/{program_name}/{date}/"
     # 문제점: brunchcafe와 이석훈의브런치카페는 동일한 프로그램임. 추후 이 점 고려해야E 할 것임
     # DB에서 체크하는 방식으로 변경해야 함
-    if os.path.exists(path + '/raw.wav'):
-        logger.debug("[업로드] 이미 raw.wav가 존재함")
-    else:
-        os.makedirs(path, exist_ok=True)
-        audiofile.save(path + 'raw.wav')
-    services.audio_save_db(broadcast, program_name, date)
+    # if os.path.exists(path + '/raw.wav'):
+        # logger.debug("[업로드] 이미 raw.wav가 존재함")
+    # else:
+    os.makedirs(path, exist_ok=True)
+    audiofile.save(path + 'raw.wav')
     logger.debug(f"[업로드] raw.wav 저장 완료 - {broadcast} {program_name} {date}")
     return "ok"
 
@@ -290,8 +305,11 @@ def test():
 
 
 def read_json_file(file_path):
+    # try:
     with open(file_path, 'r', encoding='utf-8') as f:
         data = json.load(f)
+    # except:
+        # logger.debug("[route.read_json_file] error!")
     return data
 
 
