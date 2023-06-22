@@ -91,6 +91,7 @@ def search_programs(search):
             else:
                 j['img'] = "/static/images/default_main.png"
     json_data = json.dumps(dict_list, ensure_ascii=False)
+
     return json_data
 
 
@@ -108,6 +109,72 @@ def search_listeners(search):
     
     json_data = json.dumps(info, ensure_ascii=False)
     return json_data
+
+def search_contents(search_word):
+    script_paths = search_scriptfile_under("VisualRadio/radio_storage", "result")
+    search_result = []
+    
+    for script_path in script_paths:
+        with open(script_path, 'r') as file:
+            data = json.load(file)
+            prev_txt = None
+            next_txt = None
+            current_txt = None
+            for item in data:
+                if 'txt' in item and search_word in item['txt']:
+                    current_txt = item['txt']
+                    # 이전, 현재, 다음 item['txt'] 값을 합쳐 contents 만들기
+                    txt_list = []
+                    if prev_txt:
+                        txt_list.append(prev_txt)
+                    txt_list.append(current_txt)
+                    if next_txt:
+                        txt_list.append(next_txt)
+                    contents = " ".join(txt_list)
+
+                    # script_path에서 변수 추출
+                    broadcast = extract_broadcast(script_path)
+                    radio_name = extract_radio_name(script_path)
+                    radio_date = extract_radio_date(script_path)
+                    # 결과를 딕셔너리로 생성하고 search_result에 추가
+                    result = {
+                        'broadcast': broadcast,
+                        'radio_name': radio_name,
+                        'radio_date': radio_date,
+                        'contents': contents
+                    }
+                    search_result.append(result)
+                # 이전, 현재, 다음 item['txt'] 값을 업데이트
+                prev_txt = current_txt
+                current_txt = next_txt
+                next_txt = None
+                # 다음 item이 존재하는 경우 다음 item['txt'] 값을 업데이트
+                if item is not data[-1]:
+                    next_txt = data[data.index(item) + 1]['txt']
+                # 다음 반복 과정을 건너뛰는 경우
+                if next_txt and search_word in next_txt:
+                    continue
+    return search_result
+
+def search_scriptfile_under(basepath, target_dir):
+    result_dir_path = None
+    for root, dirs, files in os.walk(basepath):
+        if target_dir in dirs:
+            result_dir_path = os.path.join(root, target_dir)
+            break
+    # "script.json" 파일 확인
+    script_path_list = []
+    if result_dir_path:
+        script_path = os.path.join(result_dir_path, "script.json")
+        if os.path.isfile(script_path):
+            print("script.json 파일 경로:", script_path)
+            script_path_list.append(script_path)
+        else:
+            print("script.json 파일이 존재하지 않습니다.")
+    else:
+        print("result 디렉토리를 찾을 수 없습니다.")
+
+    return script_path_list
 
 # --------------------------------------------- 좋아요 기능
 def like(bcc, name):

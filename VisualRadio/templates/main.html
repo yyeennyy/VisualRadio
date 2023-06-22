@@ -8,6 +8,7 @@
     <link rel="stylesheet" href="/static/css/main.css">
     <script type="module" src="/static/js/cookie.js"></script>
     <script type="module" src="/static/js/main.js"></script>
+    <!-- <script type="module" src="/static/js/search.js"></script> -->
 </head>
 <body>
     <div id = "wrap">
@@ -39,12 +40,85 @@
               <button type="submit">검색</button>
             </form>
         </div>
+        <div id = "searchMenu">
+            <ul>
+                <li id = "search">통합검색</li>
+                <li id = "program">프로그램</li>
+                <li id = "user">청취자</li>
+                <li id = "contents">컨텐츠</li>
+            </ul>
+        </div>
         <div id="resultTextTitle"></div>
         <div id="resultContainer">
-            <br><br>
-            <p id="resultText"></p>
+            <!-- <p id="resultText"></p> -->
             <div id = "result">
-                <div id = "resultchannels"></div>
+                <!-- <div id = "resultchannels"></div> -->
+                <div class = "resultBox">
+                    <div class = "resultTitle">프로그램</div>
+                    <p id = "a"></p>
+                    <div id = "resultPrograms">
+                        <!-- 프로그램 검색할 때 생성되어야 할 부분-->
+                        <!-- <div class = "resultProgram">
+                            <div class = "section1">
+                                <div class="cover_back median">
+                                    <div class="lp">
+                                      <img class="imgControl" src="/static/images/lp.png">
+                                    </div>
+                                    <div class="cover">
+                                      <img class="imgControl" src="${img}">
+                                    </div>
+                                    <div class="like">
+                                      <img class="imgControl" src="/static/images/before_heart.png">
+                                    </div>
+                                  </div>
+                            </div>
+                            <div class = "section2">
+                                <div class = "resultProgramSet">
+                                    <div class="resultProgram_broadcast tmp"></div>
+                                    <div class="resultProgram_radioName tmp" broadcast="${broadcast}" radio_name="${radio_class}">${radio_name}</div>
+                                    <div class="resultProgram_mc tmp"></div>
+                                </div>
+                            </div>
+                        </div> -->
+                    </div>
+                </div>
+                <hr id = 'h'>
+                <div class="resultBox">
+                    <div class = "resultTitle">청취자</div>
+                    <p id = "b"></p>
+                    <div class = "resultUsers">
+                        <!-- 청취자 검색할 때 생성되어야 할 부분-->
+                        <!-- <div class = "resultUser">
+                            <table class = "userTable">
+                                <tr>
+                                    <td class = "resultUser_user"></td>
+                                    <td class = "resultUser_broadcast"></td>
+                                    <td class = "resultUser_radioName"></td>
+                                    <td class = "resultUser_radioDate"></td>
+                                </tr>
+                            </table>
+                        </div>
+                        <div class = "resultUser_preView"></div> -->
+                    </div>
+                </div>
+                <hr id = 'r'>
+                <div class="resultBox">
+                    <div class = "resultTitle">컨텐츠</div>
+                    <p id = "c"></p>
+                    <div class = "resultContents"></div>
+                    <!-- 컨텐츠 검색할 때 생성되어야 할 부분-->
+                        <!-- <div class = "resultContent">
+                            <table class = "contentsTable">
+                                <tr>
+                                    <td class = "resultContents_broadcast"></td>
+                                    <td class = "resultContents_radioName"></td>
+                                    <td class = "resultContents_radionDate"></td>
+                                </tr>
+                            </table>
+                            <div class = "resultContents_preView"></div>
+                        </div> -->
+                    </div>
+                </div>
             </div>
         </div>
         <div id = "channels"></div>

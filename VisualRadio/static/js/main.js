@@ -1,6 +1,15 @@
 window.onload = function () { 
+  var urlParams = new URLSearchParams(window.location.search);    
+  var broadcast = urlParams.get('broadcast');
+  var radio_name = urlParams.get('radio_name');
   getCookie(broadcast, radio_name);
   setLikeImage(broadcast, radio_name);
+
+  if (broadcast !== null && radio_name !== null) {
+    broadcast = broadcast.replace(/\/$/, '');
+    getCookie(broadcast, radio_name);
+    setLikeImage(broadcast, radio_name);
+  }
 }; 
 
 const channelsElement = document.getElementById("channels");
@@ -37,15 +46,31 @@ function createProgramElement(program, broadcast) {
   return programElement;
 }
 
-function setLikeImage(programElement, broadcast, radio_name) {
-  const likeElement = programElement.querySelector(".like");
-  const heartImage = likeElement.querySelector(".imgControl");
+// function setLikeImage(programElement, broadcast, radio_name) {
+//   const likeElement = programElement.querySelector(".like");
+//   const heartImage = likeElement.querySelector(".imgControl");
 
-  const cookieValue = getCookie(broadcast, radio_name);
-  if (cookieValue === "true") {
-    heartImage.src = '/static/images/heart.png';
-  } else {
-    heartImage.src = '/static/images/before_heart.png';
+//   const cookieValue = getCookie(broadcast, radio_name);
+//   if (cookieValue === "true") {
+//     heartImage.src = '/static/images/heart.png';
+//   } else {
+//     heartImage.src = '/static/images/before_heart.png';
+//   }
+// }
+
+function setLikeImage(broadcast, radio_name) {
+  const programElement = document.querySelector(`.program_name[broadcast="${broadcast}"][radio_name="${radio_name}"]`);
+  
+  if (programElement) {
+    const likeElement = programElement.closest(".content").querySelector(".like");
+    const heartImage = likeElement.querySelector(".imgControl");
+
+    const cookieValue = getCookie(broadcast, radio_name);
+    if (cookieValue === "true") {
+      heartImage.src = '/static/images/heart.png';
+    } else {
+      heartImage.src = '/static/images/before_heart.png';
+    }
   }
 }
 

@@ -114,20 +114,55 @@ def audio_save(broadcast, program_name, date, audiofile):
 def search_page():
     return render_template('search.html')
 
-@auth.route("/search/program")
-def search_program():
-    search = request.args.get('search')
-    data = services.search_programs(search)
-    logger.debug(f"[search] 검색 결과 {data}")
+@auth.route("/search/program/<string:radio_name>")
+def search_program(radio_name):
+    # search = request.args.get('search')
+    data = services.search_programs(radio_name)
+    logger.debug(f"[프로그램 search] 검색 결과 {data}")
+    
+#     결과 형식 [{
+# 	"broadcast": "Broadcast 1",
+# 	"programs": [{
+# 		"radio_name": "Radio Program 1",
+# 		"img": "/static/main_imgs/Broadcast 1/Radio Program 1/main_img.jpeg"
+# 		},
+#             ...
+#         ]
+#     },
+#     ...
+# ]
+
     return json.dumps(data)
 
-@auth.route("/search/listener")
-def search_listener():
-    search = request.args.get('search')
-    data = services.search_listeners(search)
-    logger.debug(f"[search] 검색 결과 {data}")
+@auth.route("/search/listener/<string:code>")
+def search_listener(code):
+    # search = request.args.get('search')
+    # data = services.search_listeners(code)
+    
+    data = [{
+        'broadcast':'MBC FM4U',
+        'radio_name': '이석훈의브런치카페',
+        'radio_date':'2023-05-08',
+        'preview_text':'안녕하세요. 저도 이석훈입니다. 라디오는 처음 들어보는데 이름이 같아서 한 번 보내봅니다.<br>라디오를 듣고 계시는 모든 분들 남은 오늘 하루도 파이팅입니다. \
+            <br><br>드디어 대망의 날이 밝았습니다! 과연 보라돌이팀의 결과는~?<br>두구두구두구 12시간 뒤에 만나보시죠 :3'
+    }]
+    
+    logger.debug(f"[청취자 search] 검색 결과 {data}")
     return json.dumps(data)
 
+
+@auth.route("/search/contents/<string:search>")
+def search_contentssearch(search) :
+    # data = services.search_contents(search)
+    data = [{
+        'broadcast':'MBC FM4U',
+        'radio_name': '이석훈의브런치카페',
+        'radio_date':'2023-05-08',
+        'contents':'보라돌이팀에서 졸업 프로젝트의 테스트 데이터로 이석훈의 브런치카페를 사용했다고 하는데요, 감사합니다.<br>남은 졸업 프로젝트도 파이팅하시길 쿤디가 응원합니다. \
+            <br><br>신경준은 잠오는 중 ~<br>김예은, 진지원 쌩쌩하는 중 ^0^'
+    }]
+    logger.debug(f"[컨텐츠 search] 검색 결과 {data}")
+    return json.dumps(data)
 # --------------------------------------------------------------------------------- 좋아요 전용
 @auth.route("/like/<string:broadcast>/<string:radio_name>", methods=['GET'])
 def like(broadcast, radio_name):
