@@ -85,6 +85,8 @@ def save_split(test_path, model_path, output_path):
     
     mod_res = modify_list(result)
     ment_range = extract_zero_segments(mod_res)
+    not_ment_range = extract_one_segments(ment_range, len(result))
+    all_range = merge_and_sort_ranges(ment_range, not_ment_range)
     
     # 오디오 파일 로드
     audio, sr = librosa.load(test_path, sr=None)
@@ -100,4 +102,31 @@ def save_split(test_path, model_path, output_path):
         name = f"/sec_{idx}.wav"
         sf.write(output_path+name, sliced_audio, sr)
         print(f"Segment {idx} 저장 완료: {name}")
-    return ment_range
+        
+        
+    return ment_range, all_range
+
+def extract_one_segments(ment_range, section_length):
+    # 전체 구간을 담을 리스트 초기화
+    extracted_ranges = []
+
+    # 구간을 순회하면서 제외된 구간을 추출
+    prev_end = 0
+    for range_start, range_end in ment_range:
+        # 이전 구간의 끝부터 현재 구간의 시작까지의 구간 추가
+        if range_start > prev_end:
+            extracted_ranges.append([prev_end, range_start])
+
+        # 다음 구간의 시작으로 설정
+        prev_end = range_end
+
+    # 마지막 구간의 끝부터 전체 길이까지의 구간 추가
+    if prev_end < section_length:
+        extracted_ranges.append([prev_end, section_length])
+
+    return extracted_ranges
+
+def merge_and_sort_ranges(range_list1, range_list2):
+    merged_ranges = range_list1 + range_list2
+    sorted_ranges = sorted(merged_ranges, key=lambda x: x[0])
+    return sorted_ranges

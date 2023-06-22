@@ -5,11 +5,13 @@ class Wav(db.Model):
     broadcast = db.Column(db.String(20), nullable=False, default="None", primary_key = True)
     radio_name = db.Column(db.String(50), primary_key=True)
     radio_date = db.Column(db.String(50), primary_key=True)
+    radio_section = db.Column(db.Text)
 
-    def __init__(self, broadcast, radio_name, radio_date):
+    def __init__(self, broadcast, radio_name, radio_date, radio_section):
         self.broadcast = broadcast
         self.radio_name = radio_name
         self.radio_date = radio_date
+        self.radio_section = radio_section
 
     def __repr__(self):
         return f"<Radio {self.broadcast} {self.radio_name} {self.radio_date}>\n"
@@ -92,10 +94,13 @@ class Keyword(db.Model):
     radio_date = db.Column(db.String(50))
     code = db.Column(db.String(10), nullable=False)
     keyword = db.Column(db.String(20), nullable=False)
+    time = db.Column(db.String(20), nullable=False)
 
-    def __init__(self, broadcast, radio_name, radio_date, code, keyword):
+
+    def __init__(self, broadcast, radio_name, radio_date, code, keyword, time):
         self.broadcast = broadcast 
         self.radio_name = radio_name
         self.radio_date = radio_date
         self.code = code
         self.keyword = keyword
+        self.time = time

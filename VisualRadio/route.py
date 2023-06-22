@@ -15,12 +15,14 @@ auth = Blueprint('auth', __name__)
 from VisualRadio import CreateLogger
 logger = CreateLogger("우리가1등(^o^)b")
 
-# ---------------- 임시 테스트 (로딩속도 개선)
+# ------------------------------------- 서치 컨텐츠 라우트
 
-@auth.route('/sosososo', methods=['GET', 'POST'])
-def sosososo():
-    return render_template('sosososo.html')
-
+@auth.route("/search/contents")
+def search_contents() :
+    search = request.args.get('search')
+    data = services.search_contents(search)
+    # logger.debug(f"[search] 검색 결과 {data}")
+    return json.dumps(data)
 
 # --------------------------------------------------------------------------------- 수집기
 @auth.errorhandler(404)
@@ -65,6 +67,17 @@ def get_process(broadcast, radio_name, radio_date):
 
 
 # --------------------------------------------------------------------------------- admin페이지의 업로드 프로세스
+
+@auth.route("/<string:broadcast>/<string:program_name>/<string:date>/check_wav", methods=['GET'])
+def check_wav(broadcast, program_name, date):
+    logger.debug("check_wav")
+    path = f"VisualRadio/radio_storage/{broadcast}/{program_name}/{date}/raw.wav"
+    if os.path.isfile(path):
+        logger.debug("[업로드] wav가 이미 있나? 있다.")
+        return jsonify({'wav':'true'})
+    else:
+        return jsonify({'wav':'false'})
+
 @auth.route('/admin-update', methods=['POST'])
 def admin_update():
     logger.debug(f"[업로드] 호출됨")
@@ -72,21 +85,26 @@ def admin_update():
     program_name = request.form.get('program_name')
     date = request.form.get('date')
     guest_info = request.form.get('guest_info')
-    audio_file = request.files.get('audio_file')
-    audio_save(broadcast, program_name, date, audio_file)
+    try:
+        audio_file = request.files.get('audio_file')
+        audio_save(broadcast, program_name, date, audio_file)
+    except:
+        audio_file = None
+    services.audio_save_db(broadcast, program_name, date)
     logger.debug(f"[업로드] 등록 완료: {broadcast}, {program_name}, {date}, {guest_info}")
 
     # 다른 프로세스를 백그라운드로 실행시키기
     logger.debug("[업로드] 음성처리 - 백그라운드로 시작")
     t = threading.Thread(target=process_audio_file, args=(broadcast, program_name, date))
     t.start()
-    return "ok"
+
+    return jsonify({'message': 'Success'})
 
 
 def process_audio_file(broadcast, name, date):
     logger.debug(f"{broadcast} {name} {date}")
     services.split(broadcast, name, date)
-    start_times, _ = services.split_cnn(broadcast, name, date)
+    start_times = services.split_cnn(broadcast, name, date)
     services.stt(broadcast, name, date)
     services.before_script(broadcast, name, date, start_times, 'whisper')
     services.before_script(broadcast, name, date, start_times, 'google')
@@ -98,14 +116,13 @@ def process_audio_file(broadcast, name, date):
 
 def audio_save(broadcast, program_name, date, audiofile):
     path = f"./VisualRadio/radio_storage/{broadcast}/{program_name}/{date}/"
-    # 문제점: brunchcafe와 이석훈의브런치카페는 동일한 프로그램임. 추후 이 점 고려해야 할 것임
+    # 문제점: brunchcafe와 이석훈의브런치카페는 동일한 프로그램임. 추후 이 점 고려해야E 할 것임
     # DB에서 체크하는 방식으로 변경해야 함
-    if os.path.exists(path + '/raw.wav'):
-        logger.debug("[업로드] 이미 raw.wav가 존재함")
-    else:
-        os.makedirs(path, exist_ok=True)
-        audiofile.save(path + 'raw.wav')
-    services.audio_save_db(broadcast, program_name, date)
+    # if os.path.exists(path + '/raw.wav'):
+        # logger.debug("[업로드] 이미 raw.wav가 존재함")
+    # else:
+    os.makedirs(path, exist_ok=True)
+    audiofile.save(path + 'raw.wav')
     logger.debug(f"[업로드] raw.wav 저장 완료 - {broadcast} {program_name} {date}")
     return "ok"
 
@@ -221,7 +238,7 @@ def to_sub2():
 # 해당회차 청취자와 키워드 리턴!! (sub2의 사이드에 띄울 청취자 참여 바로가기?)
 @auth.route('/<string:broadcast>/<string:name>/<string:date>/listeners', methods=['GET'])
 def get_listeners(broadcast, name, date):
-    result = services.get_this_listeners_and_keyword(broadcast, name, date)
+    result = services.get_this_listeners_keyword_time(broadcast, name, date)
     return json.dumps(result)
 
 # 지정된 회차의 스크립트 요청
@@ -265,22 +282,23 @@ def get_wave(broadcast, name, date):
 
 @auth.route('/<string:broadcast>/<string:radio_name>/<string:radio_date>/section', methods= ['GET'])
 def load_index_info(broadcast, radio_name, radio_date) :
-    section_time = [{'start_time' : "0:00.000",
-                     'end_time'   : "0:06.000",
-                     'type'       : 0},
-                    {'start_time' : '0:6.000',
-                     'end_time'   : '0:13.000',
-                     'type'       : 1},
-                    {'start_time' : "0:13.000",
-                     'end_time'   : "0:20.000",
-                     'type'       : 0},
-                    {'start_time' : "0:20.000",
-                     'end_time'   : "0:25.000",
-                     'type'       : 2},
-                    {'start_time' : "0:25.000",
-                     'end_time'   : "0:35.000",
-                     'type'       : 0}]
-    # section_time = services.get_segment(broadcast, radio_name, radio_date) # 지금은 split_cnn이지만 나중에 다른 함수를 통해서 전체 구간을 던져줍니당
+    # section_time = [{'start_time' : "0:00.000",
+    #                  'end_time'   : "0:06.000",
+    #                  'type'       : 0},
+    #                 {'start_time' : '0:6.000',
+    #                  'end_time'   : '0:13.000',
+    #                  'type'       : 1},
+    #                 {'start_time' : "0:13.000",
+    #                  'end_time'   : "0:20.000",
+    #                  'type'       : 0},
+    #                 {'start_time' : "0:20.000",
+    #                  'end_time'   : "0:25.000",
+    #                  'type'       : 2},
+    #                 {'start_time' : "0:25.000",
+    #                  'end_time'   : "0:35.000",
+    #                  'type'       : 0}]
+    section_time = services.get_segment(broadcast, radio_name, radio_date) # 지금은 split_cnn이지만 나중에 다른 함수를 통해서 전체 구간을 던져줍니당
+    # logger.debug(f"section_time : {section_time}")
     # 던져주는 형태는 [{start_time : ~, end_time : ~ , type : ~ }, ...]                                                                      
     return json.dumps(section_time)
 
@@ -322,8 +340,11 @@ def test():
 
 
 def read_json_file(file_path):
+    # try:
     with open(file_path, 'r', encoding='utf-8') as f:
         data = json.load(f)
+    # except:
+        # logger.debug("[route.read_json_file] error!")
     return data
 
 

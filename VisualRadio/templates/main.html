@@ -36,8 +36,8 @@
               </tr>
             </table>     -->
             <form id="searchForm">
-              <input type="text" id="searchInput" placeholder="검색어를 입력하세요" size="120">
-              <button type="submit">검색</button>
+              <input type="text" id="searchInput" placeholder="| 흘러간 소리를 검색해보세요!" size="120">
+              <button type="submit" id="searchButton">검색</button>
             </form>
         </div>
         <div id = "searchMenu">
@@ -128,3 +128,17 @@
     <div id='goPrograms'>goPrograms!!</div>
 </body>
 </html>
+
+
+<script>
+    const searchInput = document.getElementById('searchInput');
+    const searchButton = document.getElementById('searchButton');
+
+    searchInput.addEventListener('focus', function() {
+        searchButton.style.height = '45px'; // 활성화될 때 높이를 변경
+    });
+
+    searchInput.addEventListener('blur', function() {
+        searchButton.style.height = '30px'; // 비활성화될 때 높이를 원래대로 복원
+    });
+</script>

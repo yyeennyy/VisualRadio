@@ -9,7 +9,7 @@ from pydub import AudioSegment
 
 
 def split_about(path, program_name):
-    conn = sqlite3.connect('fix.db')
+    conn = sqlite3.connect('./VisualRadio/split_module/DB/fix.db')
     c = conn.cursor()
     c.execute("SELECT start_time, end_time FROM fix_time WHERE program_name = ?", (program_name,))
     result = c.fetchall()
