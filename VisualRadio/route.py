@@ -282,22 +282,16 @@ def get_wave(broadcast, name, date):
 
 @auth.route('/<string:broadcast>/<string:radio_name>/<string:radio_date>/section', methods= ['GET'])
 def load_index_info(broadcast, radio_name, radio_date) :
-    # section_time = [{'start_time' : "0:00.000",
-    #                  'end_time'   : "0:06.000",
-    #                  'type'       : 0},
-    #                 {'start_time' : '0:6.000',
-    #                  'end_time'   : '0:13.000',
-    #                  'type'       : 1},
-    #                 {'start_time' : "0:13.000",
-    #                  'end_time'   : "0:20.000",
-    #                  'type'       : 0},
-    #                 {'start_time' : "0:20.000",
-    #                  'end_time'   : "0:25.000",
-    #                  'type'       : 2},
-    #                 {'start_time' : "0:25.000",
-    #                  'end_time'   : "0:35.000",
-    #                  'type'       : 0}]
-    section_time = services.get_segment(broadcast, radio_name, radio_date) # 지금은 split_cnn이지만 나중에 다른 함수를 통해서 전체 구간을 던져줍니당
+    section_time = [{'start_time' : "0:00.000",
+                     'end_time'   : "0:06.000",
+                     'type'       : 0},
+                    {'start_time' : '14:16.000',
+                     'end_time'   : '17:34.000',
+                     'type'       : 1},
+                    {'start_time' : "0:13.000",
+                     'end_time'   : "0:20.000",
+                     'type'       : 0}]
+    # section_time = services.get_segment(broadcast, radio_name, radio_date) # 지금은 split_cnn이지만 나중에 다른 함수를 통해서 전체 구간을 던져줍니당
     # logger.debug(f"section_time : {section_time}")
     # 던져주는 형태는 [{start_time : ~, end_time : ~ , type : ~ }, ...]                                                                      
     return json.dumps(section_time)

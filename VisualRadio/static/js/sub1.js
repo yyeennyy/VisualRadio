@@ -55,7 +55,7 @@ function buildCalendar(broadcast, radio_name) {
     .then(data => {
         let dateOk = JSON.parse(data);
         for (let nowDay = firstDate; nowDay <= lastDate; nowDay.setDate(nowDay.getDate() + 1)) {   // day는 날짜를 저장하는 변수, 이번달 마지막날까지 증가시키며 반복  
-            console.log(nowDay);
+            // console.log(nowDay);
             let nowColumn = nowRow.insertCell();        // 새 열을 추가하고
             nowColumn.innerText = leftPad(nowDay.getDate());      // 추가한 열에 날짜 입력
             nowColumn.setAttribute("date", year + '-' + leftPad(month) + '-' +leftPad(nowDay.getDate()));
