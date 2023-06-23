@@ -301,7 +301,7 @@ function getContents() {
 
 function showContents(){
     const audioCurrentTime = audio.currentTime;
-    // console.log(contents)
+    console.log(contents)
     
     for (const item of contents) {
       if (item.type === 1 || item.type === 2) {
@@ -310,7 +310,7 @@ function showContents(){
         const endTime = timeStringToFloat(item.end_time);
         // console.log(startTime)
         // console.log(audioCurrentTime)
-        if (audioCurrentTime >= startTime && audioCurrentTime <= endTime & timeStringToFloat("0:00.000")) {
+        if ((audioCurrentTime >= startTime && audioCurrentTime <= endTime) & timeStringToFloat("0:00.000") != audio.currentTime) {
           // console.log(11111111112222222222)
           if (item.type == 1) displayImage('/static/images/ading.png');
           else displayImage();
