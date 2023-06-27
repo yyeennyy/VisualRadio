@@ -1,43 +1,20 @@
 import os
 from models import Wav, Radio, Listener, Process, Keyword
 import time
-# from flask import jsonify, Flask
 from natsort import natsorted
 from sqlalchemy import text
 import gc
-# import torch
 from torch._C import *
 import psutil
 import random
 import settings as settings
+from konlpy.tag import Komoran
+import math
 
-# for split
+
+# split1 - hash
 from split_module.split import start_split
-
-# for stt
-# from google.oauth2 import service_account  # 구글 클라우드 인증설정
-# from google.cloud import storage, speech_v1
-import threading
-from datetime import datetime
-from datetime import timedelta
-import json
-
-# for audio process
-import wave
-from pydub import AudioSegment
-
-# 로거
-from VisualRadio import CreateLogger
-logger = CreateLogger("우리가1등(^o^)b")
-
-# sql
-from sqlalchemy.exc import IntegrityError
-
-
-from VisualRadio import db, app
-
-
-# for cnn split
+# split2 - cnn
 import os
 import pandas as pd
 import numpy as np
@@ -47,10 +24,24 @@ import tensorflow as tf
 import soundfile as sf
 from VisualRadio.split_module.split2 import save_split
 
+# stt
+import threading
+from datetime import datetime
+from datetime import timedelta
+import json
 
-# for etc
-from konlpy.tag import Komoran
-import math
+# audio process
+import wave
+from pydub import AudioSegment
+
+# logger
+from VisualRadio import CreateLogger
+logger = CreateLogger("우리가1등(^o^)b")
+
+# sql
+from sqlalchemy.exc import IntegrityError
+from VisualRadio import db, app
+
 
 
 # ----------- 옌 컨텐츠 검색 구현중 -----------
@@ -611,15 +602,15 @@ def stt(broadcast, name, date):
         
     th_q_fin = []
     while not th_q.empty():
-        # if len(threading.enumerate()) < 7:
-        time.sleep(random.uniform(0.1, 1))
-        if memory_usage("stt") < 0.70:
-            logger.debug(f'{th_q}')
-            logger.debug(f'{memory_usage("stt")*100}%')
-            this_th = th_q.get()
-            logger.debug(f"{this_th.name} 시작! - 현재 실행중 쓰레드 개수 {len(threading.enumerate())}")
-            this_th.start()
-            th_q_fin.append(this_th)
+        if len(threading.enumerate()) < 7:
+            time.sleep(random.uniform(0.1, 1))
+            if memory_usage("stt") < 0.70:
+                logger.debug(f'{th_q}')
+                logger.debug(f'{memory_usage("stt")*100}%')
+                this_th = th_q.get()
+                logger.debug(f"{this_th.name} 시작! - 현재 실행중 쓰레드 개수 {len(threading.enumerate())}")
+                this_th.start()
+                th_q_fin.append(this_th)
 
     for thread in th_q_fin:
         thread.join()
@@ -724,7 +715,7 @@ def go_whisper_stt(src_path, dst_path, save_name):
         if memory_usage("stt") > 0.7:
             continue
         # logger.debug(f"[stt] {dst_path}/{save_name} 진행 중")
-        model = whisper.load_model("small").to(device)
+        model = whisper.load_model("tiny").to(device)
         results = model.transcribe(
             src_path, language=language, temperature=0.0, word_timestamps=True)
         del model
