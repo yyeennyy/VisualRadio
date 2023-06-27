@@ -829,13 +829,8 @@ def make_script(broadcast, name, date):
     targets = [os.path.join(stt_dir, name) for name in stt_list]
     os.makedirs(f"{path}/{settings.GOOGLE_SAVE_DIR}", exist_ok=True)
     save_path = f"{path}/{settings.GOOGLE_SAVE_PATH}"
-    savedir = f"{path}/{settings.GOOGLE_SAVE_DIR}"
-    logger.debug(f"1. savedir::::: {os.path.exists(savedir)}")
     if os.path.exists(save_path):
         os.remove(save_path)
-    logger.debug(f"2. savedir::::: {os.path.exists(savedir)}")
-    logger.debug(savedir)
-    logger.debug(save_path)
 
 
 
