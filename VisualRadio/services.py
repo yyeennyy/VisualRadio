@@ -829,8 +829,13 @@ def make_script(broadcast, name, date):
     targets = [os.path.join(stt_dir, name) for name in stt_list]
     os.makedirs(f"{path}/{settings.GOOGLE_SAVE_DIR}", exist_ok=True)
     save_path = f"{path}/{settings.GOOGLE_SAVE_PATH}"
+    savedir = f"{path}/{settings.GOOGLE_SAVE_DIR}"
+    logger.debug(f"1. savedir::::: {os.path.exists(savedir)}")
     if os.path.exists(save_path):
         os.remove(save_path)
+    logger.debug(f"2. savedir::::: {os.path.exists(savedir)}")
+
+
     with open(save_path, 'w') as f:
         f.write('')
     make_script_2(targets, save_path)
@@ -839,7 +844,7 @@ def make_script(broadcast, name, date):
     stt_dir = f'{path}/{settings.WHISPER_STT_DIR}' # 반드시 존재
     stt_list = natsorted(os.listdir(stt_dir))
     targets = [os.path.join(stt_dir, name) for name in stt_list]
-    os.makedirs(f"{path}/{settings.WHISPER_STT_DIR}", exist_ok=True)
+    os.makedirs(f"{path}/{settings.WHISPER_SAVE_DIR}", exist_ok=True)
     save_path = f"{path}/{settings.WHISPER_SAVE_PATH}"
     if os.path.exists(save_path):
         os.remove(save_path)
