@@ -9,6 +9,7 @@ import gc
 from torch._C import *
 import psutil
 import random
+import settings as settings
 
 # for split
 from split_module.split import start_split
@@ -54,7 +55,7 @@ import math
 
 # ----------- 옌 컨텐츠 검색 구현중 -----------
 def search_contents(search_word):
-    script_paths = search_scriptfile_under("VisualRadio/radio_storage", "result")
+    script_paths = search_scriptfile_under(settings.STORAGE_PATH, "result")
     search_result = []
     
     for script_path in script_paths:
@@ -195,7 +196,7 @@ def search_listeners(search):
     return json_data
 
 def search_contents(search_word):
-    script_paths = search_scriptfile_under("VisualRadio/radio_storage", "result")
+    script_paths = search_scriptfile_under(settings.STORAGE_PATH, "result")
     search_result = []
     
     for script_path in script_paths:
@@ -270,7 +271,7 @@ def like(bcc, name):
             db.session.add(radio)
             db.session.commit()
         else:
-            logger.debug('해당하는 radio를 찾지 못했어요.,!')
+            logger.debug('해당하는 radio를 찾지 못했어요..!')
 
     return cnt
     
@@ -393,7 +394,7 @@ def audio_save_db(broadcast, name, date):
         # 일단 radio 테이블에 존재하지 않으면 추가해야 함
         radio = Radio.query.filter_by(broadcast=broadcast, radio_name=name).first()
         if not radio:
-            logger.debug(f"[업로드] 새로운 라디오의 등장!! {broadcast} {name}")
+            logger.debug(f"[업로드] 새로운 라디오의 두두둥장!! {broadcast} {name}")
             radio = Radio(broadcast=broadcast, radio_name=name, start_time=None, record_len=0, like_cnt=0)
 
             db.session.add(radio)
@@ -433,8 +434,8 @@ def get_segment(broadcast, name, date):
 
 # ment_range = []
 def split_cnn(broadcast, name, date):
-    model_path = './VisualRadio/split_module/split_good_model.h5'
-    path = f"./VisualRadio/radio_storage/{broadcast}/{name}/{date}"
+    model_path = settings.MODEL_PATH
+    path = f"./{settings.STORAGE_PATH}/{broadcast}/{name}/{date}"
     splited_path = path + "/split_wav" # 1차 split 이후이므로 이 경로는 반드시 존재함
     section_wav_origin_names = os.listdir(splited_path)
     section_start_time_summary = {}
@@ -503,11 +504,11 @@ def split_cnn(broadcast, name, date):
             db.session.add(wav)
         db.session.commit()
 
-    return section_start_time_summary # 이 부분 수정해 바보야!!!!
+    return section_start_time_summary 
 
 # ★
 def split(broadcast, name, date):
-    path = f"./VisualRadio/radio_storage/{broadcast}/{name}/{date}"
+    path = f"./{settings.STORAGE_PATH}/{broadcast}/{name}/{date}"
     song_path = path + "/raw.wav"
     save_path = path + "/split_wav"
     os.makedirs(save_path, exist_ok=True)
@@ -580,7 +581,7 @@ def stt(broadcast, name, date):
     logger.debug("[stt] 시작")
     start_time = time.time()
     # 모든 sec_n.wav를 stt할 것이다
-    path = f"./VisualRadio/radio_storage/{broadcast}/{name}/{date}"
+    path = f"./{settings.STORAGE_PATH}/{broadcast}/{name}/{date}"
 
     section_dir = f'{path}/split_final'       # 2차분할 결과로 반드시 존재
     section_list = os.listdir(section_dir)  
@@ -643,7 +644,7 @@ def stt_proccess(broadcast, name, date, section_name, section_mini):
 
     # 경로 설정
     save_name = section_mini.replace(".wav", ".json")
-    path = f"./VisualRadio/radio_storage/{broadcast}/{name}/{date}"
+    path = f"./{settings.STORAGE_PATH}/{broadcast}/{name}/{date}"
     src_path = f"{path}/split_final/{section_name}/{section_mini}" # stt 처리 타겟
     # stt결과 저장경로 설정하기
     os.makedirs(f"{path}/raw_stt/{section_name}", exist_ok=True)
@@ -790,7 +791,7 @@ from natsort import natsorted
 import json
 
 def before_script(broadcast, name, date, start_times, stt_tool_name):
-    path = f"./VisualRadio/radio_storage/{broadcast}/{name}/{date}"
+    path = f"./{settings.STORAGE_PATH}/{broadcast}/{name}/{date}"
     raw_stt = f'{path}/raw_stt'
     sec_n = os.listdir(raw_stt)
     duration_dict = get_duration_dict(broadcast, name, date)
@@ -829,14 +830,14 @@ def before_script(broadcast, name, date, start_times, stt_tool_name):
 # google과 whisper의 stt 결과를 모두 고려한다.
 def make_script(broadcast, name, date):
     logger.debug("[make_script] script.json 생성중")
-    path = f"./VisualRadio/radio_storage/{broadcast}/{name}/{date}"
+    path = f"./{settings.STORAGE_PATH}/{broadcast}/{name}/{date}"
 
     # google
-    stt_dir = f'{path}/stt_final/google' # 반드시 존재
+    stt_dir = f'{path}/{settings.GOOGLE_STT_DIR}' # 반드시 존재
     stt_list = natsorted(os.listdir(stt_dir))
     targets = [os.path.join(stt_dir, name) for name in stt_list]
-    os.makedirs(f"{path}/result/google", exist_ok=True)
-    save_path = f"{path}/result/google/script.json"
+    os.makedirs(f"{path}/{settings.GOOGLE_SAVE_DIR}", exist_ok=True)
+    save_path = f"{path}/{settings.GOOGLE_SAVE_PATH}"
     if os.path.exists(save_path):
         os.remove(save_path)
     with open(save_path, 'w') as f:
@@ -844,11 +845,11 @@ def make_script(broadcast, name, date):
     make_script_2(targets, save_path)
 
     # whisper
-    stt_dir = f'{path}/stt_final/whisper' # 반드시 존재
+    stt_dir = f'{path}/{settings.WHISPER_STT_DIR}' # 반드시 존재
     stt_list = natsorted(os.listdir(stt_dir))
     targets = [os.path.join(stt_dir, name) for name in stt_list]
-    os.makedirs(f"{path}/result/whisper", exist_ok=True)
-    save_path = f"{path}/result/whisper/script.json"
+    os.makedirs(f"{path}/{settings.WHISPER_STT_DIR}", exist_ok=True)
+    save_path = f"{path}/{settings.WHISPER_SAVE_PATH}"
     if os.path.exists(save_path):
         os.remove(save_path)
     with open(save_path, 'w') as f:
@@ -895,10 +896,10 @@ from datetime import datetime, timedelta
 time_format = '%M:%S.%f'
 number_dir = {'일': 1, '이': 2, '삼': 3, '사': 4, '오': 5, '호':5, '육': 6, '유': 6, '칠': 7, '팔': 8, '구': 9, '국':9, '군':9, '영': 0, '공':0, '하나': 1, '둘': 2, '셋': 3, '넷': 4, '다섯': 5, '여섯': 6, '일곱': 7, '여덟': 8, '아홉': 9}
 def correct_applicant(broadcast, name, date):
-    path = f"./VisualRadio/radio_storage/{broadcast}/{name}/{date}"
-    g_path = f"{path}/result/google/script.json"
-    w_path = f"{path}/result/whisper/script.json"
-    save_path = f"{path}/result/script.json"
+    path = f"./{settings.STORAGE_PATH}/{broadcast}/{name}/{date}"
+    g_path = f"{path}/{settings.GOOGLE_SAVE_PATH}"
+    w_path = f"{path}/{settings.WHISPER_SAVE_PATH}"
+    save_path = f"{path}/{settings.SAVE_PATH}"
 
     # step1)
     # whisper 결과를 기준으로 google 결과를 매치
@@ -1031,7 +1032,7 @@ def correct_applicant(broadcast, name, date):
 
 # 만들어진 스크립트에서 청취자 찾기 
 def register_listener(broadcast, radio_name, radio_date):
-    script_file = f"./VisualRadio/radio_storage/{broadcast}/{radio_name}/{radio_date}/result/script.json"
+    script_file = f"./{settings.STORAGE_PATH}/{broadcast}/{radio_name}/{radio_date}/{settings.SAVE_PATH}"
     if not os.path.exists(script_file):
         logger.debug(f"[find_listner] 경고: 만들어진 script가 없음 {broadcast} {radio_name} {radio_date}")
     with open(script_file, 'r', encoding='utf-8') as f:
@@ -1083,7 +1084,7 @@ def extract_keywords(sentence):
 
 import random
 def generate_images_by_section(broadcast, name, date, section_start_list):
-    path = f"./VisualRadio/radio_storage/{broadcast}/{name}/{date}"
+    path = f"./{settings.STORAGE_PATH}/{broadcast}/{name}/{date}"
     
     sec_img_data = []
     for idx, time in enumerate(section_start_list):
@@ -1093,7 +1094,7 @@ def generate_images_by_section(broadcast, name, date, section_start_list):
         }
         sec_img_data.append(dic_data)
 
-    with open(f"{path}/result/section_image.json", 'w', encoding='utf-8') as f:
+    with open(f"{path}/{settings.IMAGE_PATH}", 'w', encoding='utf-8') as f:
         json.dump(sec_img_data, f, ensure_ascii=False)
     logger.debug("[make_script] section_image.json 생성 완료!!!")
     
@@ -1137,7 +1138,7 @@ def change_sr(path, sr_af):
 
 
 def sum_wav_sections(broadcast, name, date):
-    path = f"./VisualRadio/radio_storage/{broadcast}/{name}/{date}"
+    path = f"./{settings.STORAGE_PATH}/{broadcast}/{name}/{date}"
     src_path = path + "/split_wav"
     dst_path = path + "/sum.wav"
     os.makedirs(src_path, exist_ok=True)
@@ -1284,7 +1285,7 @@ def convert_to_datetime(time_str):
     return time_obj
 
 def get_duration_dict(broadcast, name, date):
-    path = f"./VisualRadio/radio_storage/{broadcast}/{name}/{date}"
+    path = f"./{settings.STORAGE_PATH}/{broadcast}/{name}/{date}"
     wav_path = f'{path}/split_wav'
     stt_path = f'{path}/raw_stt'
     sorted = natsorted(os.listdir(wav_path))
