@@ -75,7 +75,7 @@ WHISPER_STT_DIR = 'stt_final/whisper'
 WHISPER_SAVE_PATH = 'result/whisper/script.json'
 
 # whisper stt의 script 저장 폴더
-GOOGLE_SAVE_DIR = 'result/whisper'
+WHISPER_SAVE_DIR = 'result/whisper'
 
 # 최종 script 저장 경로
 SAVE_PATH = 'result/script.json'

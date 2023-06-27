@@ -834,6 +834,9 @@ def make_script(broadcast, name, date):
     if os.path.exists(save_path):
         os.remove(save_path)
     logger.debug(f"2. savedir::::: {os.path.exists(savedir)}")
+    logger.debug(savedir)
+    logger.debug(save_path)
+
 
 
     with open(save_path, 'w') as f:
