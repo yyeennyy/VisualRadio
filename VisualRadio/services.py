@@ -10,6 +10,8 @@ import random
 import settings as settings
 from konlpy.tag import Komoran
 import math
+import shutil
+
 
 
 # split1 - hash
@@ -426,22 +428,20 @@ def get_segment(broadcast, name, date):
 # ment_range = []
 def split_cnn(broadcast, name, date):
     model_path = settings.MODEL_PATH
-    path = f"./{settings.STORAGE_PATH}/{broadcast}/{name}/{date}"
-    splited_path = path + "/split_wav" # 1차 split 이후이므로 이 경로는 반드시 존재함
+    splited_path = hash_splited_path(broadcast, name, date) # 1차 split 이후이므로 이 경로는 반드시 존재함
     section_wav_origin_names = os.listdir(splited_path)
     section_start_time_summary = {}
     # real_content = []
     content_section_list = []
     for target_section in section_wav_origin_names:
-        test_path = f"{splited_path}/{target_section}" # 1차 splited한 sec_n.wav임
-        output_path = f"{path}/split_final/{target_section[:-4]}"  # 2차 split 결과를 저장할 디렉토리 생성
-        os.makedirs(output_path, exist_ok=True)
+        test_path = os.path.join(splited_path, target_section) # 1차 splited한 sec_n.wav임
+        output_path = os.path.join(cnn_splited_path(broadcast, name, date), target_section[:-4])  # 2차 split 결과를 저장할 디렉토리 생성
         ment_range, content_section = save_split(test_path, model_path, output_path) # 2차 split 시작하기
         total_duration = 0
         
-        for filename in os.listdir(splited_path+"/"):
+        for filename in os.listdir(splited_path):
             if(filename != target_section):
-                file_path = os.path.join(splited_path+"/", filename)
+                file_path = hash_splited_path(broadcast, name, date, filename)
                 with wave.open(file_path, "r") as wav_file:
                     duration = wav_file.getnframes() / wav_file.getframerate()
                     total_duration += int(duration)
@@ -499,10 +499,8 @@ def split_cnn(broadcast, name, date):
 
 # ★
 def split(broadcast, name, date):
-    path = f"./{settings.STORAGE_PATH}/{broadcast}/{name}/{date}"
-    song_path = path + "/raw.wav"
-    save_path = path + "/split_wav"
-    os.makedirs(save_path, exist_ok=True)
+    song_path = get_rawwavfile_path(broadcast, name, date)
+    save_path = hash_splited_path(broadcast, name, date)
 
     # 이미 분할 정보가 있는지 확인
     with app.app_context():
@@ -523,7 +521,6 @@ def split(broadcast, name, date):
     start_split(song_path, name, save_path)
 
     end_time = time.time()
-    os.makedirs(save_path, exist_ok=True)
     wav_files = [f for f in os.listdir(save_path) if f.endswith('.wav')]
 
     n = len(wav_files)
@@ -572,9 +569,8 @@ def stt(broadcast, name, date):
     logger.debug("[stt] 시작")
     start_time = time.time()
     # 모든 sec_n.wav를 stt할 것이다
-    path = f"./{settings.STORAGE_PATH}/{broadcast}/{name}/{date}"
 
-    section_dir = f'{path}/split_final'       # 2차분할 결과로 반드시 존재
+    section_dir = cnn_splited_path(broadcast, name, date)       # 2차분할 결과로 반드시 존재
     section_list = os.listdir(section_dir)  
 
     global num_file
@@ -605,7 +601,6 @@ def stt(broadcast, name, date):
         if len(threading.enumerate()) < 7:
             time.sleep(random.uniform(0.1, 1))
             if memory_usage("stt") < 0.70:
-                logger.debug(f'{th_q}')
                 logger.debug(f'{memory_usage("stt")*100}%')
                 this_th = th_q.get()
                 logger.debug(f"{this_th.name} 시작! - 현재 실행중 쓰레드 개수 {len(threading.enumerate())}")
@@ -635,11 +630,11 @@ def stt_proccess(broadcast, name, date, section_name, section_mini):
 
     # 경로 설정
     save_name = section_mini.replace(".wav", ".json")
-    path = f"./{settings.STORAGE_PATH}/{broadcast}/{name}/{date}"
-    src_path = f"{path}/split_final/{section_name}/{section_mini}" # stt 처리 타겟
+    src_path = cnn_splited_path(broadcast, name, date, f"{section_name}/{section_mini}") # stt 처리 타겟
     # stt결과 저장경로 설정하기
-    os.makedirs(f"{path}/raw_stt/{section_name}", exist_ok=True)
-    dst_path = f"{path}/raw_stt/{section_name}"
+    dst_path = stt_raw_path(broadcast, name, date, section_name)
+
+
     # whisper stt 결과 얻기
     go_whisper_stt(src_path, dst_path + "/whisper", save_name)
     # google stt 결과 얻기
@@ -776,25 +771,24 @@ def go_whisper_stt(src_path, dst_path, save_name):
 
 
 import wave
-import shutil
 import os
 from natsort import natsorted
 import json
 
 def before_script(broadcast, name, date, start_times, stt_tool_name):
     path = f"./{settings.STORAGE_PATH}/{broadcast}/{name}/{date}"
-    raw_stt = f'{path}/raw_stt'
+    raw_stt = stt_raw_path(broadcast, name, date)
     sec_n = os.listdir(raw_stt)
     duration_dict = get_duration_dict(broadcast, name, date)
     # sec_n
     for key in sec_n:
-        sec_n_wav = f'{path}/split_wav/{key}.wav' #
-        segments = natsorted(os.listdir(f'{raw_stt}/{key}/{stt_tool_name}'))
+        stt_segment_path = stt_raw_path(broadcast, name, date, f'{key}/{stt_tool_name}')
+        segments = natsorted(os.listdir(stt_segment_path))
         time_start = start_times[f'{key}.wav']
         new_lines_sec_n = []
         for idx, segment in enumerate(segments): # 각각의 sec_i.json에 대해서..
             # print(segment) # sec_i.json
-            with open(f'{raw_stt}/{key}/{stt_tool_name}/{segment}', 'r', encoding='utf-8') as f:
+            with open(f'{stt_segment_path}/{segment}', 'r', encoding='utf-8') as f:
                 data = json.loads(f.read())
             lines = data["scripts"]
             for line in lines:
@@ -809,10 +803,8 @@ def before_script(broadcast, name, date, start_times, stt_tool_name):
 
         filename = f'{key}.json'
         # 파일 생성
-        os.makedirs(f'{path}/stt_final/{stt_tool_name}', exist_ok=True)
-        save_path = f'{path}/stt_final/{stt_tool_name}/{filename}'
-        if os.path.exists(save_path):
-            os.remove(save_path)
+        save_path = stt_final_path(broadcast, name, date, f"{stt_tool_name}/{filename}")
+        rmdir(save_path)
         with open(f'{save_path}', 'w') as f:
             f.write(json.dumps(result_sec_n, ensure_ascii=False))
 
@@ -827,12 +819,9 @@ def make_script(broadcast, name, date):
     stt_dir = f'{path}/{settings.GOOGLE_STT_DIR}' # 반드시 존재
     stt_list = natsorted(os.listdir(stt_dir))
     targets = [os.path.join(stt_dir, name) for name in stt_list]
-    os.makedirs(f"{path}/{settings.GOOGLE_SAVE_DIR}", exist_ok=True)
-    save_path = f"{path}/{settings.GOOGLE_SAVE_PATH}"
+    save_path = google_script_result_path(broadcast, name, date) + "script.json"
     if os.path.exists(save_path):
         os.remove(save_path)
-
-
 
     with open(save_path, 'w') as f:
         f.write('')
@@ -842,8 +831,7 @@ def make_script(broadcast, name, date):
     stt_dir = f'{path}/{settings.WHISPER_STT_DIR}' # 반드시 존재
     stt_list = natsorted(os.listdir(stt_dir))
     targets = [os.path.join(stt_dir, name) for name in stt_list]
-    os.makedirs(f"{path}/{settings.WHISPER_SAVE_DIR}", exist_ok=True)
-    save_path = f"{path}/{settings.WHISPER_SAVE_PATH}"
+    save_path = whisper_script_result_path(broadcast, name, date) + "script.json"
     if os.path.exists(save_path):
         os.remove(save_path)
     with open(save_path, 'w') as f:
@@ -1025,10 +1013,11 @@ def correct_applicant(broadcast, name, date):
 
 
 # 만들어진 스크립트에서 청취자 찾기 
-def register_listener(broadcast, radio_name, radio_date):
-    script_file = f"./{settings.STORAGE_PATH}/{broadcast}/{radio_name}/{radio_date}/{settings.SAVE_PATH}"
+def register_listener(broadcast, name, date):
+    script_file = script_path(broadcast, name, date)
     if not os.path.exists(script_file):
-        logger.debug(f"[find_listner] 경고: 만들어진 script가 없음 {broadcast} {radio_name} {radio_date}")
+        logger.debug(f"[find_listner] 경고: 만들어진 script가 없어서 중단한다 {broadcast} {name} {date}")
+        return False
     with open(script_file, 'r', encoding='utf-8') as f:
         data = json.load(f)
     regex = "(?<![0-9])(?<![0-9] )[0-9]{4}(?!년| 년)(?! [0-9])(?![0-9])" # 전화번호처럼 연속된 8자리(공백포함)는 인식하지 않는 정규표현식임
@@ -1052,7 +1041,7 @@ def register_listener(broadcast, radio_name, radio_date):
             try:
                 for listener in listener_set:
                     text = line['txt'][:100]
-                    db.session.add(Listener(broadcast=broadcast, radio_name=radio_name, radio_date=radio_date, code=listener, preview_text=text, time=line['time']))
+                    db.session.add(Listener(broadcast=broadcast, radio_name=name, radio_date=date, code=listener, preview_text=text, time=line['time']))
                     # TODO: 현재 line['txt']에 대해 textrank적용 => keyword들 추출 => keyword DB테이블에 이 회차, 청취자, keyword 레코드 삽입하기!
                     ############### 키워드 추출 #################
                     # 유의: 키워드를 뽑으면서, 키워드가 없다면 아예 DB에 추가할 대상 문장이 아님.
@@ -1061,13 +1050,13 @@ def register_listener(broadcast, radio_name, radio_date):
                     stop_words = ['님', '하', '제가', '지', '고요', '저', '드', '들', '가', '보']
                     result = [keyword[0] for keyword in keywords if keyword[0] not in stop_words]
                     for r in result:
-                        keyword = Keyword(broadcast=broadcast, radio_name=radio_name, radio_date=radio_date, code=listener, keyword=r, time=line['time'])
+                        keyword = Keyword(broadcast=broadcast, radio_name=name, radio_date=date, code=listener, keyword=r, time=line['time'])
                         db.session.add(keyword)
                     db.session.commit()
             except IntegrityError as e:
                 logger.debug("IntegrityError occurred............")
                 ##########################################
-    logger.debug(f"[find_listner] 청취자 업뎃완료: {listener_set} at {broadcast} {radio_name} {radio_date}")
+    logger.debug(f"[find_listner] 청취자 업뎃완료: {listener_set} at {broadcast} {name} {date}")
 
 def extract_keywords(sentence):
     komoran = Komoran()
@@ -1114,52 +1103,32 @@ import librosa
 import librosa.util as librosa_util
 import soundfile as sf
 
-def change_sr(path, sr_af):
-    # name : 바꾸고자하는 파일의 경로입니다!
-    # change_sr : 원하는 sr로 변경합니다! 들어오는 기본값은 44100으로 했습니다.
-    # change_path : 바꾼 음성 파일을 저장할 경로입니다!
-    
-    # wave 파일 로드
-    y, sr_or = librosa.load(path, sr=44100)
-    
-    # os.remove(path)
-
-    # 원하는 sr 값으로 샘플링 주파수 변경
-    y_resampled = librosa.resample(y, orig_sr=sr_or, target_sr=sr_af)
-
-    # 변경된 wave 파일 저장
-    sf.write(path, y_resampled, sr_af)
-
 
 def sum_wav_sections(broadcast, name, date):
-    path = f"./{settings.STORAGE_PATH}/{broadcast}/{name}/{date}"
-    src_path = path + "/split_wav"
-    dst_path = path + "/sum.wav"
-    os.makedirs(src_path, exist_ok=True)
+    # 각 파일의 input stream을
+    # 하나의 output stream에 이어쓰기하여 sum.wav로 만들기
+    src_path = hash_splited_path(broadcast, name, date)
+    dst_path = get_path(broadcast, name, date) + "/sum.wav"
     src_files = natsorted(os.listdir(src_path))
 
+    # input stream 리스트 생성 & wav파일의 파라미터 정보 가져오기
     input_streams = []
     for src in src_files:
-        input_streams.append(wave.open(src_path + "/" + src, 'rb'))
-    # 첫 번째 입력 파일의 정보를 가져옵니다.
+        input_streams.append(wave.open(os.path.join(src_path, src), 'rb'))
     params = input_streams[0].getparams()
-    # 출력 파일을 열고 쓰기 모드로 처리합니다.
+
+    # output stream을 wb로 열기 & 파라미터 세팅
     output_stream = wave.open(dst_path, 'wb')
-    # 출력 파일의 파라미터를 설정합니다.
     output_stream.setparams(params)
-    # 입력 파일을 읽고 출력 파일에 작성합니다.
+
+    # output stream에 input stream 내용 이어쓰기
     for input_stream in input_streams:
         output_stream.writeframes(input_stream.readframes(input_stream.getnframes()))
-    # 파일을 닫습니다.
-    for input_stream in input_streams:
         input_stream.close()
     output_stream.close()
     
-    # # sr을 줄이는 코드!!
-    # change_sr(dst_path, 24000)
-    
+    # DB에 기록    
     global stt_count, num_file
-    
     with app.app_context():
         process = Process.query.filter_by(broadcast=broadcast, radio_name=name, radio_date=str(date)).first()
         if process:
@@ -1169,14 +1138,8 @@ def sum_wav_sections(broadcast, name, date):
         else:
             logger.debug(f"[make_script] [오류] {name} {date} 가 있어야 하는데, DB에서 찾지 못함")
     
-    logger.debug("[contents] wav section들 이어붙이기 완료")
+    logger.debug("[contents] sum.wav done.")
     
-
-
-
-# 계획 없음 (멘트 섹션 찾기)
-def find_contents(radio_name, date):
-    pass
 
 
 ###################################### 서비스 로직 ###################################
@@ -1279,9 +1242,8 @@ def convert_to_datetime(time_str):
     return time_obj
 
 def get_duration_dict(broadcast, name, date):
-    path = f"./{settings.STORAGE_PATH}/{broadcast}/{name}/{date}"
-    wav_path = f'{path}/split_wav'
-    stt_path = f'{path}/raw_stt'
+    wav_path = hash_splited_path(broadcast, name, date)
+    stt_path = stt_raw_path(broadcast, name, date)
     sorted = natsorted(os.listdir(wav_path))
     stts = natsorted(os.listdir(stt_path))
 
@@ -1323,3 +1285,52 @@ def memory_usage(message: str = 'debug'):
     # print(f"[{message}] memory usage: {rss: 10.5f} MB |{type(rss)}| {(rss/5*8*1024)*100}%")
     # logger.debug(rss/(128*1024))
     return rss/(128*1024)
+
+
+
+
+# ------------------- Path -----------
+
+def get_path(broadcast, name, date):
+    return checkdir(f"./{settings.STORAGE_PATH}/{broadcast}/{name}/{date}/")
+
+def get_rawwavfile_path(broadcast, name, date):
+    answer = checkdir(f"./{settings.STORAGE_PATH}/{broadcast}/{name}/{date}/")
+    return os.path.join(answer, "raw.wav")
+
+def hash_splited_path(broadcast, name, date, filepath=""):
+    answer = checkdir(f"./{settings.STORAGE_PATH}/{broadcast}/{name}/{date}/split_wav/{filepath}")
+    return answer
+
+def cnn_splited_path(broadcast, name, date, filepath=""):
+    answer = checkdir(f"./{settings.STORAGE_PATH}/{broadcast}/{name}/{date}/split_final/{filepath}")
+    return answer
+
+def stt_raw_path(broadcast, name, date, filepath=""):
+    answer = checkdir(f"./{settings.STORAGE_PATH}/{broadcast}/{name}/{date}/raw_stt/{filepath}")
+    return answer
+
+def stt_final_path(broadcast, name, date, filepath=""):
+    answer = checkdir(f"./{settings.STORAGE_PATH}/{broadcast}/{name}/{date}/stt_final/{filepath}")
+    return answer
+
+def google_script_result_path(broadcast, name, date):
+    return checkdir(f"./{settings.STORAGE_PATH}/{broadcast}/{name}/{date}/{settings.GOOGLE_SAVE_DIR}/")
+
+def whisper_script_result_path(broadcast, name, date):
+    return checkdir(f"./{settings.STORAGE_PATH}/{broadcast}/{name}/{date}/{settings.WHISPER_SAVE_DIR}/")
+
+def script_path(broadcast, name, date):
+    return f"./{settings.STORAGE_PATH}/{broadcast}/{name}/{date}/result/script.json"
+
+def checkdir(path):
+    directory = os.path.dirname(path)
+    if not os.path.exists(directory):
+        os.makedirs(directory)
+    return path
+
+# 생성된 결과파일 전부 없애려면 사용 ㄱㄱ
+def rmdir(path):
+    if os.path.exists(path):
+        directory = os.path.dirname(path)
+        shutil.rmtree(directory)

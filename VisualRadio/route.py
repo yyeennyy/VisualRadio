@@ -102,7 +102,6 @@ def admin_update():
 
 
 def process_audio_file(broadcast, name, date):
-    logger.debug(f"{broadcast} {name} {date}")
     services.split(broadcast, name, date)
     start_times = services.split_cnn(broadcast, name, date)
     services.stt(broadcast, name, date)
