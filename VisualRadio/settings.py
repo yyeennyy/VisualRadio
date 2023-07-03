@@ -60,7 +60,7 @@ MODEL_PATH = './VisualRadio/split_module/split_good_model.h5'
 STORAGE_PATH = 'VisualRadio/radio_storage'
 
 # google stt 경로
-GOOGLE_STT_DIR = 'stt_final/google'
+# GOOGLE_STT_DIR = 'stt_final/google'
 
 # google stt의 script 저장 폴더
 GOOGLE_SAVE_DIR = 'result/google'
@@ -69,7 +69,7 @@ GOOGLE_SAVE_DIR = 'result/google'
 GOOGLE_SAVE_PATH = 'result/google/script.json'
 
 # whisper stt 경로
-WHISPER_STT_DIR = 'stt_final/whisper'
+# WHISPER_STT_DIR = 'stt_final/whisper'
 
 # whisper stt의 script 저장 경로
 WHISPER_SAVE_PATH = 'result/whisper/script.json'
