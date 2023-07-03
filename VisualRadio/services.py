@@ -11,6 +11,9 @@ import settings as settings
 from konlpy.tag import Komoran
 import math
 import shutil
+import time
+import asyncio
+
 
 
 
@@ -430,7 +433,7 @@ def get_segment(broadcast, name, date):
 def split_cnn(broadcast, name, date):
     model_path = settings.MODEL_PATH
     splited_path = hash_splited_path(broadcast, name, date) # 1차 split 이후이므로 이 경로는 반드시 존재함
-    section_wav_origin_names = os.listdir(splited_path)
+    section_wav_origin_names = ourlistdir(splited_path)
     section_start_time_summary = {}
     # real_content = []
     content_section_list = []
@@ -440,7 +443,7 @@ def split_cnn(broadcast, name, date):
         ment_range, content_section = save_split(test_path, model_path, output_path) # 2차 split 시작하기
         total_duration = 0
         
-        for filename in os.listdir(splited_path):
+        for filename in ourlistdir(splited_path):
             if(filename != target_section):
                 file_path = hash_splited_path(broadcast, name, date, filename)
                 with wave.open(file_path, "r") as wav_file:
@@ -523,7 +526,7 @@ def split(broadcast, name, date):
 
     end_time = time.time()
     os.makedirs(save_path, exist_ok=True)
-    wav_files = [f for f in os.listdir(save_path) if f.endswith('.wav')]
+    wav_files = [f for f in ourlistdir(save_path) if f.endswith('.wav')]
 
     n = len(wav_files)
     logger.debug(f"[split] {n}분할 처리 시간: {end_time - start_time} seconds")
@@ -573,7 +576,7 @@ def stt(broadcast, name, date):
     # 모든 sec_n.wav를 stt할 것이다
 
     section_dir = cnn_splited_path(broadcast, name, date)       # 2차분할 결과로 반드시 존재
-    section_list = os.listdir(section_dir)  
+    section_list = ourlistdir(section_dir)  
 
     global num_file
     num_file = count_files(section_dir)
@@ -590,7 +593,7 @@ def stt(broadcast, name, date):
         db.session.commit()
     
     for section_name in section_list: # 2차분할 결과 다루기 - section_name는 sec_1, sec_2 네임포맷의 디렉토리
-        stt_targets_of_this_section = os.listdir(f"{section_dir}/{section_name}")  # sec_n의 2차분할 wav 리스트
+        stt_targets_of_this_section = ourlistdir(f"{section_dir}/{section_name}")  # sec_n의 2차분할 wav 리스트
 
         for section_mini in stt_targets_of_this_section: # section_mini는 2차분할 결과인, 작은 wav다
             logger.debug(f"[stt] stt할 파일 : {section_name}의 {section_mini} 파일 | 대기큐에 넣음")
@@ -599,7 +602,16 @@ def stt(broadcast, name, date):
             th_q.put(thread)
         
     th_q_fin = []
+    
+    
+
+    start_time = time.time()  # 시작 시간 기록
+    timeout = 3600  # 1시간 (초 단위)
+    
     while not th_q.empty():
+        if time.time() - start_time > timeout:
+            logger.debug("1시간 시간 초과")  # 원하는 동작을 수행
+            break  # 함수를 중단하고 루프를 벗어남
         if len(threading.enumerate()) < 7:
             time.sleep(random.uniform(0.1, 1))
             if memory_usage("stt") < 0.70:
@@ -610,7 +622,15 @@ def stt(broadcast, name, date):
                 th_q_fin.append(this_th)
 
     for thread in th_q_fin:
-        thread.join()
+        asyncio.run(thread.join())
+        while(thread.is_alive()):
+            if(time.time() - start_time > timeout):
+                with app.app_context():
+                    process = Process.query.filter_by(broadcast=broadcast, radio_name=name, radio_date=str(date)).first()
+                    if process:
+                        process.error = 1
+                    db.session.commit()
+                return
         del thread
 
     gc.collect()
@@ -638,10 +658,10 @@ def stt_proccess(broadcast, name, date, section_name, section_mini):
 
 
     # whisper stt 결과 얻기
-    go_whisper_stt(src_path, dst_path + "/whisper", save_name)
+    go_whisper_stt(src_path, dst_path + "/whisper", save_name, broadcast, name, date)
     # google stt 결과 얻기
     interval = 10  # seconds
-    go_fast_stt(src_path, dst_path + "/google", interval, save_name)
+    go_fast_stt(src_path, dst_path + "/google", interval, save_name, broadcast, name, date)
     
     global stt_count
     stt_count+=1
@@ -801,12 +821,12 @@ import json
 def before_script(broadcast, name, date, start_times, stt_tool_name):
     path = f"./{settings.STORAGE_PATH}/{broadcast}/{name}/{date}"
     raw_stt = stt_raw_path(broadcast, name, date)
-    sec_n = os.listdir(raw_stt)
+    sec_n = ourlistdir(raw_stt)
     duration_dict = get_duration_dict(broadcast, name, date)
     # sec_n
     for key in sec_n:
         stt_segment_path = stt_raw_path(broadcast, name, date, f'{key}/{stt_tool_name}')
-        segments = natsorted(os.listdir(stt_segment_path))
+        segments = natsorted(ourlistdir(stt_segment_path))
         time_start = start_times[f'{key}.wav']
         new_lines_sec_n = []
         for idx, segment in enumerate(segments): # 각각의 sec_i.json에 대해서..
@@ -840,7 +860,7 @@ def make_script(broadcast, name, date):
 
     # google
     stt_dir = f'{path}/{settings.GOOGLE_STT_DIR}' # 반드시 존재
-    stt_list = natsorted(os.listdir(stt_dir))
+    stt_list = natsorted(ourlistdir(stt_dir))
     targets = [os.path.join(stt_dir, name) for name in stt_list]
     save_path = google_script_result_path(broadcast, name, date) + "script.json"
     if os.path.exists(save_path):
@@ -852,7 +872,7 @@ def make_script(broadcast, name, date):
 
     # whisper
     stt_dir = f'{path}/{settings.WHISPER_STT_DIR}' # 반드시 존재
-    stt_list = natsorted(os.listdir(stt_dir))
+    stt_list = natsorted(ourlistdir(stt_dir))
     targets = [os.path.join(stt_dir, name) for name in stt_list]
     save_path = whisper_script_result_path(broadcast, name, date) + "script.json"
     if os.path.exists(save_path):
@@ -1132,7 +1152,7 @@ def sum_wav_sections(broadcast, name, date):
     # 하나의 output stream에 이어쓰기하여 sum.wav로 만들기
     src_path = hash_splited_path(broadcast, name, date)
     dst_path = get_path(broadcast, name, date) + "/sum.wav"
-    src_files = natsorted(os.listdir(src_path))
+    src_files = natsorted(ourlistdir(src_path))
 
     # input stream 리스트 생성 & wav파일의 파라미터 정보 가져오기
     input_streams = []
@@ -1267,8 +1287,8 @@ def convert_to_datetime(time_str):
 def get_duration_dict(broadcast, name, date):
     wav_path = hash_splited_path(broadcast, name, date)
     stt_path = stt_raw_path(broadcast, name, date)
-    sorted = natsorted(os.listdir(wav_path))
-    stts = natsorted(os.listdir(stt_path))
+    sorted = natsorted(ourlistdir(wav_path))
+    stts = natsorted(ourlistdir(stt_path))
 
     duration_dict = {}
     all_duration = {}
@@ -1351,6 +1371,10 @@ def checkdir(path):
     if not os.path.exists(directory):
         os.makedirs(directory)
     return path
+
+# .DS_Store 없이!!
+def ourlistdir(path):
+  return [filename for filename in os.listdir(path) if filename != '.DS_Store']
 
 # 생성된 결과파일 전부 없애려면 사용 ㄱㄱ
 def rmdir(path):

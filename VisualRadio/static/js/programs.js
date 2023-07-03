@@ -41,7 +41,7 @@ function start() {
     return fetch(`/${broadcast}/${radio_name}/${radio_date}/get_process`)
       .then(response => response.json())
       .then(data => {
-        if(data.error == 1 || process == null){
+        if(data.error == 1 || data == null){
           return "에러 발생!!!!"
         }
         else if(data.end == 0){
