@@ -73,8 +73,9 @@ class Process(db.Model):
     all_stt = db.Column(db.Integer, nullable=False)
     script = db.Column(db.Integer, nullable=False)
     sum = db.Column(db.Integer, nullable=False)
+    error = db.Column(db.Integer, nullable=False)
 
-    def __init__(self, broadcast, radio_name, radio_date, raw, split1, split2, end_stt, all_stt, script, sum):
+    def __init__(self, broadcast, radio_name, radio_date, raw, split1, split2, end_stt, all_stt, script, sum, error):
         self.broadcast = broadcast 
         self.radio_name = radio_name
         self.radio_date = radio_date
@@ -85,6 +86,7 @@ class Process(db.Model):
         self.all_stt = all_stt
         self.script = script
         self.sum = sum
+        self.error = error
 
     def __repr__(self):
         return f"Radio: {self.broadcast} {self.radio_name} {self.radio_date} : raw : {self.raw}, split1 : {self.split1}, split2 : {self.split2}, end_stt : {self.end_stt}, all_stt : {self.all_stt}, script : {self.script}, sum : {self.sum}"

@@ -406,10 +406,11 @@ def audio_save_db(broadcast, name, date):
             process.all_stt = 0
             process.script = 0
             process.sum = 0
+            process.error = 0
         else:
             logger.debug("[업로드] Process 테이블에 추가")
             process = Process(radio_name=name, radio_date=date, broadcast=broadcast, raw=1, split1=0, split2=0, end_stt=0,
-                      all_stt=0, script=0, sum=0)
+                      all_stt=0, script=0, sum=0, error = 0)
             db.session.add(process)
         db.session.commit()
         
@@ -482,7 +483,7 @@ def split_cnn(broadcast, name, date):
             process.split2 = 1
         else:
             process = Process(broadcast=broadcast, radio_name = name, radio_date = date, raw=1, split1=1, split2=1,
-                              end_stt=0, all_stt=0, script=0, sum=0)
+                              end_stt=0, all_stt=0, script=0, sum=0, error = 0)
 
             db.session.add(process)
         
@@ -521,6 +522,7 @@ def split(broadcast, name, date):
     start_split(song_path, name, save_path)
 
     end_time = time.time()
+    os.makedirs(save_path, exist_ok=True)
     wav_files = [f for f in os.listdir(save_path) if f.endswith('.wav')]
 
     n = len(wav_files)
@@ -536,7 +538,7 @@ def split(broadcast, name, date):
             process.split1 = 1
         else:
             process = Process(broadcast=broadcast, radio_name = name, radio_date = date, raw=1, split1=1, split2=0,
-                              end_stt=0, all_stt=0, script=0, sum=0)
+                              end_stt=0, all_stt=0, script=0, sum=0, error = 0)
 
             db.session.add(process)
         db.session.commit()
@@ -582,7 +584,7 @@ def stt(broadcast, name, date):
             process.all_stt = num_file
         else:
             process = Process(broadcast=broadcast, radio_name = name, radio_date = date, raw=1, split1=1, split2=1,
-                              end_stt=0, all_stt=num_file, script=0, sum=0)
+                              end_stt=0, all_stt=num_file, script=0, sum=0, error = 0)
 
             db.session.add(process)
         db.session.commit()
@@ -650,7 +652,7 @@ def stt_proccess(broadcast, name, date, section_name, section_mini):
             process.end_stt = stt_count
         else:
             process = Process(broadcast=broadcast, radio_name = name, radio_date = date, raw=1, split1=1, split2=1,
-                              end_stt=stt_count, all_stt=num_file, script=0, sum=0)
+                              end_stt=stt_count, all_stt=num_file, script=0, sum=0, error = 0)
 
             db.session.add(process)
         db.session.commit()
@@ -658,7 +660,7 @@ def stt_proccess(broadcast, name, date, section_name, section_mini):
  
 import speech_recognition as sr
 from pydub import AudioSegment
-def go_fast_stt(src_path, dst_path, interval, save_name):
+def go_fast_stt(src_path, dst_path, interval, save_name, broadcast, name, date):
     logger.debug(f"[stt] {dst_path}/{save_name} 진행 중")
     os.makedirs(dst_path, exist_ok=True)
     with wave.open(src_path, 'rb') as wav_file:
@@ -683,8 +685,17 @@ def go_fast_stt(src_path, dst_path, interval, save_name):
                 text = r.recognize_google(temp_audio_data, language='ko-KR')
                 new_data = {f'time':format_time(start_time / 1000), 'txt':text}
                 scripts.append(json.dumps(new_data, ensure_ascii=False))
-        except Exception as e:
-            pass
+        except:
+            with app.app_context():
+                process = Process.query.filter_by(broadcast=broadcast, radio_name=name, radio_date=str(date)).first()
+                if process:
+                    process.error = 1
+                else:
+                    process = Process(broadcast=broadcast, radio_name = name, radio_date = date, raw=1, split1=1, split2=1,
+                                    end_stt=stt_count, all_stt=num_file, script=0, sum=0, error = 1)
+                    db.session.add(process)
+                db.session.commit()
+                break
         start_time = end_time
         end_time += interval * 1000
     del r
@@ -699,7 +710,7 @@ def go_fast_stt(src_path, dst_path, interval, save_name):
     return data
 
 
-def go_whisper_stt(src_path, dst_path, save_name):
+def go_whisper_stt(src_path, dst_path, save_name, broadcast, name, date):
     os.makedirs(dst_path, exist_ok=True)
     filename = f"{dst_path}/{save_name}"
     device = "cpu"    #device = "cuda" if torch.cuda.is_available() else "cpu"
@@ -710,10 +721,22 @@ def go_whisper_stt(src_path, dst_path, save_name):
         if memory_usage("stt") > 0.7:
             continue
         # logger.debug(f"[stt] {dst_path}/{save_name} 진행 중")
-        model = whisper.load_model("tiny").to(device)
-        results = model.transcribe(
-            src_path, language=language, temperature=0.0, word_timestamps=True)
-        del model
+        try:
+            model = whisper.load_model("tiny").to(device)
+            results = model.transcribe(
+                src_path, language=language, temperature=0.0, word_timestamps=True)
+            del model
+        except:
+             with app.app_context():
+                process = Process.query.filter_by(broadcast=broadcast, radio_name=name, radio_date=str(date)).first()
+                if process:
+                    process.error = 1
+                else:
+                    process = Process(broadcast=broadcast, radio_name = name, radio_date = date, raw=1, split1=1, split2=1,
+                                    end_stt=stt_count, all_stt=num_file, script=0, sum=0, error = 1)
+                    db.session.add(process)
+                db.session.commit()
+                break
         gc.collect()
         logger.debug(memory_usage("stt"))
         break

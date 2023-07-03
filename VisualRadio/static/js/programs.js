@@ -41,7 +41,10 @@ function start() {
     return fetch(`/${broadcast}/${radio_name}/${radio_date}/get_process`)
       .then(response => response.json())
       .then(data => {
-        if(data.end == 0){
+        if(data.error == 1 || process == null){
+          return "에러 발생!!!!"
+        }
+        else if(data.end == 0){
             return "split 1 진행 중..."
         }else if(data.end == 1){
             return "split 2 진행 중..."
