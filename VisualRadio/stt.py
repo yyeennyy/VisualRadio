@@ -17,7 +17,7 @@ num_file = 0
 
 # logger
 from VisualRadio import CreateLogger
-logger = CreateLogger("우리가1등(^o^)b")
+logger = CreateLogger("STT")
 
 
 # TODO: 여기에는 stt만 남기고 나머지 기능(스크립트 만들기..)들은 따로 빼기

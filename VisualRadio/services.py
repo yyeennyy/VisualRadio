@@ -20,7 +20,7 @@ import json
 
 # logger
 from VisualRadio import CreateLogger
-logger = CreateLogger("우리가1등(^o^)b")
+logger = CreateLogger("services")
 
 from VisualRadio import db, app
 
@@ -486,13 +486,13 @@ def split(broadcast, name, date):
     with app.app_context():
         process = Process.query.filter_by(broadcast=broadcast, radio_name=name, radio_date=date).first()
         if not process:
-            logger.debug("[split] 해당 라디오 데이터가 없습니다. 먼저 raw.wav를 등록하세요")
+            logger.debug("[split] radio가 등록되지 않음")
             return
         elif process.split1 != 0:
-            logger.debug(f"[split] 분할 정보가 이미 있습니다")
+            logger.debug(f"[split] 기존 1차 split 정보 존재")
             return
         else:
-            logger.debug("[split] 분할 로직을 시작합니다")
+            logger.debug("[split] start hashing!")
 
     # 가정: split을 위한 "고정음성"은 fix.db에 등록된 상태다.
     # 주어진 메인 음성을 split한다.
@@ -505,7 +505,7 @@ def split(broadcast, name, date):
     wav_files = [f for f in utils.ourlistdir(save_path) if f.endswith('.wav')]
 
     n = len(wav_files)
-    logger.debug(f"[split] {n}분할 처리 시간: {end_time - start_time} seconds")
+    logger.debug(f"[split] {n}분할됨 - {end_time-start_time:.2f} seconds")
 
     with app.app_context():
         wav = Wav.query.filter_by(broadcast=broadcast, radio_name=name, radio_date=date).first()
@@ -545,7 +545,7 @@ def count_files(directory):
     return count
 
 def speech_to_text(broadcast, name, date):
-    logger.debug("[stt] 시작")
+    logger.debug("[stt] start!")
     start_time = time.time()
     # 모든 sec_n.wav를 stt할 것이다
 
@@ -570,7 +570,7 @@ def speech_to_text(broadcast, name, date):
         stt_targets_of_this_section = utils.ourlistdir(f"{section_dir}/{section_name}")  # sec_n의 2차분할 wav 리스트
 
         for section_mini in stt_targets_of_this_section: # section_mini는 2차분할 결과인, 작은 wav다
-            logger.debug(f"[stt] stt할 파일 : {section_name}의 {section_mini} 파일 | 대기큐에 넣음")
+            logger.debug(f"[stt] enqueue! {section_name}/{section_mini}")
             thread = threading.Thread(target=stt_proccess,
                                     args=(broadcast, name, date, section_name, section_mini))
             th_q.put(thread)
@@ -589,9 +589,9 @@ def speech_to_text(broadcast, name, date):
         if len(threading.enumerate()) < 7:
             time.sleep(random.uniform(0.1, 1))
             if utils.memory_usage("stt") < 0.70:
-                logger.debug(f'{utils.memory_usage("stt")*100}%')
+                logger.debug(f'[stt] {utils.memory_usage()*100}%')
                 this_th = th_q.get()
-                logger.debug(f"{this_th.name} 시작! - 현재 실행중 쓰레드 개수 {len(threading.enumerate())}")
+                logger.debug(f"[stt] 실행중 쓰레드 수 {len(threading.enumerate())} ({this_th.name} started!)")
                 this_th.start()
                 th_q_fin.append(this_th)
 
@@ -615,12 +615,12 @@ def speech_to_text(broadcast, name, date):
         if not process:
             logger.debug(f"[stt] [오류] {broadcast} {name} {date} 가 있어야 하는데, DB에서 찾지 못함")
     end_time = time.time()
-    logger.debug(f"[stt] 총 stt 소요시간! 고생했다~ {end_time - start_time} second")
+    logger.debug(f"[stt] DONE IN {end_time - start_time} SECONDS")
     
 
 
 def stt_proccess(broadcast, name, date, sec_hash, sec_cnn):
-    logger.debug(f"[stt_process] 시작시작 {sec_hash} ---- {sec_cnn}")
+    logger.debug(f"[stt] 시작: {sec_hash}/{sec_cnn}")
 
     # 경로 설정
     save_name = sec_cnn.replace(".wav", ".json")
@@ -649,7 +649,7 @@ def stt_proccess(broadcast, name, date, sec_hash, sec_cnn):
 
             db.session.add(process)
         db.session.commit()
-    logger.debug(f"[stt] 끝끝! {sec_hash}/{sec_cnn}")
+    logger.debug(f"[stt] 끝: {sec_hash}/{sec_cnn}")
  
 
 

@@ -13,7 +13,7 @@ from konlpy.tag import Komoran
 
 # logger
 from VisualRadio import CreateLogger
-logger = CreateLogger("[우리가1등(^o^)b]")
+logger = CreateLogger("script")
 
 
 

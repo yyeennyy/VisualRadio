@@ -24,8 +24,9 @@ def CreateLogger(logger_name):
     if len(logger.handlers) > 0:
         return logger # Logger already exists
     logger.setLevel(logging.DEBUG)
-    formatter = logging.Formatter('[%(levelname)s|%(name)s|%(filename)s:%(lineno)s] %(asctime)s > %(message)s')
-    
+    formatter = logging.Formatter('%(asctime)s |%(levelname)s|%(filename)12s:%(lineno)-4s...%(name)10s > %(message)s', '%Y-%m-%d %H:%M:%S')
+
+
     # Create Handlers
     # 1
     stream_handler = logging.StreamHandler()
@@ -43,7 +44,7 @@ db = SQLAlchemy()
 app = Flask(__name__)
 # socketio = SocketIO()
 
-logger = CreateLogger("우리가1등(^o^)b")
+logger = CreateLogger("(^o^)b")
 
 
 def create_app():
@@ -64,8 +65,6 @@ def create_app():
 
     with app.app_context():
         db.create_all() 
-        logger.debug("[DB] 세팅 완료")
-
 
     # socketio
     # socketio.init_app(app)
@@ -73,7 +72,7 @@ def create_app():
     
     # Entity가 변경되었을 때(예:컬럼추가), 데이터베이스를 마이그레이션 한다. 
 
-
+    logger.debug("초기화")
     return app, db
 
 

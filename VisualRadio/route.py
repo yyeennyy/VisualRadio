@@ -13,7 +13,7 @@ auth = Blueprint('auth', __name__)
 
 # 로거
 from VisualRadio import CreateLogger
-logger = CreateLogger("우리가1등(^o^)b")
+logger = CreateLogger("route")
 
 # ------------------------------------- 서치 컨텐츠 라우트
 
@@ -80,7 +80,6 @@ def check_wav(broadcast, program_name, date):
 
 @auth.route('/admin-update', methods=['POST'])
 def admin_update():
-    logger.debug(f"[업로드] 호출됨")
     broadcast = request.form.get('broadcast')
     program_name = request.form.get('program_name')
     date = request.form.get('date')
@@ -91,10 +90,8 @@ def admin_update():
     except:
         audio_file = None
     services.audio_save_db(broadcast, program_name, date)
-    logger.debug(f"[업로드] 등록 완료: {broadcast}, {program_name}, {date}, {guest_info}")
 
-    # 다른 프로세스를 백그라운드로 실행시키기
-    logger.debug("[업로드] 음성처리 - 백그라운드로 시작")
+    # 오디오 프로세스 백그라운드로 시작
     t = threading.Thread(target=process_audio_file, args=(broadcast, program_name, date))
     t.start()
 
@@ -117,12 +114,9 @@ def audio_save(broadcast, program_name, date, audiofile):
     path = f"./VisualRadio/radio_storage/{broadcast}/{program_name}/{date}/"
     # 문제점: brunchcafe와 이석훈의브런치카페는 동일한 프로그램임. 추후 이 점 고려해야E 할 것임
     # DB에서 체크하는 방식으로 변경해야 함
-    # if os.path.exists(path + '/raw.wav'):
-        # logger.debug("[업로드] 이미 raw.wav가 존재함")
-    # else:
     os.makedirs(path, exist_ok=True)
     audiofile.save(path + 'raw.wav')
-    logger.debug(f"[업로드] raw.wav 저장 완료 - {broadcast} {program_name} {date}")
+    logger.debug(f"[업로드] saved - {broadcast} {program_name} {date}")
     return "ok"
 
 # -------------------------------------------------------------------------------- 검색기능

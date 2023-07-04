@@ -8,10 +8,10 @@ from datetime import timedelta
 def memory_usage(message: str = 'debug'):
     # current process RAM usage
     p = psutil.Process()
-    rss = p.memory_info().rss / 2 ** 20 # Bytes to MB
+    rss = p.memory_info().rss # Bytes
     # print(f"[{message}] memory usage: {rss: 10.5f} MB |{type(rss)}| {(rss/5*8*1024)*100}%")
     # logger.debug(rss/(128*1024))
-    return rss/(128*1024)
+    return rss/psutil.virtual_memory().total
 
 
 
@@ -108,5 +108,6 @@ def add_time(time1, time2):
 # ----------- Json
 import json
 def save_json(data, save_dir):
+    checkdir(save_dir)
     with open(save_dir, 'w', encoding='utf-8') as f:
         json.dump(data, f, ensure_ascii=False)
