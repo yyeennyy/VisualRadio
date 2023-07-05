@@ -1,4 +1,4 @@
-FROM python:3.10-buster
+FROM python:3.8-buster
 
 RUN apt update && apt-get install -y python3-pip
 RUN pip install --upgrade pip
