@@ -99,16 +99,22 @@ def admin_update():
 
 import script
 def process_audio_file(broadcast, name, date):
-    services.split(broadcast, name, date)
-    start_times = services.split_cnn(broadcast, name, date)
-    services.speech_to_text(broadcast, name, date)
-    script.before_script(broadcast, name, date, start_times, 'whisper')
-    script.before_script(broadcast, name, date, start_times, 'google')
-    script.make_script(broadcast, name, date)
-    script.register_listener(broadcast, name, date)
-    services.sum_wav_sections(broadcast, name, date)
-    logger.debug("[업로드] 오디오 처리 완료")
-    return "ok"
+    try:
+        services.split(broadcast, name, date)
+        start_times = services.split_cnn(broadcast, name, date)
+        services.speech_to_text(broadcast, name, date)
+        logger.debug("멈춰라")
+        script.before_script(broadcast, name, date, start_times, 'whisper')
+        logger.debug("안멈추네?")
+        script.before_script(broadcast, name, date, start_times, 'google')
+        script.make_script(broadcast, name, date)
+        script.register_listener(broadcast, name, date)
+        services.sum_wav_sections(broadcast, name, date)
+        logger.debug("[업로드] 오디오 처리 완료")
+        return "ok"
+    except:
+        logger.debug("오류 발생!!!! 오디오 처리를 종료합니다.")
+        return
 
 def audio_save(broadcast, program_name, date, audiofile):
     path = f"./VisualRadio/radio_storage/{broadcast}/{program_name}/{date}/"

@@ -7,7 +7,6 @@ from torch._C import *
 import random
 import settings as settings
 import time
-import asyncio
 import utils
 import stt
 import wave
@@ -580,12 +579,17 @@ def speech_to_text(broadcast, name, date):
     
 
     start_time = time.time()  # 시작 시간 기록
-    timeout = 3600  # 1시간 (초 단위)
+    timeout = 7200  # 1시간 (초 단위)
     
     while not th_q.empty():
         if time.time() - start_time > timeout:
-            logger.debug("1시간 시간 초과")  # 원하는 동작을 수행
-            break  # 함수를 중단하고 루프를 벗어남
+            logger.debug("[시간 초과] 설정한 시간을 초과하여 stt를 종료합니다.")
+            with app.app_context():
+                process = Process.query.filter_by(broadcast=broadcast, radio_name=name, radio_date=str(date)).first()
+                if process:
+                    process.error = 1
+                db.session.commit()
+                return
         if len(threading.enumerate()) < 7:
             time.sleep(random.uniform(0.1, 1))
             if utils.memory_usage("stt") < 0.70:
@@ -596,9 +600,10 @@ def speech_to_text(broadcast, name, date):
                 th_q_fin.append(this_th)
 
     for thread in th_q_fin:
-        asyncio.run(thread.join())
+        thread.join(20)
         while(thread.is_alive()):
             if(time.time() - start_time > timeout):
+                logger.debug("[시간 초과] 설정한 시간을 초과하여 stt를 종료합니다.")
                 with app.app_context():
                     process = Process.query.filter_by(broadcast=broadcast, radio_name=name, radio_date=str(date)).first()
                     if process:
@@ -722,6 +727,6 @@ def get_radio_process(broadcast, radio_name, radio_date):
         all = end = 0 
         all += 4+ process.all_stt
         end += process.split1 + process.split2 + process.end_stt + process.script + process.sum
-        all_process = {'end': end, 'all': all}
+        all_process = {'end': end, 'all': all, 'error':process.error}
     return all_process
 
