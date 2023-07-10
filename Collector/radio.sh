@@ -12,4 +12,4 @@ touch "$MP3_FILE_NAME"
 
 RADIO_ADDR=$(python "$BROADCAST.py")
 
-ffmpeg -t "$RECORD_MINS" -i "$RADIO_ADDR" "$MP3_FILE_NAME"
+ffmpeg -t "$RECORD_MINS" -y -i "$RADIO_ADDR" "$MP3_FILE_NAME"
