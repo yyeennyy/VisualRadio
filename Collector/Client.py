@@ -11,4 +11,5 @@ def backgroundScheduler():
     scheduler.add_job(schedulerJob, 'cron', hour=2, minute=59)  # schedulerJob을 오전 11시마다 실행
  
 if __name__ == '__main__':
+    print("실행 확인")
     backgroundScheduler()

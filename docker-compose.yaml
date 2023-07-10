@@ -65,6 +65,7 @@ services:
     networks:
       - db-net
     volumes:
+      - ./Collector:/Collector
       - ./VisualRadio/radio_storage:/Collector/radio_storage
     depends_on:
       - nginx
