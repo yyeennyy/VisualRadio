@@ -10,4 +10,4 @@ COPY . .
 # RUN pip install ... 
 #
 
-CMD [ "python", "client.py" ]
+CMD [ "python", "Client.py" ]
