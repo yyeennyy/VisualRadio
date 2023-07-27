@@ -2,7 +2,7 @@
 import sqlite3
 
 # SQLite 데이터베이스에 연결
-conn = sqlite3.connect('fix.db')
+conn = sqlite3.connect('./VisualRadio/split_module/DB/fix.db')
 c = conn.cursor()
 
 print('## 데이터베이스에 있는 테이블 이름 조회')

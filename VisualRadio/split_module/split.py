@@ -28,7 +28,7 @@ def split_about(path, program_name):
             start = max(start, 0)
         segment = audio[start:end]
         segment.export(temp_file_path, format='wav')
-        song_info, time = find_time(temp_file_path)
+        song_info, time = find_time(temp_file_path, program_name)
         real_time.append(start/1000+time)
         song_info_list.append(song_info)
         os.remove(temp_file_path)  

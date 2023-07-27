@@ -2,8 +2,7 @@ import psutil
 import shutil
 import os
 import settings
-import datetime
-from datetime import timedelta
+from datetime import timedelta, datetime
 
 def memory_usage(message: str = 'debug'):
     # current process RAM usage
