@@ -668,6 +668,7 @@ import json
 import librosa
 import librosa.util
 import soundfile as sf
+from natsort import natsorted
 
 
 def sum_wav_sections(broadcast, name, date):
@@ -675,7 +676,7 @@ def sum_wav_sections(broadcast, name, date):
     # 하나의 output stream에 이어쓰기하여 sum.wav로 만들기
     src_path = utils.hash_splited_path(broadcast, name, date)
     dst_path = utils.get_path(broadcast, name, date) + "/sum.wav"
-    src_files = utils.natsorted(utils.ourlistdir(src_path))
+    src_files = natsorted(utils.ourlistdir(src_path))
 
     # input stream 리스트 생성 & wav파일의 파라미터 정보 가져오기
     input_streams = []

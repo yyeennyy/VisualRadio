@@ -11,13 +11,13 @@ from contextlib import contextmanager
 
 KNOWN_EXTENSIONS = ["mp3", "wav", "flac", "m4a"]
 
-def find_matching_offset(audio_file, program_name, threshold=5):
+def find_matching_offset(audio_file, threshold=5):
 
     # 음성 파일에서 hash 값 생성
     hashes = fingerprint_file(audio_file)
     
     # DB에서 일치하는 hash 값을 찾아 매칭 결과 가져오기
-    matches = get_matches(hashes, program_name, threshold)
+    matches = get_matches(hashes, threshold)
 
     # 가장 매칭 결과가 높은 음악 파일 ID 가져오기
     matched_song_id, matched_offsets = best_match_test(matches)
@@ -27,7 +27,7 @@ def find_matching_offset(audio_file, program_name, threshold=5):
 
     return matched_song_info, matched_offsets
 
-def get_matches(hashes, program_name, threshold=5):
+def get_matches(hashes, threshold=5):
     """Get matching songs for a set of hashes.
 
     :param hashes: A list of hashes as returned by
@@ -42,11 +42,7 @@ def get_matches(hashes, program_name, threshold=5):
         h_dict[h] = t
     in_values = f"({','.join([str(h[0]) for h in hashes])})"
     with get_cursor() as (conn, c):
-        c.execute(f"""SELECT h.hash, h.offset, h.song_id
-                    FROM hash h
-                    INNER JOIN song_info s ON h.song_id = s.song_id
-                    WHERE h.hash IN {in_values} AND s.program_name IN ('{program_name}');
-                """)
+        c.execute(f"SELECT hash, offset, song_id FROM hash WHERE hash IN {in_values}")
         results = c.fetchall()
     result_dict = defaultdict(list)
     for r in results:
@@ -105,8 +101,8 @@ def get_info_for_song_id(song_id):
         c.execute("SELECT program_name, fix_sound_name FROM song_info WHERE song_id = ?", (song_id,))
         return c.fetchone()
     
-def find_time(path, program_name):
-    song_info, offsets = find_matching_offset(path, program_name)
+def find_time(path):
+    song_info, offsets = find_matching_offset(path)
     print(offsets[-1])
     time = abs(offsets[-1][1] - offsets[-1][0])
     return song_info, time
