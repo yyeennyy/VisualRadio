@@ -97,6 +97,7 @@ def admin_update():
 
     return jsonify({'message': 'Success'})
 
+import traceback
 import script
 def process_audio_file(broadcast, name, date):
     try:
@@ -113,6 +114,8 @@ def process_audio_file(broadcast, name, date):
     except Exception as e:
         logger.debug(e)
         logger.debug("오류 발생!!!! 오디오 처리를 종료합니다.")
+        traceback_str = traceback.format_exc()
+        logger.debug(traceback_str)
         return
 
 def audio_save(broadcast, program_name, date, audiofile):
