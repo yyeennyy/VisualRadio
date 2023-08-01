@@ -7,7 +7,8 @@ RUN apt-get install flac
 
 WORKDIR /app
 
-RUN pip install flask==2.0.0 click==7.1.2 black sqlalchemy Flask-Caching Flask-Cors flask_sqlalchemy pymysql
+RUN pip install flask==2.0.0 click==7.1.2 sqlalchemy Flask-Caching Flask-Cors flask_sqlalchemy pymysql
+RUN pip install black
 RUN pip install SQLAlchemy==1.4
 RUN pip install pymysql
 RUN pip install torch torchvision
