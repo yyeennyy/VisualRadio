@@ -9,6 +9,7 @@ from models import Listener, Process, Keyword
 import settings
 import re
 from konlpy.tag import Komoran
+from sklearn.feature_extraction.text import TfidfVectorizer
 
 
 # logger
@@ -251,7 +252,15 @@ def correct_applicant(broadcast, name, date):
     logger.debug("[correct_applicant] 사연자 보정 완료")
 
 
-# 만들어진 스크립트에서 청취자 찾기 
+# 만들어진 스크립트에서 청취자 찾아 키워드 추출
+
+def get_token(komoran, sentence):
+    pos_tags = komoran.pos(sentence)
+    keywords = [word[0] for word in pos_tags if word[1]=='NNG' or word[1]=='NNP'] # 일반명사, 고유명사
+    if len(keywords) == 0:
+        return ''
+    return keywords[0]
+
 def register_listener(broadcast, name, date):
     script_file = utils.script_path(broadcast, name, date)
     if not os.path.exists(script_file):
@@ -259,51 +268,110 @@ def register_listener(broadcast, name, date):
         return False
     with open(script_file, 'r', encoding='utf-8') as f:
         data = json.load(f)
-    regex = "(?<![0-9])(?<![0-9] )[0-9]{4}(?!년| 년)(?! [0-9])(?![0-9])" # 전화번호처럼 연속된 8자리(공백포함)는 인식하지 않는 정규표현식임
-    listener_set = set()
-    # preview_text_list = []
+    scripts = {}
     for line in data:
-        # 라인별 person_list 찾기
-        # logger.debug(f"[ㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡ]lineㅡㅡㅡㅡ{line}")
-        person_list = re.findall(regex, line['txt'])
-        if len(person_list) == 0:
-            continue
-        # 찾았으
-        listener_set = set.union(listener_set, person_list)
-        # logger.debug(f"[ㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡ]listenre setㅡㅡㅡㅡ{listener_set}")
+        scripts[line['time']] = line['txt']
 
-        # TODO: 개선하고 싶다. txt의 앞뒤를 가져오고 싶다. 그치만 지금은 한 문장에 대해서만 적용해보자.
-        # for person in person_list:
-            # preview_text_list.append({'code':person, 'txt':line['txt'], 'time':line['time']}) # 없어도 될듯? 각 person에 대해서 그떄그떄 처리해주면 되니까.
-            # 현재회차의 해당 person에 대해 DB에 반영
+    # data 반복문
+    # - scripts에 target_txt 반영 (원본 스크립트가 아니라, tf-idf에 넣을 스크립트)
+    # - 청취자 감지 내용을 listeners에 담기
+    listeners = []
+    regex = "(?<![0-9])(?<![0-9] )[0-9]{4}(?!년| 년)(?! [0-9])(?![0-9])"
+    flag = 0
+    tmp_idx = -1
+    already = False
+    target_txt = ""
+    # 가정: 청취자 코드 등장 이후, 연속 몇 문장은 하나의 내용이다.
+    for idx, line in enumerate(data):
+        txt = line['txt']
+        time = line['time']
+        person_list = re.findall(regex, txt)
+        if (already and len(person_list)!=0) or flag == 5: # 5개 문장 반영
+            if len(person_list)!=0:
+                # 일단 반영하고.. 
+                already = True
+                scripts[time_pin] = target_txt
+                target_txt = scripts[time_pin]
+                listeners.append({'time':time_pin, 'code':code_pin, 'txt':target_txt, 'txt_index':tmp_idx})
+                # 청취자 등장 시점과 동일한 처리
+                tmp_idx += 1
+                idx_pin = idx
+                time_pin = time
+                code_pin = person_list[0]
+                target_txt = data[idx_pin]['txt']
+                flag = 1
+                continue
+            else:
+                already = False
+                scripts[time_pin] = target_txt + data[idx]['txt']
+                target_txt = scripts[time_pin]
+                flag = 0
+                scripts.pop(time)
+                listeners.append({'time':time_pin, 'code':code_pin, 'txt':target_txt, 'txt_index':tmp_idx})
+                continue
+        # 문장 누적 시점
+        if already:
+            target_txt += " " + data[idx]['txt']
+            flag +=1
+            scripts.pop(time)
+            continue
+        tmp_idx += 1
+        if len(person_list) == 0: # 청취자 부분 아니면 스킵
+            continue
+        else: # 청취자 등장 시점
+            already = True
+            idx_pin = idx
+            time_pin = time
+            code_pin = person_list[0]
+            target_txt = data[idx_pin]['txt']
+            flag = 1
+            continue
+
+    # script 반복문
+    # tf-idf 키워드를 추출하는 부분
+    # 실제 적용시 listeners의 내용을 DB에 추가하면 된다. (code & keywords & time & target_txt)
+    komoran = Komoran()
+    vectorizer = TfidfVectorizer()
+    doc = [value for time, value in scripts.items()]
+    tfidf_matrix = vectorizer.fit_transform(doc) # tf-idf 가중치 계산
+    feature_names = vectorizer.get_feature_names_out() # 단어목록 추출
+    pick = 5 # 선청할 키워드 수 maximum
+    for info in listeners:
+        time = info['time']
+        txt = info['txt']
+        txt_index = info['txt_index']
+        # txt에 대해서 keywords 추출 시작!
+        keywords = []
+        tmp_keys = {}
+        for j, idx in enumerate(tfidf_matrix[txt_index].indices):
+            token = get_token(komoran, feature_names[idx])
+            if len(token) == 0:
+                # token = feature_names[idx]
+                continue
+            if len(token)>1 and tmp_keys.get(token) == None:
+                keywords.append([token, tfidf_matrix[txt_index, idx]])
+                tmp_keys[token] = 1
+        keywords = sorted(keywords, key=lambda x: x[1], reverse=True)
+        info['keywords'] = keywords[:pick]
+        info.pop('txt_index')
+
+    # DB에 저장(Keyword테이블, Listener테이블)
+    for l in listeners:
+        print(l['txt'])
+        print(l['code'], ": ", l['keywords'])
+        print()
         with app.app_context():
             try:
-                for listener in listener_set:
-                    text = line['txt'][:100]
-                    db.session.add(Listener(broadcast=broadcast, radio_name=name, radio_date=date, code=listener, preview_text=text, time=line['time']))
-                    # TODO: 현재 line['txt']에 대해 textrank적용 => keyword들 추출 => keyword DB테이블에 이 회차, 청취자, keyword 레코드 삽입하기!
-                    ############### 키워드 추출 #################
-                    # 유의: 키워드를 뽑으면서, 키워드가 없다면 아예 DB에 추가할 대상 문장이 아님.
-                    # 전체 문장 내에서 핵심이 되는 키워드는? <= 일단 판단하지 말고, ㄱㅊ은 형태소는 다 넣자
-                    keywords = extract_keywords(text)
-                    stop_words = ['님', '하', '제가', '지', '고요', '저', '드', '들', '가', '보']
-                    result = [keyword[0] for keyword in keywords if keyword[0] not in stop_words]
-                    for r in result:
-                        keyword = Keyword(broadcast=broadcast, radio_name=name, radio_date=date, code=listener, keyword=r, time=line['time'])
-                        db.session.add(keyword)
-                    db.session.commit()
+                db.session.add(Listener(broadcast=broadcast, radio_name=name, radio_date=date, code=l['code'], preview_text=l['txt'], time=l['time']))
+                stop_words = ['제가']
+                result = [keyword[0] for keyword in l['keywords'] if l['keywords'][0] not in stop_words]
+                result =  ' '.join(str(item) for item in result[:3])
+                keyword = Keyword(broadcast=broadcast, radio_name=name, radio_date=date, code=l['code'], keyword= result, time=line['time'])
+                db.session.add(keyword)
+                db.session.commit()
             except IntegrityError as e:
                 logger.debug("IntegrityError occurred............")
-                ##########################################
-    logger.debug(f"[find_listner] 청취자 업뎃완료: {listener_set} at {broadcast} {name} {date}")
-
-def extract_keywords(sentence):
-    komoran = Komoran()
-    pos_tags = komoran.pos(sentence)
-    keywords = [word for word in pos_tags if word[1]=='NNG' or word[1]=='XR' or word[1]=='NNP' or word[1]=='MAG']
-    return keywords
-
-
+    logger.debug(f"[find_listner] 청취자 등록 완료")
 
 
 ###################################### tools ###################################
