@@ -6,13 +6,11 @@ RUN apt-get install -y ffmpeg
 RUN apt-get install flac
 
 WORKDIR /app
-COPY requirements.txt .
-RUN pip3 install -r requirements.txt
 
 RUN pip install flask==2.0.0 click==7.1.2 black sqlalchemy Flask-Caching Flask-Cors flask_sqlalchemy pymysql
 RUN pip install SQLAlchemy==1.4
 RUN pip install pymysql
-RUN pip install torch
+RUN pip install torch torchvision
 RUN pip install spleeter==2.4.0
 RUN pip install tensorflow==2.9.0
 RUN pip install cryptography
