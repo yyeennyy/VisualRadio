@@ -366,12 +366,12 @@ def register_listener(broadcast, name, date):
                 stop_words = ['제가']
                 result = [keyword[0] for keyword in l['keywords'] if l['keywords'][0] not in stop_words]
                 result =  ' '.join(str(item) for item in result[:3])
-                keyword = Keyword(broadcast=broadcast, radio_name=name, radio_date=date, code=l['code'], keyword= result, time=line['time'])
+                keyword = Keyword(broadcast=broadcast, radio_name=name, radio_date=date, code=l['code'], keyword= result, time=l['time'])
                 db.session.add(keyword)
                 db.session.commit()
             except IntegrityError as e:
                 logger.debug("IntegrityError occurred............")
-    logger.debug(f"[find_listner] 청취자 등록 완료")
+    logger.debug(f"[find_listner] 청취자 등록 완료") 
 
 
 ###################################### tools ###################################
