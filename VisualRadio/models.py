@@ -47,7 +47,7 @@ class Listener(db.Model):
     radio_name = db.Column(db.String(50), ForeignKey('radio.radio_name', ondelete='CASCADE'))
     radio_date = db.Column(db.String(50), ForeignKey('wav.radio_date', ondelete='CASCADE'))
     code = db.Column(db.Integer, nullable=False, primary_key=True)
-    preview_text = db.Column(db.String(200), nullable=False, default="")
+    preview_text = db.Column(db.String(1000), nullable=False, default="")
     time = db.Column(db.String(20), nullable=False, default="")
 
     def __init__(self, broadcast, radio_name, radio_date, code, preview_text, time):
