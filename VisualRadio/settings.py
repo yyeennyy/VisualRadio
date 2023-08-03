@@ -54,7 +54,8 @@ NUM_WORKERS = 24
 
 
 # CNN 모델 path
-MODEL_PATH = './VisualRadio/split_module/split_good_model.h5'
+# MODEL_PATH = './VisualRadio/split_module/split_good_model.h5'
+MODEL_PATH = './VisualRadio/split_module/resnet_model_test1.pth'
 
 # radio_storage까지의 경로
 STORAGE_PATH = 'VisualRadio/radio_storage'

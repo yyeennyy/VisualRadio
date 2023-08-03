@@ -64,6 +64,7 @@ def get_cursor():
 def best_match_test(matches):
     matched_song = None
     best_score = 0
+    matched_offsets = 0
     for song_id, offsets in matches.items():
         if len(offsets) < best_score:
             # can't be best score, avoid expensive histogram

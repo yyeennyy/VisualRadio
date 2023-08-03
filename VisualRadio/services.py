@@ -408,14 +408,17 @@ def get_segment(broadcast, name, date):
 def split_cnn(broadcast, name, date):
     model_path = settings.MODEL_PATH
     splited_path = utils.hash_splited_path(broadcast, name, date) # 1차 split 이후이므로 이 경로는 반드시 존재함
+    mr_path = utils.mr_splited_path(broadcast, name, date)
     section_wav_origin_names = utils.ourlistdir(splited_path)
     section_start_time_summary = {}
     # real_content = []
     content_section_list = []
     for target_section in section_wav_origin_names:
         test_path = os.path.join(splited_path, target_section) # 1차 splited한 sec_n.wav임
+        mr_seg_path = os.path.join(mr_path, target_section)
         output_path = os.path.join(utils.cnn_splited_path(broadcast, name, date), target_section[:-4])  # 2차 split 결과를 저장할 디렉토리 생성
-        ment_range, content_section = save_split(test_path, model_path, output_path) # 2차 split 시작하기
+        # ment_range, content_section = save_split(test_path, model_path, output_path) # 2차 split 시작하기
+        ment_range, content_section = save_split(test_path, model_path, output_path, mr_seg_path) # 2차 split 시작하기
         total_duration = 0
         
         for filename in utils.ourlistdir(splited_path):
