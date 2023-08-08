@@ -411,13 +411,12 @@ def split_cnn(broadcast, name, date):
     mr_path = utils.mr_splited_path(broadcast, name, date)
     section_wav_origin_names = utils.ourlistdir(splited_path)
     section_start_time_summary = {}
-    # real_content = []
+    
     content_section_list = []
     for target_section in section_wav_origin_names:
         test_path = os.path.join(splited_path, target_section) # 1차 splited한 sec_n.wav임
         mr_seg_path = os.path.join(mr_path, target_section)
         output_path = os.path.join(utils.cnn_splited_path(broadcast, name, date), target_section[:-4])  # 2차 split 결과를 저장할 디렉토리 생성
-        # ment_range, content_section = save_split(test_path, model_path, output_path) # 2차 split 시작하기
         ment_range, content_section = save_split(test_path, model_path, output_path, mr_seg_path) # 2차 split 시작하기
         total_duration = 0
         
@@ -429,27 +428,29 @@ def split_cnn(broadcast, name, date):
                     total_duration += int(duration)
             else:
                 break
+        
         real_ment_range = [[total_duration + start_time_sec, total_duration + end_time_sec] for start_time_sec, end_time_sec in ment_range]    
         real_content_section = [[total_duration + start_time_sec, total_duration + end_time_sec] for start_time_sec, end_time_sec in content_section]
-        # real_content.append(real_content_section)
+        
         for i, range_list in enumerate(real_content_section):
             start = range_list[0]
             end = range_list[1]
-            start_time = f"{start // 60}:{start % 60:02d}.000"
-            end_time = f"{end // 60}:{end % 60:02d}.000"
-            # logger.debug()
+            if(start - 0.5 == int(start)):
+                ms_start = "500"
+            else:
+                ms_start = "000"
+            if(end - 0.5 == int(start)):
+                ms_end = "500"
+            else:
+                ms_end = "000"
+            
+            start_time = f"{int(start) // 60}:{int(start) % 60:02d}.{ms_start}"
+            end_time = f"{int(end) // 60}:{int(end) % 60:02d}.{ms_end}"
+            
             if range_list in real_ment_range:
                 item = {"start_time": str(start_time), "end_time": str(end_time), "type": 0}
             else:
-                if(target_section == 'sec_2.wav' or target_section == 'sec_4.wav'): # 광고의 경우
-                    item = {"start_time": str(start_time), "end_time": str(end_time), "type": 2}
-                elif(target_section == 'sec_1.wav' or target_section == 'sec_3.wav'): # 1부, 2부의 경우
-                    item = {"start_time": str(start_time), "end_time": str(end_time), "type": 1}
-                else: # 오프닝의 경우
-                    if(i+1 == len(real_content_section)): # 마지막 부분만 광고고 나머지는 다 노래!
-                        item = {"start_time": str(start_time), "end_time": str(end_time), "type": 2}
-                    else:
-                        item = {"start_time": str(start_time), "end_time": str(end_time), "type": 1}
+                item = {"start_time": str(start_time), "end_time": str(end_time), "type": 2}
             content_section_list.append(item)
         
         ment_start_times = []
@@ -473,7 +474,7 @@ def split_cnn(broadcast, name, date):
             wav.radio_section = str(content_section_list)
         else:
             wav = Wav(broadcast = broadcast, radio_name = name, radio_date = date, radio_section = str(content_section_list))
-            # logger.debug(str(content_section_list))
+            
             db.session.add(wav)
         db.session.commit()
 

@@ -69,7 +69,7 @@ def google_stt(src_path, interval, broadcast, name, date):
     return data
 
 
-
+import traceback 
 
 
 def whisper_stt(src_path, broadcast, name, date):
@@ -86,8 +86,10 @@ def whisper_stt(src_path, broadcast, name, date):
             results = model.transcribe(
                 src_path, language=language, temperature=0.0, word_timestamps=True)
             del model
-        except:
-             with app.app_context():
+        except Exception as e:
+            traceback_str = traceback.format_exc()
+            logger.debug(traceback_str)
+            with app.app_context():
                 process = Process.query.filter_by(broadcast=broadcast, radio_name=name, radio_date=str(date)).first()
                 if process:
                     process.error = 1

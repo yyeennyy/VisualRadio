@@ -72,8 +72,12 @@ def model_predict(audio, sr, ment_range, model_path, isPrint=False, sec = 1):
 
         x_test = np.array(x_test)
 
-        spectrogram_data = torch.tensor(x_test, dtype=torch.float)        
+        # 예측하려는 데이터 (예시: spectrogram_data_resized 변수에 저장된 스펙트로그램 데이터)
+        # 이 데이터를 PyTorch 텐서로 변환
+        spectrogram_data = torch.tensor(x_test, dtype=torch.float)
+        
         spectrogram_data = spectrogram_data.unsqueeze(1)
+
         spectrogram_data_resized = torch.cat([spectrogram_data] * 3, dim=1)
 
         # GPU를 사용한다면 텐서를 해당 장치로 이동
@@ -87,19 +91,29 @@ def model_predict(audio, sr, ment_range, model_path, isPrint=False, sec = 1):
         # 예측된 클래스 레이블을 얻기 위해 클래스 차원(class dimension, axis=1)에서 가장 큰 값의 인덱스를 가져옴
         _, predicted_labels = torch.max(outputs, dim=1)
 
-        # 예측된 레이블들을 넘파이 배열로 변환
-        # predicted_labels = predicted_labels.cpu().numpy()
-        predicted_labels = predicted_labels.detach().cpu().numpy()
+        # logger.debug(f"{start/sr} {end/sr}")
+        # logger.debug(predicted_labels)
         
-        # if isPrint:
-        #     print(convert_to_time_format(start/sr), convert_to_time_format(end/sr))
-        #     print(predicted_labels)
-        #     print()
-            
-        if(np.mean(predicted_labels) <= 0.5):
+        if(torch.mean(predicted_labels.float()) <= 0.5):
             real_ment.append(i)
             
     return real_ment
+
+def seconds_to_time_format(seconds):
+    minutes, seconds = divmod(seconds, 60)
+    hours, minutes = divmod(minutes, 60)
+    return f"{int(hours)}:{int(minutes):02d}:{int(seconds):02d}"
+
+def convert_to_time_format(input):
+    converted_inner_list = seconds_to_time_format(input)
+    return converted_inner_list
+
+def convert_to_time_format_list(input_list):
+    result_list = []
+    for inner_list in input_list:
+        converted_inner_list = [seconds_to_time_format(seconds) for seconds in inner_list]
+        result_list.append(converted_inner_list)
+    return result_list
 
 def divide_all_elements(input_list, divisor):
     result_list = []
@@ -165,10 +179,20 @@ def merge_and_sort_ranges(range_list1, range_list2):
     return sorted_ranges
 
 def save_split(test_path, model_path, output_path, mr_seg_path):
+    wav_name = output_path.split("/")[-1]
+    mr_wav_path = mr_seg_path+"/"+wav_name+"/vocals.wav"
     os.makedirs(output_path, exist_ok=True)
-    remove_mr(test_path, mr_seg_path)
-    audio, sr = librosa.load(test_path)
+    os.makedirs(mr_seg_path+"/"+wav_name, exist_ok=True)
+    
+    if not os.listdir(mr_seg_path+"/"+wav_name):
+        logger.debug(f"{wav_name} mr 제거 시작")
+        remove_mr(test_path, mr_seg_path)
+    else:
+        logger.debug(f"{wav_name} mr 제거 파일이 이미 존재합니다.")
+    
+    audio, sr = librosa.load(mr_wav_path)
     ment_range = find_voice(audio, sr)
+    logger.debug(f"{wav_name} predict 시작")
     real_ment = model_predict(audio, sr,ment_range, model_path)
     real_ment_time = divide_all_elements(real_ment, sr)
     merged_real_ment_time = merge_intervals(real_ment_time, 10)
@@ -178,18 +202,17 @@ def save_split(test_path, model_path, output_path, mr_seg_path):
 
     # 여기 광고 구분하는 로직 출현시키기!!!
     
-    
     # 각 구간별로 오디오 자르기
-    for idx, segment in enumerate(ment_range):
+    for idx, segment in enumerate(ment_without_ad):
         start_time, end_time = segment
         start_sample = int(start_time * sr)
-        end_sample = int((end_time+1) * sr)
+        end_sample = int((end_time) * sr)
         sliced_audio = audio[start_sample:end_sample]
 
         # 잘린 오디오 저장
         name = f"/sec_{idx}.wav"
         sf.write(output_path+name, sliced_audio, sr)
-        print(f"Segment {idx} 저장 완료: {name}")
+        logger.debug(f"Segment {idx} 저장 완료: {name}")
         
         
     return ment_range, all_range # content_range
