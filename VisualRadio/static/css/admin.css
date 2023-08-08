@@ -39,7 +39,7 @@ table {
     margin-bottom: 20px;
 }
 
-#st {
+.st {
     width: 130px;
     height: 30px;
     line-height: 30px;
@@ -47,14 +47,14 @@ table {
     font-weight: bold;
 }
 
-#nd {
+.nd {
     width: 150px;
     height: 30px;
     line-height: 30px;
     padding-left: 15px;
 }
 
-#input {
+.input {
     border: 1px solid rgb(154, 48, 174);
 }
 
