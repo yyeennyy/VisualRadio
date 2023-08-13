@@ -403,24 +403,92 @@ def get_segment(broadcast, name, date):
             logger.debug(f"db에서 정보 로드 완료!!")
             res = wav.radio_section.replace("'", "\"")
             return json.loads(res)
+        
+from spleeter.separator import Separator
+import shutil
+import numpy as np
+
+def remove_mr(broadcast, name, date):
+    logger.debug("mr 제거 과정 진행 시작")
+    splited_path = utils.hash_splited_path(broadcast, name, date)
+    section_wav_origin_names = utils.ourlistdir(splited_path)
+    separator = Separator('spleeter:2stems')
+    tmp_path = utils.get_path(broadcast, name, date)+"tmp"
+    if not os.path.exists(tmp_path):
+            os.makedirs(tmp_path)
+    
+    
+    for target_section in section_wav_origin_names:
+        idx = 0
+        test_path = os.path.join(splited_path, target_section) # 1차 splited한 sec_n.wav임
+        sec_name = test_path.split("/")[-1].split(".")[0] # sec_n으로 나옴.
+        audio, sr = librosa.load(test_path)
+        if(len(audio) > 600*sr):
+            start = 0
+            for i in range(600*sr, len(audio), 600*sr):
+                seg_audio = audio[start : i]
+                save_name = f"{tmp_path}/{sec_name}-{str(idx)}.wav"
+                sf.write(save_name, seg_audio, sr)
+                start = i
+                idx+= 1
+            save_name = f"{tmp_path}/{sec_name}-{str(idx)}.wav"
+            sf.write(save_name, audio[i:len(audio)], sr)
+        else:
+            save_name = f"{tmp_path}/{sec_name}-{str(idx)}.wav"
+            sf.write(save_name, audio, sr)
+    
+    
+    mr_path = utils.mr_splited_path(broadcast, name, date)
+    tmp_mr_path = utils.tmp_mr_splited_path(broadcast, name, date)
+    seg_list = utils.ourlistdir(tmp_path)
+    for seg_mr in seg_list:
+        logger.debug(f"{seg_mr}을 mr제거합니다.")
+        audio_path = os.path.join(tmp_path, seg_mr)
+        separator.separate_to_file(audio_path, tmp_mr_path, duration=10000)
+        
+    # 디렉토리 자체 삭제
+    shutil.rmtree(tmp_path)
+    
+    section_wav__names = utils.ourlistdir(tmp_mr_path)
+    for fname in section_wav__names:
+        rname = fname.split("-")[0]
+        vocals = f"{tmp_mr_path}{fname}/vocals.wav"
+        x, sr = librosa.load(vocals)
+        for a in section_wav__names:
+            if(fname == a):
+                continue
+            r2name = a.split("-")[0]
+            if(r2name == rname):
+                vocals2 = f"{tmp_mr_path}{a}/vocals.wav"
+                y, sr = librosa.load(vocals2)
+                x = np.concatenate((x, y),axis=0)
+        sf.write(f"{mr_path}/{rname}.wav", x, sr)
+    
+    shutil.rmtree(tmp_mr_path)
+    
+    return mr_path
+            
+
+    
+    
 
 # ment_range = []
-def split_cnn(broadcast, name, date):
+def split_cnn(mr_path, broadcast, name, date):
+    logger.debug("===========================================")
     model_path = settings.MODEL_PATH
-    splited_path = utils.hash_splited_path(broadcast, name, date) # 1차 split 이후이므로 이 경로는 반드시 존재함
-    mr_path = utils.mr_splited_path(broadcast, name, date)
-    section_wav_origin_names = utils.ourlistdir(splited_path)
+    mr_path = utils.mr_splited_path(broadcast, name, date) # 1차 split 이후이므로 이 경로는 반드시 존재함
+    section_mr_origin_names = utils.ourlistdir(mr_path)
+    
     section_start_time_summary = {}
     
     content_section_list = []
-    for target_section in section_wav_origin_names:
-        test_path = os.path.join(splited_path, target_section) # 1차 splited한 sec_n.wav임
+    for target_section in section_mr_origin_names:
         mr_seg_path = os.path.join(mr_path, target_section)
         output_path = os.path.join(utils.cnn_splited_path(broadcast, name, date), target_section[:-4])  # 2차 split 결과를 저장할 디렉토리 생성
-        ment_range, content_section = save_split(test_path, model_path, output_path, mr_seg_path) # 2차 split 시작하기
+        ment_range, content_section = save_split(model_path, output_path, mr_seg_path) # 2차 split 시작하기
         total_duration = 0
         
-        for filename in utils.ourlistdir(splited_path):
+        for filename in utils.ourlistdir(mr_path):
             if(filename != target_section):
                 file_path = utils.hash_splited_path(broadcast, name, date, filename)
                 with wave.open(file_path, "r") as wav_file:

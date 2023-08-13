@@ -102,7 +102,9 @@ import script
 def process_audio_file(broadcast, name, date):
     try:
         services.split(broadcast, name, date)
-        start_times = services.split_cnn(broadcast, name, date)
+    
+        mr_path = services.remove_mr(broadcast, name, date)
+        start_times = services.split_cnn(mr_path, broadcast, name, date)
         services.speech_to_text(broadcast, name, date)
         script.before_script(broadcast, name, date, start_times, 'whisper')
         script.before_script(broadcast, name, date, start_times, 'google')

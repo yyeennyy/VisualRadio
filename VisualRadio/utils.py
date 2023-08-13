@@ -29,7 +29,11 @@ def hash_splited_path(broadcast, name, date, filepath=""):
     return answer
 
 def mr_splited_path(broadcast, name, date, filepath=""):
-    answer = checkdir(f"./{settings.STORAGE_PATH}/{broadcast}/{name}/{date}/mr_wav")
+    answer = checkdir(f"./{settings.STORAGE_PATH}/{broadcast}/{name}/{date}/mr_wav/{filepath}")
+    return answer
+
+def tmp_mr_splited_path(broadcast, name, date, filepath=""):
+    answer = checkdir(f"./{settings.STORAGE_PATH}/{broadcast}/{name}/{date}/tmp_mr_wav/{filepath}")
     return answer
 
 def cnn_splited_path(broadcast, name, date, filepath=""):

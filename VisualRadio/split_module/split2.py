@@ -6,16 +6,12 @@ from scipy.ndimage import zoom
 import torchvision.models as models
 import torch
 import torch.nn as nn
-from spleeter.separator import Separator
+
 import soundfile as sf
 
 # 로거
 from VisualRadio import CreateLogger
 logger = CreateLogger("우리가1등(^o^)b")
-
-def remove_mr(audio_path, output_dir, duration_input=20000):
-    separator = Separator('spleeter:2stems')
-    separator.separate_to_file(audio_path, output_dir, duration=duration_input)
 
 def find_voice(audio, sr, sec=0.5, threshold=0.009):
   ment_range = []
@@ -178,19 +174,13 @@ def merge_and_sort_ranges(range_list1, range_list2):
     sorted_ranges = sorted(merged_ranges, key=lambda x: x[0])
     return sorted_ranges
 
-def save_split(test_path, model_path, output_path, mr_seg_path):
+def save_split(model_path, output_path, mr_path): # 섹션마다의 길이를 누적해서 더해줘야함!
     wav_name = output_path.split("/")[-1]
-    mr_wav_path = mr_seg_path+"/"+wav_name+"/vocals.wav"
+    logger.debug(f"save_split 내에 있는 mr_seg_path는 {mr_path}입니다.")
     os.makedirs(output_path, exist_ok=True)
-    os.makedirs(mr_seg_path+"/"+wav_name, exist_ok=True)
     
-    if not os.listdir(mr_seg_path+"/"+wav_name):
-        logger.debug(f"{wav_name} mr 제거 시작")
-        remove_mr(test_path, mr_seg_path)
-    else:
-        logger.debug(f"{wav_name} mr 제거 파일이 이미 존재합니다.")
     
-    audio, sr = librosa.load(mr_wav_path)
+    audio, sr = librosa.load(mr_path)
     ment_range = find_voice(audio, sr)
     logger.debug(f"{wav_name} predict 시작")
     real_ment = model_predict(audio, sr,ment_range, model_path)

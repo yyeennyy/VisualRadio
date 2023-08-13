@@ -64,7 +64,7 @@ def get_cursor():
 def best_match_test(matches):
     matched_song = None
     best_score = 0
-    matched_offsets = 0
+    # matched_offsets = 0
     for song_id, offsets in matches.items():
         if len(offsets) < best_score:
             # can't be best score, avoid expensive histogram
@@ -104,6 +104,6 @@ def get_info_for_song_id(song_id):
     
 def find_time(path):
     song_info, offsets = find_matching_offset(path)
-    print(offsets[-1])
+    # print(offsets[-1])
     time = abs(offsets[-1][1] - offsets[-1][0])
     return song_info, time
