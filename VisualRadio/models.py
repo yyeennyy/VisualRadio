@@ -1,6 +1,6 @@
 from VisualRadio import db
 from sqlalchemy import ForeignKey
-
+from sqlalchemy.dialects.mysql import LONGTEXT
 
 class Radio(db.Model):
     __tablename__ = 'radio'
@@ -91,6 +91,7 @@ class Process(db.Model):
     def __repr__(self):
         return f"Radio: {self.broadcast} {self.radio_name} {self.radio_date} : raw : {self.raw}, split1 : {self.split1}, split2 : {self.split2}, end_stt : {self.end_stt}, all_stt : {self.all_stt}, script : {self.script}, sum : {self.sum}"
 
+# 현재 얘는 청취자 사연 code, keyword로 사용중
 class Keyword(db.Model):
     __tablename__ = 'keyword'
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
@@ -109,3 +110,28 @@ class Keyword(db.Model):
         self.code = code
         self.keyword = keyword
         self.time = time
+
+
+# 현재 얘는 전체 스크립트에 대한 문단정보, 문단키워드 얘기임..
+# 뭔가 청취자 키워드랑 통합할 필요 있음
+# 일단 기능구현 후 DB 갈아엎기에 대한 고민 시작하자.
+class Contents(db.Model):
+    __tablename__ = 'contents'
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    broadcast = db.Column(db.String(50), ForeignKey('radio.broadcast', ondelete='CASCADE'))
+    radio_name = db.Column(db.String(50), ForeignKey('radio.radio_name', ondelete='CASCADE'))
+    radio_date = db.Column(db.String(50), ForeignKey('wav.radio_date', ondelete='CASCADE'))
+    time = db.Column(db.String(20), nullable=False, default="")
+    content = db.Column(LONGTEXT)
+    keyword = db.Column(db.String(20), nullable=False, default="")
+
+    def __init__(self, broadcast, radio_name, radio_date, time, content, keyword):
+        self.broadcast = broadcast
+        self.radio_name = radio_name
+        self.radio_date = radio_date
+        self.time = time
+        self.content = content
+        self.keyword = keyword
+    
+    def __repr__(self):
+        return f"{self.code}"
