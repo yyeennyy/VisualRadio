@@ -6,7 +6,9 @@ import services
 import json
 import os
 import threading
-
+import traceback
+import paragraph
+import script
 
 auth = Blueprint('auth', __name__)
 
@@ -109,19 +111,18 @@ def admin_update():
     return jsonify({'message': 'Success'})
 
 
-import traceback
-import paragraph
+
 def process_audio_file(broadcast, name, date):
     try:
-        # services.split(broadcast, name, date)
-        # mr_path = services.remove_mr(broadcast, name, date)
-        # start_times = services.split_cnn(mr_path, broadcast, name, date)
-        # services.speech_to_text(broadcast, name, date)
-        # script.before_script(broadcast, name, date, start_times, 'whisper')
-        # script.before_script(broadcast, name, date, start_times, 'google')
-        # script.make_script(broadcast, name, date)
-        # script.register_listener(broadcast, name, date)
-        # services.sum_wav_sections(broadcast, name, date)
+        services.split(broadcast, name, date)
+        mr_path = services.remove_mr(broadcast, name, date)
+        start_times = services.split_cnn(mr_path, broadcast, name, date)
+        services.speech_to_text(broadcast, name, date)
+        script.before_script(broadcast, name, date, start_times, 'whisper')
+        script.before_script(broadcast, name, date, start_times, 'google')
+        script.make_script(broadcast, name, date)
+        script.register_listener(broadcast, name, date)
+        services.sum_wav_sections(broadcast, name, date)
         paragraph.compose_paragraph(broadcast, name, date)
         logger.debug("[업로드] 오디오 처리 완료")
         return "ok"
