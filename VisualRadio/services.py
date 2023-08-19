@@ -615,9 +615,13 @@ def count_files(directory):
         count += len(files)
     return count
 
+
+import whisper
 def speech_to_text(broadcast, name, date):
     logger.debug("[stt] start!")
     start_time = time.time()
+    device = "cpu"
+    whisper.load_model(settings.WHISPER_MODEL).to(device)
     # 모든 sec_n.wav를 stt할 것이다
 
     section_dir = utils.cnn_splited_path(broadcast, name, date)       # 2차분할 결과로 반드시 존재

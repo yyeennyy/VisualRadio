@@ -83,3 +83,6 @@ SAVE_PATH = 'result/script.json'
 
 # image section 저장 경로
 IMAGE_PATH = 'result/section_image.json'
+
+# -----------------
+WHISPER_MODEL = 'tiny'
