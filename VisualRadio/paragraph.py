@@ -66,6 +66,7 @@ def get_word_set(document):
 # ----  document별
 import json
 import utils
+import traceback
 
 def compose_paragraph(broadcast, name, date):
 # 작업0: 스크립트 불러오기
@@ -236,7 +237,10 @@ def compose_paragraph(broadcast, name, date):
                     print(t, k)
             db.session.commit()
         except Exception as e:
-            logger.debug("[Paragraph] 오류");
+            logger.debug("[Paragraph] 오류")
+            traceback_str = traceback.format_exc()
+            logger.debug(traceback_str)
+
 
 # 임시 검색기능
 def tmp_search_paragraph(searchInput):
