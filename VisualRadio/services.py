@@ -464,16 +464,14 @@ def remove_mr(broadcast, name, date):
                 x = np.concatenate((x, y),axis=0)
         sf.write(f"{mr_path}/{rname}.wav", x, sr)
     
-    shutil.rmtree(tmp_mr_path)
-    
-    return mr_path
+    shutil.rmtree(mr_path)
             
 
     
     
 
 # ment_range = []
-def split_cnn(mr_path, broadcast, name, date):
+def split_cnn(broadcast, name, date):
     logger.debug("===========================================")
     model_path = settings.MODEL_PATH
     mr_path = utils.mr_splited_path(broadcast, name, date) # 1차 split 이후이므로 이 경로는 반드시 존재함

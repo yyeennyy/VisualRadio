@@ -83,3 +83,10 @@ SAVE_PATH = 'result/script.json'
 
 # image section 저장 경로
 IMAGE_PATH = 'result/section_image.json'
+
+
+#-------------------------------------------------------------------------------------------------------------
+
+# 이미지 API 인증 키
+CLIENT_ID = "N_ggSUqiaQWrG1klSVcX"
+CLINET_SECRET = "auQGxUkuyn"

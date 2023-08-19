@@ -124,14 +124,16 @@ class Contents(db.Model):
     time = db.Column(db.String(20), nullable=False, default="")
     content = db.Column(LONGTEXT)
     keyword = db.Column(db.String(20), nullable=False, default="")
+    link = db.Column(db.String(150), default="None")
 
-    def __init__(self, broadcast, radio_name, radio_date, time, content, keyword):
+    def __init__(self, broadcast, radio_name, radio_date, time, content, keyword, link):
         self.broadcast = broadcast
         self.radio_name = radio_name
         self.radio_date = radio_date
         self.time = time
         self.content = content
         self.keyword = keyword
+        self.link = link
     
     def __repr__(self):
         return f"{self.code}"
