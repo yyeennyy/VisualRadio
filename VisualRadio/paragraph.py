@@ -2,6 +2,7 @@
 from VisualRadio import db, app
 import numpy as np
 from models import Contents
+import settings as settings
 
 # logger
 from VisualRadio import CreateLogger
@@ -209,6 +210,7 @@ def compose_paragraph(broadcast, name, date):
         tfidf = tfidf_matrix[idx].indices
         for i in tfidf:
             keys.append([feature_names[i], tfidf_matrix[idx, i]])
+            
         keys = sorted(keys, key=lambda x: x[1], reverse=True)
         keywords.append(keys)
     result = []
@@ -229,7 +231,8 @@ def compose_paragraph(broadcast, name, date):
                 keys = keywords[idx]
                 for k in keys:
                     #컨텐츠에 하나하나 등록
-                    db.session.add(Contents(broadcast=broadcast, radio_name=name, radio_date=date, time=t, content=chunk, keyword=k))
+                    img_link = extract_img(settings.CLIENT_ID, settings.CLINET_SECRET, k)
+                    db.session.add(Contents(broadcast=broadcast, radio_name=name, radio_date=date, time=t, content=chunk, keyword=k, link=img_link))
                     print(t, k)
             db.session.commit()
         except Exception as e:
@@ -249,3 +252,25 @@ def tmp_search_paragraph(searchInput):
         }
         info.append(data)
     return info
+
+import os
+import sys
+import urllib.request
+import json
+
+def extract_img(client_id, client_secret, q):
+    client_id = client_id
+    client_secret = client_secret
+    encText = urllib.parse.quote(q)
+
+    url = "https://openapi.naver.com/v1/search/image?query=" + encText # JSON 결과
+    request = urllib.request.Request(url)
+    request.add_header("X-Naver-Client-Id", client_id)
+    request.add_header("X-Naver-Client-Secret", client_secret)
+    response = urllib.request.urlopen(request)
+    rescode = response.getcode()
+    if(rescode==200):
+        response_body = response.read()
+        return json.loads(response_body)["items"][0]["link"]
+    else:
+        logger.debug("Error Code:" + rescode)

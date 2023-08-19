@@ -114,13 +114,13 @@ def admin_update():
 
 def process_audio_file(broadcast, name, date):
     try:
-        services.split(broadcast, name, date)
-        mr_path = services.remove_mr(broadcast, name, date)
-        start_times = services.split_cnn(mr_path, broadcast, name, date)
+        # services.split(broadcast, name, date)
+        # services.remove_mr(broadcast, name, date)
+        start_times = services.split_cnn(broadcast, name, date)
         services.speech_to_text(broadcast, name, date)
         script.before_script(broadcast, name, date, start_times, 'whisper')
         script.before_script(broadcast, name, date, start_times, 'google')
-        script.make_script(broadcast, name, date)
+        script.make_script(broadcast, name, date) # 여기에 이미지 생성 로직이 추가되어있음.
         script.register_listener(broadcast, name, date)
         services.sum_wav_sections(broadcast, name, date)
         paragraph.compose_paragraph(broadcast, name, date)

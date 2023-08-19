@@ -86,3 +86,9 @@ IMAGE_PATH = 'result/section_image.json'
 
 # -----------------
 WHISPER_MODEL = 'tiny'
+
+#-------------------------------------------------------------------------------------------------------------
+
+# 이미지 API 인증 키
+CLIENT_ID = "N_ggSUqiaQWrG1klSVcX"
+CLINET_SECRET = "auQGxUkuyn"
