@@ -18,7 +18,7 @@
 
         var xhrExistCheck = new XMLHttpRequest();
         xhrExistCheck.open("GET", `/${b}/${p}/${d}/check_wav`);
-        
+
         xhrExistCheck.onreadystatechange = function() {
             if (xhrExistCheck.readyState === 4 && xhrExistCheck.status === 200) {
                 var response = JSON.parse(xhrExistCheck.responseText);
