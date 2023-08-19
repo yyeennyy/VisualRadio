@@ -60,20 +60,12 @@ def script_path(broadcast, name, date):
 def checkdir(path):
     directory = os.path.dirname(path)
     if not os.path.exists(directory):
-        os.makedirs(directory, exist_ok=True)
+        os.makedirs(directory)
     return path
 
 # .DS_Store 없이!!
 def ourlistdir(path):
   return [filename for filename in os.listdir(path) if filename != '.DS_Store']
-
-# (window) 파라미터 디렉토리 하위의 desktop.ini 삭제용
-def delete_ini_files(directory):
-    for root, dirs, files in os.walk(directory):
-        for file in files:
-            if file.endswith(".ini"):
-                file_path = os.path.join(root, file)
-                os.remove(file_path)
 
 # 생성된 결과파일 전부 없애려면 사용 ㄱㄱ
 def rmdir(path):
@@ -104,30 +96,20 @@ def convert_to_datetime(time_str):
     return time_obj
 
 
-from datetime import datetime, timedelta
-
 def add_time(time1, time2):
-    # "분:초.밀리초" 형식의 시간 문자열 두 개를 더한 시간을 문자열로 리턴
-    time1_minutes, time1_seconds_milliseconds = time1.split(":")
-    time1_seconds, time1_milliseconds = time1_seconds_milliseconds.split(".")
+    # "분:시간.초" datetime 객체 두개를 더한 시간을 문자열로 리턴
+    time1 = datetime.strptime(time1, "%M:%S.%f").time()
+    time2 = datetime.strptime(time2, "%M:%S.%f").time()
 
-    time2_minutes, time2_seconds_milliseconds = time2.split(":")
-    time2_seconds, time2_milliseconds = time2_seconds_milliseconds.split(".")
+    delta = timedelta(hours=time1.hour, minutes=time1.minute, seconds=time1.second,
+                               microseconds=time1.microsecond) + \
+            timedelta(hours=time2.hour, minutes=time2.minute, seconds=time2.second,
+                               microseconds=time2.microsecond)
 
-    total_minutes = int(time1_minutes) + int(time2_minutes)
-    total_seconds = int(time1_seconds) + int(time2_seconds)
-    total_milliseconds = int(time1_milliseconds) + int(time2_milliseconds)
-
-    # 초와 밀리초를 조정
-    total_seconds += total_milliseconds // 1000
-    total_milliseconds %= 1000
-
-    # 분과 초를 조정
-    total_minutes += total_seconds // 60
-    total_seconds %= 60
-
-    result_time = "{:d}:{:02d}.{:03d}".format(total_minutes, total_seconds, total_milliseconds)
-    return result_time
+    m, s = divmod(delta.seconds, 60)
+    time_formatted = "{:d}:{:02d}.{:03d}".format(m, s, delta.microseconds // 1000)
+    # print(time_formatted)
+    return time_formatted
 
 
 # ----------- Json
