@@ -70,7 +70,7 @@ def google_stt(src_path, interval, broadcast, name, date):
 
 
 import traceback 
-
+import settings as settings
 
 def whisper_stt(src_path, broadcast, name, date):
     device = "cpu"    #device = "cuda" if torch.cuda.is_available() else "cpu"
@@ -82,7 +82,7 @@ def whisper_stt(src_path, broadcast, name, date):
             continue
         # logger.debug(f"[stt] {dst_path}/{save_name} 진행 중")
         try:
-            model = whisper.load_model("tiny").to(device)
+            model = whisper.load_model(settings.WHISPER_MODEL).to(device)
             results = model.transcribe(
                 src_path, language=language, temperature=0.0, word_timestamps=True)
             del model

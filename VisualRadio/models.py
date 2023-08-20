@@ -117,11 +117,10 @@ class Keyword(db.Model):
 # 일단 기능구현 후 DB 갈아엎기에 대한 고민 시작하자.
 class Contents(db.Model):
     __tablename__ = 'contents'
-    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
-    broadcast = db.Column(db.String(50), ForeignKey('radio.broadcast', ondelete='CASCADE'))
-    radio_name = db.Column(db.String(50), ForeignKey('radio.radio_name', ondelete='CASCADE'))
-    radio_date = db.Column(db.String(50), ForeignKey('wav.radio_date', ondelete='CASCADE'))
-    time = db.Column(db.String(20), nullable=False, default="")
+    broadcast = db.Column(db.String(50), ForeignKey('radio.broadcast', ondelete='CASCADE'), primary_key=True)
+    radio_name = db.Column(db.String(50), ForeignKey('radio.radio_name', ondelete='CASCADE'), primary_key=True)
+    radio_date = db.Column(db.String(50), ForeignKey('wav.radio_date', ondelete='CASCADE'), primary_key=True)
+    time = db.Column(db.String(20), primary_key=True)
     content = db.Column(LONGTEXT)
     keyword = db.Column(db.String(20), nullable=False, default="")
     link = db.Column(db.String(150), default="None")
