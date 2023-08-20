@@ -179,6 +179,7 @@ def save_split(model_path, output_path, mr_path): # 섹션마다의 길이를 �
     logger.debug(f"save_split 내에 있는 mr_seg_path는 {mr_path}입니다.")
     os.makedirs(output_path, exist_ok=True)
     
+    
     audio, sr = librosa.load(mr_path)
     ment_range = find_voice(audio, sr)
     logger.debug(f"{wav_name} predict 시작")
@@ -203,4 +204,5 @@ def save_split(model_path, output_path, mr_path): # 섹션마다의 길이를 �
         sf.write(output_path+name, sliced_audio, sr)
         logger.debug(f"Segment {idx} 저장 완료: {name}")
         
-    return ment_range, all_range # content_range
+        
+    return ment_without_ad, all_range # content_range
