@@ -43,9 +43,6 @@ RUN pip uninstall numpy -y
 RUN pip install numpy --upgrade
 RUN pip install numba==0.55.2
 RUN pip install gensim==3.4.0
-RUN pip install ndg-httpsclient
-RUN pip install pyopenssl
-RUN pip install pyasn1
 
 EXPOSE 5001
 

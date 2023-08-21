@@ -11,7 +11,7 @@ import utils
 import stt
 import wave
 from split_module.split import start_split
-from VisualRadio.split_module.split2 import save_split
+from split_module.split2 import save_split
 import threading
 from datetime import datetime
 from datetime import timedelta
@@ -464,13 +464,8 @@ def remove_mr(broadcast, name, date):
                 x = np.concatenate((x, y),axis=0)
         sf.write(f"{mr_path}/{rname}.wav", x, sr)
     
-    shutil.rmtree(mr_path)
-            
-
-    
     
 
-# ment_range = []
 def split_cnn(broadcast, name, date):
     logger.debug("===========================================")
     model_path = settings.MODEL_PATH
@@ -521,8 +516,7 @@ def split_cnn(broadcast, name, date):
         
         ment_start_times = []
         for range in ment_range:
-            start_time = utils.format_time(range[0])
-            ment_start_times.append(start_time)
+            ment_start_times.append(range[0])
 
         section_start_time_summary[target_section] = ment_start_times
     with app.app_context():
@@ -546,7 +540,10 @@ def split_cnn(broadcast, name, date):
 
     return section_start_time_summary 
 
+
 # ★
+import os
+
 def split(broadcast, name, date):
     song_path = utils.get_rawwavfile_path(broadcast, name, date)
     save_path = utils.hash_splited_path(broadcast, name, date)
@@ -590,7 +587,7 @@ def split(broadcast, name, date):
 
             db.session.add(process)
         db.session.commit()
-        
+
     return 0
 
 
@@ -614,16 +611,17 @@ def count_files(directory):
     return count
 
 
-import whisper
+# import whisper
+import multiprocessing
+
 def speech_to_text(broadcast, name, date):
     logger.debug("[stt] start!")
     start_time = time.time()
-    device = "cpu"
-    whisper.load_model(settings.WHISPER_MODEL).to(device)
-    # 모든 sec_n.wav를 stt할 것이다
+    # device = "cpu"
+    # whisper.load_model(settings.WHISPER_MODEL).to(device)
 
     section_dir = utils.cnn_splited_path(broadcast, name, date)       # 2차분할 결과로 반드시 존재
-    section_list = utils.ourlistdir(section_dir)  
+    section_list = utils.ourlistdir(section_dir)
 
     global num_file
     num_file = count_files(section_dir)
@@ -644,7 +642,7 @@ def speech_to_text(broadcast, name, date):
 
         for section_mini in stt_targets_of_this_section: # section_mini는 2차분할 결과인, 작은 wav다
             logger.debug(f"[stt] enqueue! {section_name}/{section_mini}")
-            thread = threading.Thread(target=stt_proccess,
+            thread = multiprocessing.Process(target=stt_proccess,
                                     args=(broadcast, name, date, section_name, section_mini))
             th_q.put(thread)
         
@@ -668,10 +666,10 @@ def speech_to_text(broadcast, name, date):
             time.sleep(random.uniform(0.1, 1))
             if utils.memory_usage("stt") < 0.70:
                 logger.debug(f'[stt] {utils.memory_usage()*100}%')
-                this_th = th_q.get()
-                logger.debug(f"[stt] 실행중 쓰레드 수 {len(threading.enumerate())} ({this_th.name} started!)")
-                this_th.start()
-                th_q_fin.append(this_th)
+                this_process = th_q.get()
+                this_process.start()
+                logger.debug(f"[stt] 처리중인 stt 프로세스 수 {len(multiprocessing.active_children())} ({this_process.name} started!)")
+                th_q_fin.append(this_process)
 
     for thread in th_q_fin:
         thread.join(20)
@@ -707,11 +705,11 @@ def stt_proccess(broadcast, name, date, sec_hash, sec_cnn):
     dst_path = utils.stt_raw_path(broadcast, name, date, sec_hash)
 
     # whisper stt 결과 저장
-    data = stt.whisper_stt(src_path, broadcast, name, date)
-    utils.save_json(data, f"{dst_path}/whisper/{save_name}")
+    # data = stt.whisper_stt(src_path, broadcast, name, date)
+    # utils.save_json(data, f          v"{dst_path}/whisper/{save_name}")
 
     # google stt 결과 저장
-    interval = 10  # seconds
+    interval = 20  # seconds
     data = stt.google_stt(src_path, interval, broadcast, name, date)
     utils.save_json(data, f"{dst_path}/google/{save_name}")
 

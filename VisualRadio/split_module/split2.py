@@ -205,4 +205,4 @@ def save_split(model_path, output_path, mr_path): # 섹션마다의 길이를 �
         logger.debug(f"Segment {idx} 저장 완료: {name}")
         
         
-    return ment_range, all_range # content_range
+    return ment_without_ad, all_range # content_range

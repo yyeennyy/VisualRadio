@@ -111,17 +111,21 @@ def admin_update():
     return jsonify({'message': 'Success'})
 
 
+import utils
+import settings as settings
 
 def process_audio_file(broadcast, name, date):
-    try:
-        # services.split(broadcast, name, date)
-        # services.remove_mr(broadcast, name, date)
+    split_final_directory = f"{settings.STORAGE_PATH}/{broadcast}/{name}/{date}/"
+    utils.delete_ini_files(split_final_directory)
+    try:    
+        services.split(broadcast, name, date)
+        services.remove_mr(broadcast, name, date)
         start_times = services.split_cnn(broadcast, name, date)
         services.speech_to_text(broadcast, name, date)
-        script.before_script(broadcast, name, date, start_times, 'whisper')
+        # script.before_script(broadcast, name, date, start_times, 'whisper')  # 수정전까지 whisper는 사용 X
         script.before_script(broadcast, name, date, start_times, 'google')
-        script.make_script(broadcast, name, date) # 여기에 이미지 생성 로직이 추가되어있음.
-        script.register_listener(broadcast, name, date)
+        script.make_script(broadcast, name, date)
+        # script.register_listener(broadcast, name, date)  # 수정전까지 사용 X (sub2 우측박스의 사연자 바로가기)
         services.sum_wav_sections(broadcast, name, date)
         paragraph.compose_paragraph(broadcast, name, date)
         logger.debug("[업로드] 오디오 처리 완료")
