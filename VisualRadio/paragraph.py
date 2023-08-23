@@ -222,9 +222,9 @@ def compose_paragraph(broadcast, name, date):
         result.append(tmp)
     keywords = result
 
-
     # 결과물
-    logger.debug(f"만들어진 문단은 {len(chunks)}개 입니다.")
+    logger.debug(f"[compose_paragraph] 만들어진 문단은 {len(chunks)}개 입니다.")
+    logger.debug(f"[extract_img] 이미지 링크 생성중..")
     with app.app_context():
         try:
             for idx, chunk in enumerate(chunks):
@@ -234,7 +234,6 @@ def compose_paragraph(broadcast, name, date):
                     #컨텐츠에 하나하나 등록
                     img_link = extract_img(settings.CLIENT_ID, settings.CLINET_SECRET, k)
                     db.session.add(Contents(broadcast=broadcast, radio_name=name, radio_date=date, time=t, content=chunk, keyword=k, link=img_link))
-                    print(t, k)
             db.session.commit()
         except Exception as e:
             logger.debug("[Paragraph] 오류")

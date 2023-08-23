@@ -117,19 +117,23 @@ import settings as settings
 def process_audio_file(broadcast, name, date):
     split_final_directory = f"{settings.STORAGE_PATH}/{broadcast}/{name}/{date}/"
     utils.delete_ini_files(split_final_directory)
-    try:    
+    try:
+        # audio split    
         services.split(broadcast, name, date)
         services.remove_mr(broadcast, name, date)
-        start_times = services.split_cnn(broadcast, name, date)
+        services.split_cnn(broadcast, name, date)
+
+        # text processing
         services.speech_to_text(broadcast, name, date)
-        # script.before_script(broadcast, name, date, start_times, 'whisper')  # 수정전까지 whisper는 사용 X
-        script.before_script(broadcast, name, date, start_times, 'google')
-        script.make_script(broadcast, name, date)
-        # script.register_listener(broadcast, name, date)  # 수정전까지 사용 X (sub2 우측박스의 사연자 바로가기)
-        services.sum_wav_sections(broadcast, name, date)
+        script.make_script_each(broadcast, name, date)
+        script.make_script_final(broadcast, name, date)
         paragraph.compose_paragraph(broadcast, name, date)
+
+        # wav for serving
+        services.sum_wav_sections(broadcast, name, date)
         logger.debug("[업로드] 오디오 처리 완료")
         return "ok"
+    
     except Exception as e:
         logger.debug(e)
         logger.debug("오류 발생!!!! 오디오 처리를 종료합니다.")
@@ -244,7 +248,7 @@ def get_listeners(broadcast, name, date):
 @auth.route('/<string:broadcast>/<string:name>/<string:date>/script', methods=['GET'])
 def get_script(broadcast, name, date):
     path = f"./VisualRadio/radio_storage/{broadcast}/{name}/{date}"
-    json_data = read_json_file(path + '/result/script.json')
+    json_data = utils.read_json_file(path + '/result/script.json')
     return jsonify(json_data)
 
 
@@ -261,7 +265,7 @@ def get_script(broadcast, name, date):
 def get_images(broadcast, name, date):
     path = f"./VisualRadio/radio_storage/{broadcast}/{name}/{date}"
     file_path = path + '/result/section_image.json'
-    data = read_json_file(file_path)
+    data = utils.read_json_file(file_path)
     response = jsonify(data)
     response.headers.add('Access-Control-Allow-Origin', '*')
     # # JSON 응답 생성
@@ -332,24 +336,5 @@ def test():
 ###################################################################################
 
 
-def read_json_file(file_path):
-    # try:
-    with open(file_path, 'r', encoding='utf-8') as f:
-        data = json.load(f)
-    # except:
-        # logger.debug("[route.read_json_file] error!")
-    return data
 
-
-########################
-from flask import Flask, send_from_directory
-
-
-# # brunchcafe라디오의 230226날짜로 고정된 화면이 보여진다.
-# @auth.route('/brunchcafe/230226')
-# def send_static():
-#     return send_from_directory('../VisualRadio/static/html/', 'sub2.html')
-
-
-########################
 
