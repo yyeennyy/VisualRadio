@@ -55,7 +55,7 @@ def whisper_script_result_path(broadcast, name, date):
     return checkdir(f"./{settings.STORAGE_PATH}/{broadcast}/{name}/{date}/{settings.WHISPER_SAVE_DIR}/")
 
 def script_path(broadcast, name, date):
-    return f"./{settings.STORAGE_PATH}/{broadcast}/{name}/{date}/result/script.json"
+    return checkdir(f"./{settings.STORAGE_PATH}/{broadcast}/{name}/{date}/result/script.json")
 
 def checkdir(path):
     directory = os.path.dirname(path)
@@ -136,3 +136,8 @@ def save_json(data, save_dir):
     checkdir(save_dir)
     with open(save_dir, 'w', encoding='utf-8') as f:
         json.dump(data, f, ensure_ascii=False)
+
+def read_json_file(file_path):
+    with open(file_path, 'r', encoding='utf-8') as f:
+        data = json.load(f)
+    return data

@@ -29,12 +29,14 @@ class Wav(db.Model):
     radio_name = db.Column(db.String(50), ForeignKey('radio.radio_name', ondelete='CASCADE'), primary_key=True)
     radio_date = db.Column(db.String(50), primary_key=True, index=True)
     radio_section = db.Column(db.Text)
+    start_times = db.Column(db.String(250))
 
-    def __init__(self, broadcast, radio_name, radio_date, radio_section):
+    def __init__(self, broadcast, radio_name, radio_date, radio_section, start_times=""):
         self.broadcast = broadcast
         self.radio_name = radio_name
         self.radio_date = radio_date
         self.radio_section = radio_section
+        self.start_time = start_times
 
     def __repr__(self):
         return f"<Radio {self.broadcast} {self.radio_name} {self.radio_date}>\n"

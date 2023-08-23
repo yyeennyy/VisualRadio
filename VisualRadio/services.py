@@ -1,5 +1,5 @@
 import os
-from models import Wav, Radio, Listener, Process
+from models import Wav, Radio, Process
 import time
 from sqlalchemy import text
 import gc
@@ -24,72 +24,6 @@ logger = CreateLogger("services")
 from VisualRadio import db, app
 
 
-# ----------- 옌 컨텐츠 검색 구현중 -----------
-def search_contents(search_word):
-    script_paths = search_scriptfile_under(settings.STORAGE_PATH, "result")
-    search_result = []
-    
-    for script_path in script_paths:
-        with open(script_path, 'r') as file:
-            data = json.load(file)
-            prev_txt = None
-            next_txt = None
-            current_txt = None
-            for item in data:
-                if 'txt' in item and search_word in item['txt']:
-                    current_txt = item['txt']
-                    # 이전, 현재, 다음 item['txt'] 값을 합쳐 contents 만들기
-                    txt_list = []
-                    if prev_txt:
-                        txt_list.append(prev_txt)
-                    txt_list.append(current_txt)
-                    if next_txt:
-                        txt_list.append(next_txt)
-                    contents = " ".join(txt_list)
-
-                    # script_path에서 변수 추출
-                    broadcast = extract_broadcast(script_path)
-                    radio_name = extract_radio_name(script_path)
-                    radio_date = extract_radio_date(script_path)
-                    # 결과를 딕셔너리로 생성하고 search_result에 추가
-                    result = {
-                        'broadcast': broadcast,
-                        'radio_name': radio_name,
-                        'radio_date': radio_date,
-                        'contents': contents
-                    }
-                    search_result.append(result)
-                # 이전, 현재, 다음 item['txt'] 값을 업데이트
-                prev_txt = current_txt
-                current_txt = next_txt
-                next_txt = None
-                # 다음 item이 존재하는 경우 다음 item['txt'] 값을 업데이트
-                if item is not data[-1]:
-                    next_txt = data[data.index(item) + 1]['txt']
-                # 다음 반복 과정을 건너뛰는 경우
-                if next_txt and search_word in next_txt:
-                    continue
-    return search_result
-
-def search_scriptfile_under(basepath, target_dir):
-    result_dir_path = None
-    for root, dirs, files in os.walk(basepath):
-        if target_dir in dirs:
-            result_dir_path = os.path.join(root, target_dir)
-            break
-    # "script.json" 파일 확인
-    script_path_list = []
-    if result_dir_path:
-        script_path = os.path.join(result_dir_path, "script.json")
-        if os.path.isfile(script_path):
-            print("script.json 파일 경로:", script_path)
-            script_path_list.append(script_path)
-        else:
-            print("script.json 파일이 존재하지 않습니다.")
-    else:
-        print("result 디렉토리를 찾을 수 없습니다.")
-
-    return script_path_list
 
 def extract_broadcast(script_path):
     parts = script_path.split("/")
@@ -122,7 +56,7 @@ def collector_needs(broadcast, time):
             return None
         logger.debug(f"[test] {result[0]}")
         return json.dumps(result[0])
-        
+
 # --------------------------------------------- 검색 기능
 def search_programs(search):
     query = text("""
@@ -149,88 +83,6 @@ def search_programs(search):
     json_data = json.dumps(dict_list, ensure_ascii=False)
 
     return json_data
-
-
-def search_listeners(search):
-    result = Listener.query.filter_by(code=search).all()
-    info = []
-    for r in result:
-        data = {
-            'broadcast':r.broadcast,
-            'radio_name':r.radio_name,
-            'radio_date':r.radio_date,
-            'preview_text':r.preview_text
-        }
-        info.append(data)
-    
-    json_data = json.dumps(info, ensure_ascii=False)
-    return json_data
-
-def search_contents(search_word):
-    script_paths = search_scriptfile_under(settings.STORAGE_PATH, "result")
-    search_result = []
-    
-    for script_path in script_paths:
-        with open(script_path, 'r') as file:
-            data = json.load(file)
-            prev_txt = None
-            next_txt = None
-            current_txt = None
-            for item in data:
-                if 'txt' in item and search_word in item['txt']:
-                    current_txt = item['txt']
-                    # 이전, 현재, 다음 item['txt'] 값을 합쳐 contents 만들기
-                    txt_list = []
-                    if prev_txt:
-                        txt_list.append(prev_txt)
-                    txt_list.append(current_txt)
-                    if next_txt:
-                        txt_list.append(next_txt)
-                    contents = " ".join(txt_list)
-
-                    # script_path에서 변수 추출
-                    broadcast = extract_broadcast(script_path)
-                    radio_name = extract_radio_name(script_path)
-                    radio_date = extract_radio_date(script_path)
-                    # 결과를 딕셔너리로 생성하고 search_result에 추가
-                    result = {
-                        'broadcast': broadcast,
-                        'radio_name': radio_name,
-                        'radio_date': radio_date,
-                        'contents': contents
-                    }
-                    search_result.append(result)
-                # 이전, 현재, 다음 item['txt'] 값을 업데이트
-                prev_txt = current_txt
-                current_txt = next_txt
-                next_txt = None
-                # 다음 item이 존재하는 경우 다음 item['txt'] 값을 업데이트
-                if item is not data[-1]:
-                    next_txt = data[data.index(item) + 1]['txt']
-                # 다음 반복 과정을 건너뛰는 경우
-                if next_txt and search_word in next_txt:
-                    continue
-    return search_result
-
-def search_scriptfile_under(basepath, target_dir):
-    result_dir_path = None
-    for root, dirs, files in os.walk(basepath):
-        if target_dir in dirs:
-            result_dir_path = os.path.join(root, target_dir)
-            break
-    # "script.json" 파일 확인
-    script_path_list = []
-    if result_dir_path:
-        script_path = os.path.join(result_dir_path, "script.json")
-        if os.path.isfile(script_path):
-            print("script.json 파일 경로:", script_path)
-            script_path_list.append(script_path)
-        else:
-            print("script.json 파일이 존재하지 않습니다.")
-    else:
-        print("result 디렉토리를 찾을 수 없습니다.")
-
-    return script_path_list
 
 # --------------------------------------------- 좋아요 기능
 def like(bcc, name):
@@ -534,9 +386,9 @@ def split_cnn(broadcast, name, date):
         wav = Wav.query.filter_by(broadcast=broadcast, radio_name=name, radio_date=str(date)).first()
         if wav:
             wav.radio_section = str(content_section_list)
+            wav.start_times = json.dumps(section_start_time_summary)
         else:
-            wav = Wav(broadcast = broadcast, radio_name = name, radio_date = date, radio_section = str(content_section_list))
-            
+            wav = Wav(broadcast = broadcast, radio_name = name, radio_date = date, radio_section = str(content_section_list), start_times=json.dumps(section_start_time_summary))
             db.session.add(wav)
         db.session.commit()
 
@@ -639,13 +491,13 @@ def speech_to_text(broadcast, name, date):
             db.session.add(process)
         db.session.commit()
     
-    for section_name in section_list: # 2차분할 결과 다루기 - section_name는 sec_1, sec_2 네임포맷의 디렉토리
-        stt_targets_of_this_section = utils.ourlistdir(f"{section_dir}/{section_name}")  # sec_n의 2차분할 wav 리스트
+    for section_name in section_list:
+        small_parts = utils.ourlistdir(f"{section_dir}/{section_name}")  # sec_n의 2차분할 wav 리스트
 
-        for section_mini in stt_targets_of_this_section: # section_mini는 2차분할 결과인, 작은 wav다
-            logger.debug(f"[stt] enqueue! {section_name}/{section_mini}")
+        for small_part in small_parts:
+            logger.debug(f"[stt] enqueue! {section_name}/{small_part}")
             thread = multiprocessing.Process(target=stt_proccess,
-                                    args=(broadcast, name, date, section_name, section_mini))
+                                    args=(broadcast, name, date, section_name, small_part))
             th_q.put(thread)
         
     th_q_fin = []
@@ -667,7 +519,6 @@ def speech_to_text(broadcast, name, date):
         if len(threading.enumerate()) < 7:
             time.sleep(random.uniform(0.1, 1))
             if utils.memory_usage("stt") < 0.70:
-                logger.debug(f'[stt] {utils.memory_usage()*100}%')
                 this_process = th_q.get()
                 this_process.start()
                 logger.debug(f"[stt] 처리중인 stt 프로세스 수 {len(multiprocessing.active_children())} ({this_process.name} started!)")
@@ -706,14 +557,10 @@ def stt_proccess(broadcast, name, date, sec_hash, sec_cnn):
     src_path = utils.cnn_splited_path(broadcast, name, date, f"{sec_hash}/{sec_cnn}") # stt 처리 타겟
     dst_path = utils.stt_raw_path(broadcast, name, date, sec_hash)
 
-    # whisper stt 결과 저장
-    # data = stt.whisper_stt(src_path, broadcast, name, date)
-    # utils.save_json(data, f          v"{dst_path}/whisper/{save_name}")
-
-    # google stt 결과 저장
+    # stt 결과 저장
     interval = 20  # seconds
     data = stt.google_stt(src_path, interval, broadcast, name, date)
-    utils.save_json(data, f"{dst_path}/google/{save_name}")
+    utils.save_json(data, f"{dst_path}/{save_name}")
 
     global stt_count
     stt_count+=1
@@ -729,6 +576,7 @@ def stt_proccess(broadcast, name, date, sec_hash, sec_cnn):
             db.session.add(process)
         db.session.commit()
     logger.debug(f"[stt] 끝: {sec_hash}/{sec_cnn}")
+    logger.debug(f'[stt] {utils.memory_usage()*100}%')
  
 
 
