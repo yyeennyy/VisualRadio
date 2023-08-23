@@ -11,7 +11,7 @@ from models import Process
 from VisualRadio import CreateLogger
 logger = CreateLogger("script")
 
-def stt(broadcast, name, date, start_times):
+def make_script_each(broadcast, name, date, start_times):
     logger.debug(start_times)
 
     raw_stt = utils.stt_raw_path(broadcast, name, date)
@@ -45,7 +45,7 @@ def stt(broadcast, name, date, start_times):
 
 
 # 최종 script.json을 생성한다.
-def make_script(broadcast, name, date):
+def make_script_final(broadcast, name, date):
     logger.debug("[make_script] script.json 생성중")
 
     # 경로 설정
