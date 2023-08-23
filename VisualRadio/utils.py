@@ -136,3 +136,8 @@ def save_json(data, save_dir):
     checkdir(save_dir)
     with open(save_dir, 'w', encoding='utf-8') as f:
         json.dump(data, f, ensure_ascii=False)
+
+def read_json_file(file_path):
+    with open(file_path, 'r', encoding='utf-8') as f:
+        data = json.load(f)
+    return data

@@ -248,7 +248,7 @@ def get_listeners(broadcast, name, date):
 @auth.route('/<string:broadcast>/<string:name>/<string:date>/script', methods=['GET'])
 def get_script(broadcast, name, date):
     path = f"./VisualRadio/radio_storage/{broadcast}/{name}/{date}"
-    json_data = read_json_file(path + '/result/script.json')
+    json_data = utils.read_json_file(path + '/result/script.json')
     return jsonify(json_data)
 
 
@@ -265,7 +265,7 @@ def get_script(broadcast, name, date):
 def get_images(broadcast, name, date):
     path = f"./VisualRadio/radio_storage/{broadcast}/{name}/{date}"
     file_path = path + '/result/section_image.json'
-    data = read_json_file(file_path)
+    data = utils.read_json_file(file_path)
     response = jsonify(data)
     response.headers.add('Access-Control-Allow-Origin', '*')
     # # JSON 응답 생성
@@ -336,24 +336,5 @@ def test():
 ###################################################################################
 
 
-def read_json_file(file_path):
-    # try:
-    with open(file_path, 'r', encoding='utf-8') as f:
-        data = json.load(f)
-    # except:
-        # logger.debug("[route.read_json_file] error!")
-    return data
 
-
-########################
-from flask import Flask, send_from_directory
-
-
-# # brunchcafe라디오의 230226날짜로 고정된 화면이 보여진다.
-# @auth.route('/brunchcafe/230226')
-# def send_static():
-#     return send_from_directory('../VisualRadio/static/html/', 'sub2.html')
-
-
-########################
 
