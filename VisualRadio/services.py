@@ -463,6 +463,8 @@ def remove_mr(broadcast, name, date):
                 y, sr = librosa.load(vocals2)
                 x = np.concatenate((x, y),axis=0)
         sf.write(f"{mr_path}/{rname}.wav", x, sr)
+        
+        shutil.rmtree(tmp_path)
     
     
 
