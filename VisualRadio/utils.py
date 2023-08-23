@@ -55,7 +55,7 @@ def whisper_script_result_path(broadcast, name, date):
     return checkdir(f"./{settings.STORAGE_PATH}/{broadcast}/{name}/{date}/{settings.WHISPER_SAVE_DIR}/")
 
 def script_path(broadcast, name, date):
-    return f"./{settings.STORAGE_PATH}/{broadcast}/{name}/{date}/result/script.json"
+    return checkdir(f"./{settings.STORAGE_PATH}/{broadcast}/{name}/{date}/result/script.json")
 
 def checkdir(path):
     directory = os.path.dirname(path)

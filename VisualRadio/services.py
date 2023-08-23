@@ -1,5 +1,5 @@
 import os
-from models import Wav, Radio, Listener, Process
+from models import Wav, Radio, Process
 import time
 from sqlalchemy import text
 import gc
@@ -384,9 +384,9 @@ def split_cnn(broadcast, name, date):
         wav = Wav.query.filter_by(broadcast=broadcast, radio_name=name, radio_date=str(date)).first()
         if wav:
             wav.radio_section = str(content_section_list)
+            wav.start_times = json.dumps(section_start_time_summary)
         else:
-            wav = Wav(broadcast = broadcast, radio_name = name, radio_date = date, radio_section = str(content_section_list))
-            
+            wav = Wav(broadcast = broadcast, radio_name = name, radio_date = date, radio_section = str(content_section_list), start_times=json.dumps(section_start_time_summary))
             db.session.add(wav)
         db.session.commit()
 
@@ -489,13 +489,13 @@ def speech_to_text(broadcast, name, date):
             db.session.add(process)
         db.session.commit()
     
-    for section_name in section_list: # 2차분할 결과 다루기 - section_name는 sec_1, sec_2 네임포맷의 디렉토리
-        stt_targets_of_this_section = utils.ourlistdir(f"{section_dir}/{section_name}")  # sec_n의 2차분할 wav 리스트
+    for section_name in section_list:
+        small_parts = utils.ourlistdir(f"{section_dir}/{section_name}")  # sec_n의 2차분할 wav 리스트
 
-        for section_mini in stt_targets_of_this_section: # section_mini는 2차분할 결과인, 작은 wav다
-            logger.debug(f"[stt] enqueue! {section_name}/{section_mini}")
+        for small_part in small_parts:
+            logger.debug(f"[stt] enqueue! {section_name}/{small_part}")
             thread = multiprocessing.Process(target=stt_proccess,
-                                    args=(broadcast, name, date, section_name, section_mini))
+                                    args=(broadcast, name, date, section_name, small_part))
             th_q.put(thread)
         
     th_q_fin = []
@@ -517,7 +517,6 @@ def speech_to_text(broadcast, name, date):
         if len(threading.enumerate()) < 7:
             time.sleep(random.uniform(0.1, 1))
             if utils.memory_usage("stt") < 0.70:
-                logger.debug(f'[stt] {utils.memory_usage()*100}%')
                 this_process = th_q.get()
                 this_process.start()
                 logger.debug(f"[stt] 처리중인 stt 프로세스 수 {len(multiprocessing.active_children())} ({this_process.name} started!)")
@@ -556,14 +555,10 @@ def stt_proccess(broadcast, name, date, sec_hash, sec_cnn):
     src_path = utils.cnn_splited_path(broadcast, name, date, f"{sec_hash}/{sec_cnn}") # stt 처리 타겟
     dst_path = utils.stt_raw_path(broadcast, name, date, sec_hash)
 
-    # whisper stt 결과 저장
-    # data = stt.whisper_stt(src_path, broadcast, name, date)
-    # utils.save_json(data, f          v"{dst_path}/whisper/{save_name}")
-
-    # google stt 결과 저장
+    # stt 결과 저장
     interval = 20  # seconds
     data = stt.google_stt(src_path, interval, broadcast, name, date)
-    utils.save_json(data, f"{dst_path}/google/{save_name}")
+    utils.save_json(data, f"{dst_path}/{save_name}")
 
     global stt_count
     stt_count+=1
@@ -579,6 +574,7 @@ def stt_proccess(broadcast, name, date, sec_hash, sec_cnn):
             db.session.add(process)
         db.session.commit()
     logger.debug(f"[stt] 끝: {sec_hash}/{sec_cnn}")
+    logger.debug(f'[stt] {utils.memory_usage()*100}%')
  
 
 

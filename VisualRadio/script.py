@@ -4,15 +4,17 @@ from natsort import natsorted
 import json
 import utils
 from VisualRadio import db, app
-from models import Process
+from models import Process, Wav
 
 
 # logger
 from VisualRadio import CreateLogger
 logger = CreateLogger("script")
 
-def make_script_each(broadcast, name, date, start_times):
-    logger.debug(start_times)
+def make_script_each(broadcast, name, date):
+    with app.app_context():
+        wav = Wav.query.filter_by(broadcast=broadcast, radio_name=name, radio_date=str(date)).first()
+        start_times = json.loads(wav.start_times)
 
     raw_stt = utils.stt_raw_path(broadcast, name, date)
     sec_n = utils.ourlistdir(raw_stt)
@@ -46,13 +48,11 @@ def make_script_each(broadcast, name, date, start_times):
 
 # 최종 script.json을 생성한다.
 def make_script_final(broadcast, name, date):
-    logger.debug("[make_script] script.json 생성중")
-
     # 경로 설정
     stt_dir = utils.stt_final_path(broadcast, name, date)
     stt_list = natsorted(utils.ourlistdir(stt_dir))
     targets = [os.path.join(stt_dir, name) for name in stt_list]
-    save_path = utils.script_path(broadcast, name, date) + "script.json"
+    save_path = utils.script_path(broadcast, name, date)
     if os.path.exists(save_path):
         os.remove(save_path)
     with open(save_path, 'w') as f:
@@ -75,7 +75,7 @@ def make_script_final(broadcast, name, date):
     with open(save_path, 'a', encoding='utf-8') as f:
         json.dump(final_script, f, ensure_ascii=False)
     # return section_start
-    logger.debug("[make_script] 최종 script.json 생성")
+    logger.debug("[make_script] 최종 script.json 생성 완료")
 
     # DB에 진행사항 기록
     global stt_count, num_file

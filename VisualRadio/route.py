@@ -121,11 +121,11 @@ def process_audio_file(broadcast, name, date):
         # audio split    
         services.split(broadcast, name, date)
         services.remove_mr(broadcast, name, date)
-        start_times = services.split_cnn(broadcast, name, date)
+        services.split_cnn(broadcast, name, date)
 
         # text processing
         services.speech_to_text(broadcast, name, date)
-        script.make_script_each(broadcast, name, date, start_times, 'google')
+        script.make_script_each(broadcast, name, date)
         script.make_script_final(broadcast, name, date)
         paragraph.compose_paragraph(broadcast, name, date)
 
