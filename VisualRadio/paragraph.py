@@ -232,8 +232,10 @@ def compose_paragraph(broadcast, name, date):
                 keys = keywords[idx]
                 for k in keys:
                     #컨텐츠에 하나하나 등록
-                    img_link = extract_img(settings.CLIENT_ID, settings.CLINET_SECRET, k)
-                    db.session.add(Contents(broadcast=broadcast, radio_name=name, radio_date=date, time=t, content=chunk, keyword=k, link=img_link))
+                    item = db.session.query(Contents).filter_by(broadcast=broadcast, radio_name=name, radio_date=date, time=t, keyword=k).first()
+                    if item == None:
+                        img_link = extract_img(settings.CLIENT_ID, settings.CLINET_SECRET, k)
+                        db.session.add(Contents(broadcast=broadcast, radio_name=name, radio_date=date, time=t, content=chunk, keyword=k, link=img_link))
             db.session.commit()
         except Exception as e:
             logger.debug("[Paragraph] 오류")

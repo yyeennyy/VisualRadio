@@ -31,7 +31,6 @@ def find_voice(audio, sr, sec=0.5, threshold=0.009):
     ment_range.append([start, len(audio)])
   return ment_range
 
-
 def model_predict(audio, sr, ment_range, model_path, isPrint=False, sec = 1):
     model = models.resnet18(pretrained=True) # 모델의 구조를 정의하고 객체 생성
 
@@ -183,10 +182,14 @@ def save_split(model_path, output_path, mr_path): # 섹션마다의 길이를 �
     audio, sr = librosa.load(mr_path)
     ment_range = find_voice(audio, sr)
     logger.debug(f"{wav_name} predict 시작")
-    real_ment = model_predict(audio, sr,ment_range, model_path)
+    real_ment = model_predict(audio, sr, ment_range, model_path)
+    logger.debug(f"--- real_ment ---> {real_ment}")
     real_ment_time = divide_all_elements(real_ment, sr)
+    logger.debug(f"--- real_ment_time ---> {real_ment_time}")
     merged_real_ment_time = merge_intervals(real_ment_time, 10)
+    logger.debug(f"--- merged_real_ment_time ---> {merged_real_ment_time}")
     ment_without_ad = drop_doubt_ad(merged_real_ment_time, 10) # 20초로 하는게 좋아보임!
+    logger.debug(f"--- save_split ---> {ment_without_ad}")
     not_ment = extract_not_ment(ment_without_ad, len(audio)/sr)
     all_range = merge_and_sort_ranges(ment_without_ad, not_ment)
 
