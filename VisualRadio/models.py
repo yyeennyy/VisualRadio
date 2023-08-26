@@ -124,9 +124,9 @@ class Contents(db.Model):
     radio_date = db.Column(db.String(50), ForeignKey('wav.radio_date', ondelete='CASCADE'), primary_key=True)
     time = db.Column(db.String(20), primary_key=True)
     content = db.Column(LONGTEXT)
-    keyword = db.Column(db.String(20), nullable=False, default="")
-    link = db.Column(db.String(150), default="None")
-
+    keyword = db.Column(db.String(20), nullable=False, default="", primary_key=True)
+    link = db.Column(db.String(500), default="None")
+    
     def __init__(self, broadcast, radio_name, radio_date, time, content, keyword, link):
         self.broadcast = broadcast
         self.radio_name = radio_name
