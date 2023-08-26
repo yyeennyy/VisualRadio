@@ -260,7 +260,7 @@ from spleeter.separator import Separator
 import shutil
 import numpy as np
 
-def remove_mr(broadcast, name, date):
+def remove_mr(broadcast, name, date, split_time = 600):
     logger.debug("mr 제거 과정 진행 시작")
     splited_path = utils.hash_splited_path(broadcast, name, date)
     section_wav_origin_names = utils.ourlistdir(splited_path)
@@ -275,9 +275,9 @@ def remove_mr(broadcast, name, date):
         test_path = os.path.join(splited_path, target_section) # 1차 splited한 sec_n.wav임
         sec_name = test_path.split("/")[-1].split(".")[0] # sec_n으로 나옴.
         audio, sr = librosa.load(test_path)
-        if(len(audio) > 600*sr):
+        if(len(audio) > split_time*sr):
             start = 0
-            for i in range(600*sr, len(audio), 600*sr):
+            for i in range(split_time*sr, len(audio), split_time*sr):
                 seg_audio = audio[start : i]
                 save_name = f"{tmp_path}/{sec_name}-{str(idx)}.wav"
                 sf.write(save_name, seg_audio, sr)
