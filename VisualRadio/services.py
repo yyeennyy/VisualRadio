@@ -259,40 +259,40 @@ def get_segment(broadcast, name, date):
 from spleeter.separator import Separator
 import shutil
 import numpy as np
+from natsort import natsorted
 
-def remove_mr(broadcast, name, date, split_time = 600):
+def remove_mr(broadcast, name, date, duration=600):
     logger.debug("mr 제거 과정 진행 시작")
     splited_path = utils.hash_splited_path(broadcast, name, date)
-    section_wav_origin_names = utils.ourlistdir(splited_path)
+    section_wav_origin_names = natsorted(utils.ourlistdir(splited_path))
     separator = Separator('spleeter:2stems')
     tmp_path = utils.get_path(broadcast, name, date)+"tmp"
     if not os.path.exists(tmp_path):
             os.makedirs(tmp_path)
     
-    
     for target_section in section_wav_origin_names:
         idx = 0
         test_path = os.path.join(splited_path, target_section) # 1차 splited한 sec_n.wav임
+        logger.debug(f"test_path : {test_path}")
         sec_name = test_path.split("/")[-1].split(".")[0] # sec_n으로 나옴.
+
         audio, sr = librosa.load(test_path)
-        if(len(audio) > split_time*sr):
-            start = 0
-            for i in range(split_time*sr, len(audio), split_time*sr):
-                seg_audio = audio[start : i]
+        if(len(audio) > duration*sr):
+            for i in range(0, len(audio)-duration*sr, duration*sr):
+                seg_audio = audio[i : i+duration*sr]
                 save_name = f"{tmp_path}/{sec_name}-{str(idx)}.wav"
                 sf.write(save_name, seg_audio, sr)
-                start = i
                 idx+= 1
             save_name = f"{tmp_path}/{sec_name}-{str(idx)}.wav"
-            sf.write(save_name, audio[i:len(audio)], sr)
+            sf.write(save_name, audio[i+duration*sr:len(audio)], sr)
         else:
             save_name = f"{tmp_path}/{sec_name}-{str(idx)}.wav"
             sf.write(save_name, audio, sr)
     
-    
     mr_path = utils.mr_splited_path(broadcast, name, date)
     tmp_mr_path = utils.tmp_mr_splited_path(broadcast, name, date)
     seg_list = utils.ourlistdir(tmp_path)
+    logger.debug(f"seg_list:::::::::{seg_list}")
     for seg_mr in seg_list:
         logger.debug(f"{seg_mr}을 mr제거합니다.")
         audio_path = os.path.join(tmp_path, seg_mr)
@@ -301,9 +301,10 @@ def remove_mr(broadcast, name, date, split_time = 600):
     # 디렉토리 자체 삭제
     shutil.rmtree(tmp_path)
     
-    section_wav__names = utils.ourlistdir(tmp_mr_path)
+    section_wav__names = natsorted(utils.ourlistdir(tmp_mr_path))
     for fname in section_wav__names:
         rname = fname.split("-")[0]
+        logger.debug(f"fname-----------> {fname}")
         vocals = f"{tmp_mr_path}{fname}/vocals.wav"
         x, sr = librosa.load(vocals)
         for a in section_wav__names:
@@ -314,18 +315,20 @@ def remove_mr(broadcast, name, date, split_time = 600):
                 vocals2 = f"{tmp_mr_path}{a}/vocals.wav"
                 y, sr = librosa.load(vocals2)
                 x = np.concatenate((x, y),axis=0)
-        sf.write(f"{mr_path}/{rname}.wav", x, sr)
-        
-        shutil.rmtree(tmp_path)
+        direct = f"{mr_path}/{rname}.wav"
+        logger.debug(not os.path.exists(direct))
+        if not os.path.exists(direct):
+            sf.write(direct, x, sr)
     
     
+from natsort import natsorted 
 
 def split_cnn(broadcast, name, date):
     logger.debug("===========================================")
     model_path = settings.MODEL_PATH
     mr_path = utils.mr_splited_path(broadcast, name, date) # 1차 split 이후이므로 이 경로는 반드시 존재함
-    section_mr_origin_names = utils.ourlistdir(mr_path)
-    
+    section_mr_origin_names = natsorted(utils.ourlistdir(mr_path))
+    logger.debug(f"[natsorted된거 확인용]: {section_mr_origin_names}")
     section_start_time_summary = {}
     
     content_section_list = []
@@ -335,7 +338,7 @@ def split_cnn(broadcast, name, date):
         ment_range, content_section = save_split(model_path, output_path, mr_seg_path) # 2차 split 시작하기
         total_duration = 0
         
-        for filename in utils.ourlistdir(mr_path):
+        for filename in section_mr_origin_names:
             if(filename != target_section):
                 file_path = utils.hash_splited_path(broadcast, name, date, filename)
                 with wave.open(file_path, "r") as wav_file:
@@ -346,7 +349,12 @@ def split_cnn(broadcast, name, date):
         
         real_ment_range = [[total_duration + start_time_sec, total_duration + end_time_sec] for start_time_sec, end_time_sec in ment_range]    
         real_content_section = [[total_duration + start_time_sec, total_duration + end_time_sec] for start_time_sec, end_time_sec in content_section]
-        
+        logger.debug("===============")
+        logger.debug(ment_range)
+        logger.debug(real_ment_range)
+        logger.debug("===============")
+
+
         for i, range_list in enumerate(real_content_section):
             start = range_list[0]
             end = range_list[1]
@@ -369,7 +377,7 @@ def split_cnn(broadcast, name, date):
             content_section_list.append(item)
         
         ment_start_times = []
-        for range in ment_range:
+        for range in real_ment_range:
             ment_start_times.append(range[0])
 
         section_start_time_summary[target_section] = ment_start_times
@@ -391,6 +399,8 @@ def split_cnn(broadcast, name, date):
             wav = Wav(broadcast = broadcast, radio_name = name, radio_date = date, radio_section = str(content_section_list), start_times=json.dumps(section_start_time_summary))
             db.session.add(wav)
         db.session.commit()
+
+
 
     return section_start_time_summary 
 
@@ -477,7 +487,7 @@ def speech_to_text(broadcast, name, date):
     section_dir = utils.cnn_splited_path(broadcast, name, date)       # 2차분할 결과로 반드시 존재
     section_list = utils.ourlistdir(section_dir)
 
-    global num_file
+    global num_file                                        
     num_file = count_files(section_dir)
     
     with app.app_context():
