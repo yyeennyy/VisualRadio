@@ -11,7 +11,7 @@ import utils
 import stt
 import wave
 from split_module.split import start_split
-from split_module.split2 import save_split
+from split_module.split2 import save_split, split_music
 import threading
 from datetime import datetime
 from datetime import timedelta
@@ -335,7 +335,10 @@ def split_cnn(broadcast, name, date):
     for target_section in section_mr_origin_names:
         mr_seg_path = os.path.join(mr_path, target_section)
         output_path = os.path.join(utils.cnn_splited_path(broadcast, name, date), target_section[:-4])  # 2차 split 결과를 저장할 디렉토리 생성
-        ment_range, content_section = save_split(model_path, output_path, mr_seg_path) # 2차 split 시작하기
+        sec_path = os.path.join(utils.hash_splited_path(broadcast, name, date))
+        ment_range, content_section, not_ment = save_split(model_path, output_path, mr_seg_path) # 2차 split 시작하기
+        music_range = split_music(sec_path, not_ment)
+        
         total_duration = 0
         
         for filename in section_mr_origin_names:
@@ -372,6 +375,8 @@ def split_cnn(broadcast, name, date):
             
             if range_list in real_ment_range:
                 item = {"start_time": str(start_time), "end_time": str(end_time), "type": 0}
+            elif range_list in music_range:
+                item = {"start_time": str(start_time), "end_time": str(end_time), "type": 1}
             else:
                 item = {"start_time": str(start_time), "end_time": str(end_time), "type": 2}
             content_section_list.append(item)
