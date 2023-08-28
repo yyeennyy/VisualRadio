@@ -277,3 +277,19 @@ def find_quiet_time(y, sr):
 def is_difference_valid(x, y):
     diff = abs(x - y)
     return diff % 20 == 1 or diff % 20 == 19 or diff % 20 == 0
+
+def split_music(sec_path, not_ment):
+
+  y, sr = librosa.load(sec_path)
+
+  music_lst = []
+
+  for ran in not_ment:
+    start = ran[0]
+    end = ran[1]
+
+    seg = y[int(start*sr):int(end*sr)]
+
+    if(find_quiet_time(seg, sr)):
+      music_lst.append(ran)
+  return music_lst
