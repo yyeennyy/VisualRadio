@@ -5,12 +5,9 @@ import settings
 from datetime import timedelta, datetime
 
 def memory_usage(message: str = 'debug'):
-    # current process RAM usage
     p = psutil.Process()
     rss = p.memory_info().rss # Bytes
-    # print(f"[{message}] memory usage: {rss: 10.5f} MB |{type(rss)}| {(rss/5*8*1024)*100}%")
-    # logger.debug(rss/(128*1024))
-    return rss/psutil.virtual_memory().total
+    return rss / psutil.virtual_memory().total
 
 
 
@@ -75,11 +72,12 @@ def delete_ini_files(directory):
                 file_path = os.path.join(root, file)
                 os.remove(file_path)
 
-# 생성된 결과파일 전부 없애려면 사용 ㄱㄱ
-def rmdir(path):
-    if os.path.exists(path):
-        directory = os.path.dirname(path)
-        shutil.rmtree(directory)
+# 디렉토리 및 파일 삭제
+def rm(path):
+    if os.path.isfile(path):
+        os.remove(path)
+    elif os.path.isdir(path):
+        shutil.rmtree(path)
 
 
 # ----------- Time

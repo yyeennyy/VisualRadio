@@ -113,15 +113,22 @@ def admin_update():
 
 import utils
 import settings as settings
+import time
 
 def process_audio_file(broadcast, name, date):
-    split_final_directory = f"{settings.STORAGE_PATH}/{broadcast}/{name}/{date}/"
-    utils.delete_ini_files(split_final_directory)
+    storage = f"{settings.STORAGE_PATH}/{broadcast}/{name}/{date}/"
+    utils.delete_ini_files(storage)
     try:
+        s_time = time.time()
+
         # audio split    
         services.split(broadcast, name, date)
+        utils.rm(os.path.join(storage, "raw.wav"))
+
         services.remove_mr(broadcast, name, date)
         services.split_cnn(broadcast, name, date)
+        utils.rm(os.path.join(storage, "mr_wav"))
+        utils.rm(os.path.join(storage, "tmp_mr_wav"))
 
         # text processing
         services.speech_to_text(broadcast, name, date)
@@ -132,6 +139,14 @@ def process_audio_file(broadcast, name, date):
         # wav for serving
         services.sum_wav_sections(broadcast, name, date)
         logger.debug("[업로드] 오디오 처리 완료")
+        logger.debug(f"[업로드] 소요시간: {(time.time() - s_time)} 분")
+
+        # remove files
+        utils.rm(os.path.join(storage, "raw_stt"))
+        utils.rm(os.path.join(storage, "split_final"))
+        utils.rm(os.path.join(storage, "split_wav"))
+        utils.rm(os.path.join(storage, "stt_final"))
+
         return "ok"
     
     except Exception as e:
