@@ -261,11 +261,44 @@ import shutil
 import numpy as np
 from natsort import natsorted
 
-def remove_mr(broadcast, name, date, duration=600):
-    logger.debug("mr 제거 과정 진행 시작")
+# 클래스로 뺐다 (진행시간 고려해서 spleeter 돌리려고)
+class MrRemover:
+    def __init__(self):
+        self.is_running = False
+        self.is_done = False
+        self.thread = None
+        self.separator = Separator('spleeter:2stems')
+
+    def set_path(self, audio_path, tmp_mr_path):
+        self.audio_path = audio_path
+        self.tmp_mr_path = tmp_mr_path
+
+    def start(self):
+        self.is_running = True
+        self.is_done = False
+        self.start_time = time.time()  # 작업 시작시간 기록
+        self.thread = threading.Thread(target=self.background_process)
+        self.thread.start()
+
+    def stop(self):
+        self.is_running = False
+        if self.thread:
+            self.thread.join(timeout=0.1)
+
+    def background_process(self):
+        while self.is_running:
+            self.separator.separate_to_file(self.audio_path, self.tmp_mr_path) # 오래 걸리는 작업
+            self.is_running = False
+            self.is_done = True
+            return
+
+
+
+def remove_mr(broadcast, name, date, duration=int(600/2)):
+    logger.debug("[mr제거] 시작")
     splited_path = utils.hash_splited_path(broadcast, name, date)
     section_wav_origin_names = natsorted(utils.ourlistdir(splited_path))
-    separator = Separator('spleeter:2stems')
+
     tmp_path = utils.get_path(broadcast, name, date)+"tmp"
     if not os.path.exists(tmp_path):
             os.makedirs(tmp_path)
@@ -273,7 +306,8 @@ def remove_mr(broadcast, name, date, duration=600):
     for target_section in section_wav_origin_names:
         idx = 0
         test_path = os.path.join(splited_path, target_section) # 1차 splited한 sec_n.wav임
-        logger.debug(f"test_path : {test_path}")
+        sec_name = test_path.split("/")[-1].split(".")[0]
+        logger.debug(f"[mr제거] {int(duration/60)}분 파일로 쪼개 저장중: {sec_name}")
         sec_name = test_path.split("/")[-1].split(".")[0] # sec_n으로 나옴.
 
         audio, sr = librosa.load(test_path)
@@ -292,19 +326,48 @@ def remove_mr(broadcast, name, date, duration=600):
     mr_path = utils.mr_splited_path(broadcast, name, date)
     tmp_mr_path = utils.tmp_mr_splited_path(broadcast, name, date)
     seg_list = utils.ourlistdir(tmp_path)
-    logger.debug(f"seg_list:::::::::{seg_list}")
+
+    #--------------------------------------------------------------
+    mr_remover = MrRemover()
     for seg_mr in seg_list:
-        logger.debug(f"{seg_mr}을 mr제거합니다.")
+        logger.debug(f"[mr제거] {seg_mr} mr 제거중..")
         audio_path = os.path.join(tmp_path, seg_mr)
-        separator.separate_to_file(audio_path, tmp_mr_path, duration=10000)
-        
+
+        mr_remover.set_path(audio_path, tmp_mr_path)
+        mr_remover.start()
+        try:
+            while True:
+                time.sleep(10)
+                gc.collect()
+                # 작업이 너무 오래 걸릴 경우 재시작 & 초기화
+                # 설정해둔 시간값: duration / 2 : 쪼갠파일이 맥시멈 10분이면, 5분안에 처리되도록 의도
+                if mr_remover.is_running and not mr_remover.is_done:
+                    elapsed_time = time.time() - mr_remover.start_time
+                    if elapsed_time > int(duration/2): 
+                        logger.debug(f"[mr제거] {seg_mr} 오래 걸려서 재시작")
+                        mr_remover.stop()
+                        mr_remover = None
+                        mr_remover = MrRemover()
+                        mr_remover.set_path(audio_path, tmp_mr_path)
+                        mr_remover.start()
+                        gc.collect()
+                elif not mr_remover.is_running and mr_remover.is_done:
+                    break
+        except:
+            print("에러")
+
+    mr_remover.stop()
+    mr_remover = None
+    gc.collect()
+    #--------------------------------------------------------------
+
     # 디렉토리 자체 삭제
     shutil.rmtree(tmp_path)
     
     section_wav__names = natsorted(utils.ourlistdir(tmp_mr_path))
     for fname in section_wav__names:
         rname = fname.split("-")[0]
-        logger.debug(f"fname-----------> {fname}")
+        logger.debug(f"[mr제거] 오디오 합치는 중.. {fname}")
         vocals = f"{tmp_mr_path}{fname}/vocals.wav"
         x, sr = librosa.load(vocals)
         for a in section_wav__names:
@@ -316,19 +379,19 @@ def remove_mr(broadcast, name, date, duration=600):
                 y, sr = librosa.load(vocals2)
                 x = np.concatenate((x, y),axis=0)
         direct = f"{mr_path}/{rname}.wav"
-        logger.debug(not os.path.exists(direct))
         if not os.path.exists(direct):
             sf.write(direct, x, sr)
     
+    return
     
 from natsort import natsorted 
 
 def split_cnn(broadcast, name, date):
-    logger.debug("===========================================")
+    logger.debug(f"[split_cnn] 구간정보(멘트/광고/노래) 파악 시작")
+
     model_path = settings.MODEL_PATH
     mr_path = utils.mr_splited_path(broadcast, name, date) # 1차 split 이후이므로 이 경로는 반드시 존재함
     section_mr_origin_names = natsorted(utils.ourlistdir(mr_path))
-    logger.debug(f"[natsorted된거 확인용]: {section_mr_origin_names}")
     section_start_time_summary = {}
     
     content_section_list = []
@@ -352,10 +415,6 @@ def split_cnn(broadcast, name, date):
         
         real_ment_range = [[total_duration + start_time_sec, total_duration + end_time_sec] for start_time_sec, end_time_sec in ment_range]    
         real_content_section = [[total_duration + start_time_sec, total_duration + end_time_sec] for start_time_sec, end_time_sec in content_section]
-        logger.debug("===============")
-        logger.debug(ment_range)
-        logger.debug(real_ment_range)
-        logger.debug("===============")
 
 
         for i, range_list in enumerate(real_content_section):
@@ -404,8 +463,6 @@ def split_cnn(broadcast, name, date):
             wav = Wav(broadcast = broadcast, radio_name = name, radio_date = date, radio_section = str(content_section_list), start_times=json.dumps(section_start_time_summary))
             db.session.add(wav)
         db.session.commit()
-
-
 
     return section_start_time_summary 
 
@@ -516,8 +573,6 @@ def speech_to_text(broadcast, name, date):
             th_q.put(thread)
         
     th_q_fin = []
-    
-    
 
     start_time = time.time()  # 시작 시간 기록
     timeout = 7200  # 1시간 (초 단위)
@@ -531,13 +586,13 @@ def speech_to_text(broadcast, name, date):
                     process.error = 1
                 db.session.commit()
                 return
-        if len(threading.enumerate()) < 7:
-            time.sleep(random.uniform(0.1, 1))
-            if utils.memory_usage("stt") < 0.70:
-                this_process = th_q.get()
-                this_process.start()
-                logger.debug(f"[stt] 처리중인 stt 프로세스 수 {len(multiprocessing.active_children())} ({this_process.name} started!)")
-                th_q_fin.append(this_process)
+        # if len(multiprocessing.active_children()) < 7:
+        time.sleep(random.uniform(0.1, 1))
+        if utils.memory_usage("stt") < 0.70:
+            this_process = th_q.get()
+            this_process.start()
+            logger.debug(f"[stt] 처리중인 stt 프로세스 수 {len(multiprocessing.active_children())} ({this_process.name} started!)")
+            th_q_fin.append(this_process)
 
     for thread in th_q_fin:
         thread.join(20)
@@ -562,6 +617,7 @@ def speech_to_text(broadcast, name, date):
     end_time = time.time()
     logger.debug(f"[stt] DONE IN {end_time - start_time} SECONDS")
     
+    return
 
 
 def stt_proccess(broadcast, name, date, sec_hash, sec_cnn):
@@ -592,7 +648,8 @@ def stt_proccess(broadcast, name, date, sec_hash, sec_cnn):
         db.session.commit()
     logger.debug(f"[stt] 끝: {sec_hash}/{sec_cnn}")
     logger.debug(f'[stt] {utils.memory_usage()*100}%')
- 
+    
+    return
 
 
 # ------------------------------------------------------------------------------------------ stt 이후 과정
@@ -644,6 +701,7 @@ def sum_wav_sections(broadcast, name, date):
     
     logger.debug("[contents] sum.wav done.")
     
+    return
 
 
 ###################################### 서비스 로직 ###################################
