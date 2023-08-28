@@ -175,21 +175,15 @@ def merge_and_sort_ranges(range_list1, range_list2):
 
 def save_split(model_path, output_path, mr_path): # 섹션마다의 길이를 누적해서 더해줘야함!
     wav_name = output_path.split("/")[-1]
-    logger.debug(f"save_split 내에 있는 mr_seg_path는 {mr_path}입니다.")
     os.makedirs(output_path, exist_ok=True)
-    
     
     audio, sr = librosa.load(mr_path)
     ment_range = find_voice(audio, sr)
-    logger.debug(f"{wav_name} predict 시작")
+    logger.debug(f"[save_split] {wav_name} predict 시작")
     real_ment = model_predict(audio, sr, ment_range, model_path)
-    logger.debug(f"--- real_ment ---> {real_ment}")
     real_ment_time = divide_all_elements(real_ment, sr)
-    logger.debug(f"--- real_ment_time ---> {real_ment_time}")
     merged_real_ment_time = merge_intervals(real_ment_time, 10)
-    logger.debug(f"--- merged_real_ment_time ---> {merged_real_ment_time}")
     ment_without_ad = drop_doubt_ad(merged_real_ment_time, 10) # 20초로 하는게 좋아보임!
-    logger.debug(f"--- save_split ---> {ment_without_ad}")
     not_ment = extract_not_ment(ment_without_ad, len(audio)/sr)
     all_range = merge_and_sort_ranges(ment_without_ad, not_ment)
 
@@ -206,7 +200,6 @@ def save_split(model_path, output_path, mr_path): # 섹션마다의 길이를 �
         name = f"/sec_{idx}.wav"
         sf.write(output_path+name, sliced_audio, sr)
         logger.debug(f"Segment {idx} 저장 완료: {name}")
-        
         
     return ment_without_ad, all_range, not_ment # content_range
 
