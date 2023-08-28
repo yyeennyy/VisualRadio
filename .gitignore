@@ -767,3 +767,14 @@ gradle-app.setting
 **/build/
 !src/**/build/
 *.hprof
+
+
+
+# for Paragraph
+ko.bin
+resnet_model_test1.pth
+
+
+
+pretrained_models
+radio_storage
