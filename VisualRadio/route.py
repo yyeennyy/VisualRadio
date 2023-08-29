@@ -125,11 +125,14 @@ def process_audio_file(broadcast, name, date):
         services.split(broadcast, name, date)
         utils.rm(os.path.join(storage, "raw.wav"))
 
-        services.remove_mr(broadcast, name, date)
+        
+        services.remove_mr(broadcast, name, date, 300)
+        utils.rm(os.path.join(storage, "tmp_mr_wav"))
+        
+        
         services.split_cnn(broadcast, name, date)
         utils.rm(os.path.join(storage, "mr_wav"))
-        utils.rm(os.path.join(storage, "tmp_mr_wav"))
-
+        
         # text processing
         services.speech_to_text(broadcast, name, date)
         script.make_script_each(broadcast, name, date)
