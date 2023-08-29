@@ -8,7 +8,10 @@ import os
 import threading
 import traceback
 import paragraph
-import script
+import utils
+import stt
+import settings as settings
+import time
 
 auth = Blueprint('auth', __name__)
 
@@ -83,10 +86,9 @@ def get_process(broadcast, radio_name, radio_date):
 
 @auth.route("/<string:broadcast>/<string:program_name>/<string:date>/check_wav", methods=['GET'])
 def check_wav(broadcast, program_name, date):
-    logger.debug("check_wav")
     path = f"VisualRadio/radio_storage/{broadcast}/{program_name}/{date}/raw.wav"
     if os.path.isfile(path):
-        logger.debug("[업로드] wav가 이미 있나? 있다.")
+        logger.debug("[업로드] wav가 이미 존재한다! (이득!!!!)")
         return jsonify({'wav':'true'})
     else:
         return jsonify({'wav':'false'})
@@ -111,9 +113,6 @@ def admin_update():
     return jsonify({'message': 'Success'})
 
 
-import utils
-import settings as settings
-import time
 
 def process_audio_file(broadcast, name, date):
     storage = f"{settings.STORAGE_PATH}/{broadcast}/{name}/{date}/"
@@ -130,18 +129,22 @@ def process_audio_file(broadcast, name, date):
         utils.rm(os.path.join(storage, "mr_wav"))
         utils.rm(os.path.join(storage, "tmp_mr_wav"))
 
+        # sum.wav
+        services.sum_wav_sections(broadcast, name, date)
+
         # text processing
-        services.speech_to_text(broadcast, name, date)
-        script.make_script_each(broadcast, name, date)
-        script.make_script_final(broadcast, name, date)
+        # - 기존: split한 wav파일의 duraion을 파악해서 time정보를 직접 계산했음
+        # - 변동: wav테이블의 radio_section 컬럼 활용 -> 멘트 구간을 아니까, audio를 바로 슬라이싱 가능 & time 바로 적용
+        ment_start_end = stt.get_stt_target(broadcast, name, date)
+        stt.speech_to_text(broadcast, name, date, ment_start_end)
+        stt.make_script(broadcast, name, date)
         paragraph.compose_paragraph(broadcast, name, date)
 
-        # wav for serving
-        services.sum_wav_sections(broadcast, name, date)
         logger.debug("[업로드] 오디오 처리 완료")
         logger.debug(f"[업로드] 소요시간: {(time.time() - s_time)} 분")
 
         # remove files
+        utils.rm(os.path.join(storage, "stt"))
         utils.rm(os.path.join(storage, "raw_stt"))
         utils.rm(os.path.join(storage, "split_final"))
         utils.rm(os.path.join(storage, "split_wav"))
