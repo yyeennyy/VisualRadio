@@ -80,7 +80,17 @@ def rm(path):
         shutil.rmtree(path)
 
 
+def count_files(directory):
+    count = 0
+    for root, dirs, files in os.walk(directory):
+        count += len(files)
+    return count
+
+
+
 # ----------- Time
+from datetime import datetime, timedelta
+
 
 def format_time(time_in_seconds):
     # second 단위 문자열을 "분:초.밀리초" 문자열로 리턴
@@ -102,7 +112,15 @@ def convert_to_datetime(time_str):
     return time_obj
 
 
-from datetime import datetime, timedelta
+def convert_to_second_float(time_str):
+    # "분:초.밀리초" 문자열을 second단위 float로 변환
+    minutes, seconds = time_str.split(':')
+    seconds, milliseconds = seconds.split('.')
+    
+    seconds = int(seconds) + int(minutes) * 60 + float(milliseconds) * 0.001
+    
+    return seconds
+
 
 def add_time(time1, time2):
     # "분:초.밀리초" 형식의 시간 문자열 두 개를 더한 시간을 문자열로 리턴
@@ -139,3 +157,4 @@ def read_json_file(file_path):
     with open(file_path, 'r', encoding='utf-8') as f:
         data = json.load(f)
     return data
+
