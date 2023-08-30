@@ -236,7 +236,8 @@ def find_quiet_time(y, sr):
       lst.append(intTime)
       
   if(len(lst)==0):
-      return lst
+      return True
+  
   merged = []
   sublist = [lst[0]]  # 첫 번째 원소로 시작하는 부분 리스트 생성
   
