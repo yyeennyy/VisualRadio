@@ -14,8 +14,6 @@ import stt
 import settings as settings
 import time
 from models import Process
-from memory_profiler import profile
-
 
 auth = Blueprint('auth', __name__)
 
@@ -135,7 +133,6 @@ def commit(o):
     db.session.commit()
     return
 
-@profile
 def process_audio_file(broadcast, name, date):
     storage = f"{settings.STORAGE_PATH}/{broadcast}/{name}/{date}/"
     utils.delete_ini_files(storage)
