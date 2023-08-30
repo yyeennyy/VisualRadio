@@ -15,7 +15,6 @@ import settings as settings
 import time
 from models import Process
 
-
 auth = Blueprint('auth', __name__)
 
 
@@ -113,6 +112,9 @@ def admin_update():
     t = threading.Thread(target=process_audio_file, args=(broadcast, program_name, date))
     t.start()
 
+    # 종료
+    t.join(0.1)
+
     return jsonify({'message': 'Success'})
 
 
@@ -137,7 +139,9 @@ def process_audio_file(broadcast, name, date):
     with app.app_context():
         process = bring_process(broadcast, name, date)
         process.set_raw()
-        # (필요시 사용) 모든 Process 진행사항 지우기 : process.del_all()
+        # (필요시 사용) 모든 Process 진행사항 지우기 
+        # process.del_all()
+        # commit(process)
         try:
             # start!
             s_time = time.time()
