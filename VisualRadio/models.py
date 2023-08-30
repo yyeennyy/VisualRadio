@@ -88,7 +88,7 @@ class Process(db.Model):
         self.all_stt = 0
         self.script = 0
         self.sum = 0
-        self.erorr = 0
+        self.error = 0
 
     @property
     def raw_(self):
@@ -135,6 +135,14 @@ class Process(db.Model):
         self.error = 0
     def del_stt(self):
         self.end_stt = 0
+    def del_all(self):
+        self.split1 = 0
+        self.split2 = 0
+        self.end_stt = 0
+        self.all_stt = 0
+        self.script = 0
+        self.sum = 0
+        self.error = 0
 
     def __repr__(self):
         return f"Radio: {self.broadcast} {self.radio_name} {self.radio_date} : raw : {self.raw}, split1 : {self.split1}, split2 : {self.split2}, end_stt : {self.end_stt}, all_stt : {self.all_stt}, script : {self.script}, sum : {self.sum}"
