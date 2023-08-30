@@ -16,7 +16,6 @@ import time
 from models import Process
 
 
-
 auth = Blueprint('auth', __name__)
 
 
@@ -123,13 +122,14 @@ def bring_process(broadcast, name, date):
     if process:
         return process
     else:
-        return Process(broadcast, name, date)
+        process = Process(broadcast, name, date)
+        commit(process)
+        return process
         
 def commit(o):
     db.session.add(o)
     db.session.commit()
     return
-
 
 def process_audio_file(broadcast, name, date):
     storage = f"{settings.STORAGE_PATH}/{broadcast}/{name}/{date}/"
@@ -197,7 +197,6 @@ def process_audio_file(broadcast, name, date):
             logger.debug("[업로드] 오디오 처리 완료")
             logger.debug(f"[업로드] 소요시간: {(time.time() - s_time)/60} 분")
             process = None
-
 
         except Exception as e:
             logger.debug(e)
