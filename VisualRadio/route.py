@@ -1,5 +1,6 @@
 from flask import Blueprint
-from flask import Flask, request, jsonify, send_file, render_template, request, make_response
+from flask import request, jsonify, send_file, render_template, request, make_response
+from VisualRadio import app, db
 import sys
 sys.path.append('./VisualRadio')
 import services
@@ -8,7 +9,13 @@ import os
 import threading
 import traceback
 import paragraph
-import script
+import utils
+import stt
+import settings as settings
+import time
+from models import Process
+
+
 
 auth = Blueprint('auth', __name__)
 
@@ -83,10 +90,9 @@ def get_process(broadcast, radio_name, radio_date):
 
 @auth.route("/<string:broadcast>/<string:program_name>/<string:date>/check_wav", methods=['GET'])
 def check_wav(broadcast, program_name, date):
-    logger.debug("check_wav")
     path = f"VisualRadio/radio_storage/{broadcast}/{program_name}/{date}/raw.wav"
     if os.path.isfile(path):
-        logger.debug("[업로드] wav가 이미 있나? 있다.")
+        logger.debug("[업로드] wav가 이미 존재한다! (이득!!!!)")
         return jsonify({'wav':'true'})
     else:
         return jsonify({'wav':'false'})
@@ -111,53 +117,97 @@ def admin_update():
     return jsonify({'message': 'Success'})
 
 
-import utils
-import settings as settings
-import time
+
+def bring_process(broadcast, name, date):
+    process = db.session.query(Process).filter_by(broadcast=broadcast, radio_name=name, radio_date=date).first()
+    if process:
+        return process
+    else:
+        return Process(broadcast, name, date)
+        
+def commit(o):
+    db.session.add(o)
+    db.session.commit()
+    return
+
 
 def process_audio_file(broadcast, name, date):
     storage = f"{settings.STORAGE_PATH}/{broadcast}/{name}/{date}/"
     utils.delete_ini_files(storage)
-    try:
-        s_time = time.time()
+    with app.app_context():
+        process = bring_process(broadcast, name, date)
+        process.set_raw()
+        # (필요시 사용) 모든 Process 진행사항 지우기 : process.del_all()
+        try:
+            # start!
+            s_time = time.time()
 
-        # audio split    
-        services.split(broadcast, name, date)
-        utils.rm(os.path.join(storage, "raw.wav"))
+            # audio split
+            if not process.split1_:
+                services.split(broadcast, name, date)
+                process.set_split1()
+                commit(process)
+                utils.rm(os.path.join(storage, "raw.wav"))
+            else:
+                logger.debug("[split1] pass")
 
-        
-        services.remove_mr(broadcast, name, date, 300)
-        utils.rm(os.path.join(storage, "tmp_mr_wav"))
-        
-        
-        services.split_cnn(broadcast, name, date)
-        utils.rm(os.path.join(storage, "mr_wav"))
-        
-        # text processing
-        services.speech_to_text(broadcast, name, date)
-        script.make_script_each(broadcast, name, date)
-        script.make_script_final(broadcast, name, date)
-        paragraph.compose_paragraph(broadcast, name, date)
+            if not process.split2_:
+                services.remove_mr(broadcast, name, date)
+                services.split_cnn(broadcast, name, date)
+                process.set_split2()
+                commit(process)
+                utils.rm(os.path.join(storage, "mr_wav"))
+                utils.rm(os.path.join(storage, "tmp_mr_wav"))
+            else:
+                logger.debug("[split2] pass")
 
-        # wav for serving
-        services.sum_wav_sections(broadcast, name, date)
-        logger.debug("[업로드] 오디오 처리 완료")
-        logger.debug(f"[업로드] 소요시간: {(time.time() - s_time)} 분")
+            # sum.wav
+            if not process.sum_:
+                services.sum_wav_sections(broadcast, name, date)
+                process.set_sum()
+                commit(process)
+            else:
+                logger.debug("[sum.wav] pass")
 
-        # remove files
-        utils.rm(os.path.join(storage, "raw_stt"))
-        utils.rm(os.path.join(storage, "split_final"))
-        utils.rm(os.path.join(storage, "split_wav"))
-        utils.rm(os.path.join(storage, "stt_final"))
+            # text processing
+            # - 기존: split한 wav파일의 duraion을 파악해서 time정보를 직접 계산했음
+            # - 변동: wav테이블의 radio_section 컬럼 활용 -> 멘트 구간을 아니까, audio를 바로 슬라이싱 가능 & time 바로 적용
+            if not process.all_stt_ or process.end_stt_ != process.all_stt_:
+                ment_start_end = stt.get_stt_target(broadcast, name, date)
+                process.set_all_stt(len(ment_start_end))
+                process.del_stt()
+                commit(process)
+                stt.speech_to_text(broadcast, name, date, ment_start_end)
+                stt.make_script(broadcast, name, date)
+                paragraph.compose_paragraph(broadcast, name, date) # stt가 재진행되면 문단구성도 새로 해야 함
+                process.set_script()
+                commit(process)
 
-        return "ok"
-    
-    except Exception as e:
-        logger.debug(e)
-        logger.debug("오류 발생!!!! 오디오 처리를 종료합니다.")
-        traceback_str = traceback.format_exc()
-        logger.debug(traceback_str)
-        return
+                # remove files
+                utils.rm(os.path.join(storage, "stt"))
+                utils.rm(os.path.join(storage, "raw_stt"))
+                utils.rm(os.path.join(storage, "split_final"))
+                utils.rm(os.path.join(storage, "split_wav"))
+                utils.rm(os.path.join(storage, "stt_final"))
+            else:
+                logger.debug("[stt] pass")
+
+            if process.error_ == 1:
+                process.del_error()
+            logger.debug("[업로드] 오디오 처리 완료")
+            logger.debug(f"[업로드] 소요시간: {(time.time() - s_time)/60} 분")
+            process = None
+
+
+        except Exception as e:
+            logger.debug(e)
+            logger.debug("오류 발생!!!! 오디오 처리를 종료합니다.")
+            process.set_error()
+            commit(process)
+            traceback_str = traceback.format_exc()
+            logger.debug(traceback_str)
+
+    return "ok"
 
 def audio_save(broadcast, program_name, date, audiofile):
     path = f"./VisualRadio/radio_storage/{broadcast}/{program_name}/{date}/"

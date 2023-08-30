@@ -26,13 +26,11 @@ def CreateLogger(logger_name):
     logger.setLevel(logging.DEBUG)
     formatter = logging.Formatter('%(asctime)s |%(levelname)s|%(filename)12s:%(lineno)-4s...%(name)10s > %(message)s', '%Y-%m-%d %H:%M:%S')
 
-
     # Create Handlers
     # 1
     stream_handler = logging.StreamHandler()
     stream_handler.setFormatter(formatter)
     logger.addHandler(stream_handler)
-
     # 2
     file_handler = logging.FileHandler('my.log')
     file_handler.setFormatter(formatter)
@@ -40,23 +38,28 @@ def CreateLogger(logger_name):
 
     return logger
 
+
+from sqlalchemy import create_engine
+from sqlalchemy.orm import sessionmaker
+
 db = SQLAlchemy()
 app = Flask(__name__)
-# socketio = SocketIO()
-
+app.config['MAX_CONTENT_LENGTH'] = 800 * 1024 * 1024  # 16MB로 업로드 크기 제한 변경
+app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql+pymysql://visualradio:visualradio@mysql:3306/radio'
+app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+# engine = create_engine(app.config['SQLALCHEMY_DATABASE_URI'])
+# Session = sessionmaker(engine)
 logger = CreateLogger("(^o^)b")
 
 
 def create_app():
     global db
     global app
+    # global engine
+
     CORS(app)  # 모든 라우트에 대해 CORS 허용
-    app.config['MAX_CONTENT_LENGTH'] = 800 * 1024 * 1024  # 16MB로 업로드 크기 제한 변경
-    app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql+pymysql://visualradio:visualradio@mysql:3306/radio'
-    app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
     # DB세팅
-    # 주의! create database radio; 까지는 되어있어야 함
     db.init_app(app)
 
     # 블루프린트 인스턴스 가져오기 & flask app에 등록하기
@@ -66,16 +69,8 @@ def create_app():
     with app.app_context():
         db.create_all() 
 
-    # socketio
-    # socketio.init_app(app)
-    # socketio_init(socketio)
-    
-    # Entity가 변경되었을 때(예:컬럼추가), 데이터베이스를 마이그레이션 한다. 
-
     logger.debug("초기화")
     return app, db
-
-
 
 
 

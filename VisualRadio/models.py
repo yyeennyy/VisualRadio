@@ -77,18 +77,64 @@ class Process(db.Model):
     sum = db.Column(db.Integer, nullable=False)
     error = db.Column(db.Integer, nullable=False)
 
-    def __init__(self, broadcast, radio_name, radio_date, raw, split1, split2, end_stt, all_stt, script, sum, error):
-        self.broadcast = broadcast 
+    def __init__(self, broadcast, radio_name, radio_date):
+        self.broadcast = broadcast
         self.radio_name = radio_name
         self.radio_date = radio_date
-        self.raw = raw
-        self.split1 = split1
-        self.split2 = split2 
-        self.end_stt = end_stt 
-        self.all_stt = all_stt
-        self.script = script
-        self.sum = sum
-        self.error = error
+        self.raw = 0
+        self.split1 = 0
+        self.split2 = 0
+        self.end_stt = 0
+        self.all_stt = 0
+        self.script = 0
+        self.sum = 0
+        self.erorr = 0
+
+    @property
+    def raw_(self):
+        return self.raw
+    @property
+    def split1_(self):
+        return self.split1
+    @property
+    def split2_(self):
+        return self.split2
+    @property
+    def end_stt_(self):
+        return self.end_stt
+    @property
+    def all_stt_(self):
+        return self.all_stt
+    @property
+    def script_(self):
+        return self.script
+    @property
+    def sum_(self):
+        return self.sum
+    @property
+    def error_(self):
+        return self.error
+    
+    def set_raw(self):
+        self.raw = 1
+    def set_split1(self):
+        self.split1 = 1
+    def set_split2(self):
+        self.split2 = 1
+    def set_end_stt(self):
+        self.end_stt = self.end_stt+1
+    def set_all_stt(self, num):
+        self.all_stt = num
+    def set_script(self):
+        self.script = 1
+    def set_sum(self):
+        self.sum = 1
+    def set_error(self):
+        self.error = 1
+    def del_error(self):
+        self.error = 0
+    def del_stt(self):
+        self.end_stt = 0
 
     def __repr__(self):
         return f"Radio: {self.broadcast} {self.radio_name} {self.radio_date} : raw : {self.raw}, split1 : {self.split1}, split2 : {self.split2}, end_stt : {self.end_stt}, all_stt : {self.all_stt}, script : {self.script}, sum : {self.sum}"

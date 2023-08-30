@@ -8,7 +8,6 @@ import random
 import settings as settings
 import time
 import utils
-import stt
 import wave
 from split_module.split import start_split
 from split_module.split2 import save_split, split_music
@@ -226,22 +225,6 @@ def audio_save_db(broadcast, name, date):
         if not wav:
             wav = Wav(radio_name=name, radio_date=date, broadcast=broadcast, radio_section="")
             db.session.add(wav)
-        process = Process.query.filter_by(broadcast = broadcast, radio_name=name, radio_date=str(date)).first()
-        if process:
-            # 기존 객체 수정
-            process.raw = 1
-            process.split1 = 0
-            process.split2 = 0
-            process.end_stt = 0
-            process.all_stt = 0
-            process.script = 0
-            process.sum = 0
-            process.error = 0
-        else:
-            logger.debug("[업로드] Process 테이블에 추가")
-            process = Process(radio_name=name, radio_date=date, broadcast=broadcast, raw=1, split1=0, split2=0, end_stt=0,
-                      all_stt=0, script=0, sum=0, error = 0)
-            db.session.add(process)
         db.session.commit()
         
 def get_segment(broadcast, name, date):
@@ -291,8 +274,6 @@ class MrRemover:
             self.is_running = False
             self.is_done = True
             return
-
-
 
 def remove_mr(broadcast, name, date, duration=int(600/2)):
     logger.debug("[mr제거] 시작")
@@ -446,15 +427,6 @@ def split_cnn(broadcast, name, date):
 
         section_start_time_summary[target_section] = ment_start_times
     with app.app_context():
-        process = Process.query.filter_by(broadcast=broadcast, radio_name=name, radio_date=str(date)).first()
-        if process:
-            process.split2 = 1
-        else:
-            process = Process(broadcast=broadcast, radio_name = name, radio_date = date, raw=1, split1=1, split2=1,
-                              end_stt=0, all_stt=0, script=0, sum=0, error = 0)
-
-            db.session.add(process)
-        
         wav = Wav.query.filter_by(broadcast=broadcast, radio_name=name, radio_date=str(date)).first()
         if wav:
             wav.radio_section = str(content_section_list)
@@ -504,157 +476,13 @@ def split(broadcast, name, date):
         if not wav:
             wav = Wav(radio_name=name, radio_date=date, broadcast=broadcast)
             db.session.add(wav)
-        process = Process.query.filter_by(broadcast=broadcast, radio_name=name, radio_date=str(date)).first()
-        if process:
-            process.split1 = 1
-        else:
-            process = Process(broadcast=broadcast, radio_name = name, radio_date = date, raw=1, split1=1, split2=0,
-                              end_stt=0, all_stt=0, script=0, sum=0, error = 0)
-
-            db.session.add(process)
         db.session.commit()
 
     return 0
 
 
 
-# ------------------------------------------------------------------------------------------ stt 관련
-import time
-import json
-import re
-import wave
-import threading
-import gc
-import queue
-th_q = queue.Queue()
-stt_count = 0
-num_file = 0
-
-def count_files(directory):
-    count = 0
-    for root, dirs, files in os.walk(directory):
-        count += len(files)
-    return count
-
-
-# import whisper
-import multiprocessing
-
-def speech_to_text(broadcast, name, date):
-    logger.debug("[stt] start!")
-    start_time = time.time()
-    # device = "cpu"
-    # whisper.load_model(settings.WHISPER_MODEL).to(device)
-
-    section_dir = utils.cnn_splited_path(broadcast, name, date)       # 2차분할 결과로 반드시 존재
-    section_list = utils.ourlistdir(section_dir)
-
-    global num_file                                        
-    num_file = count_files(section_dir)
-    
-    with app.app_context():
-        process = Process.query.filter_by(broadcast=broadcast, radio_name=name, radio_date=str(date)).first()
-        if process:
-            process.all_stt = num_file
-        else:
-            process = Process(broadcast=broadcast, radio_name = name, radio_date = date, raw=1, split1=1, split2=1,
-                              end_stt=0, all_stt=num_file, script=0, sum=0, error = 0)
-
-            db.session.add(process)
-        db.session.commit()
-    
-    for section_name in section_list:
-        small_parts = utils.ourlistdir(f"{section_dir}/{section_name}")  # sec_n의 2차분할 wav 리스트
-
-        for small_part in small_parts:
-            logger.debug(f"[stt] enqueue! {section_name}/{small_part}")
-            thread = multiprocessing.Process(target=stt_proccess,
-                                    args=(broadcast, name, date, section_name, small_part))
-            th_q.put(thread)
-        
-    th_q_fin = []
-
-    start_time = time.time()  # 시작 시간 기록
-    timeout = 7200  # 1시간 (초 단위)
-    
-    while not th_q.empty():
-        if time.time() - start_time > timeout:
-            logger.debug("[시간 초과] 설정한 시간을 초과하여 stt를 종료합니다.")
-            with app.app_context():
-                process = Process.query.filter_by(broadcast=broadcast, radio_name=name, radio_date=str(date)).first()
-                if process:
-                    process.error = 1
-                db.session.commit()
-                return
-        # if len(multiprocessing.active_children()) < 7:
-        time.sleep(random.uniform(0.1, 1))
-        if utils.memory_usage("stt") < 0.70:
-            this_process = th_q.get()
-            this_process.start()
-            logger.debug(f"[stt] 처리중인 stt 프로세스 수 {len(multiprocessing.active_children())} ({this_process.name} started!)")
-            th_q_fin.append(this_process)
-
-    for thread in th_q_fin:
-        thread.join(20)
-        while(thread.is_alive()):
-            if(time.time() - start_time > timeout):
-                logger.debug("[시간 초과] 설정한 시간을 초과하여 stt를 종료합니다.")
-                with app.app_context():
-                    process = Process.query.filter_by(broadcast=broadcast, radio_name=name, radio_date=str(date)).first()
-                    if process:
-                        process.error = 1
-                    db.session.commit()
-                return
-        del thread
-
-    gc.collect()
-    
-    # DB - stt를 True로 갱신
-    with app.app_context():
-        process = Process.query.filter_by(broadcast = broadcast, radio_name=name, radio_date=date).first()
-        if not process:
-            logger.debug(f"[stt] [오류] {broadcast} {name} {date} 가 있어야 하는데, DB에서 찾지 못함")
-    end_time = time.time()
-    logger.debug(f"[stt] DONE IN {end_time - start_time} SECONDS")
-    
-    return
-
-
-def stt_proccess(broadcast, name, date, sec_hash, sec_cnn):
-    logger.debug(f"[stt] 시작: {sec_hash}/{sec_cnn}")
-
-    # 경로 설정
-    save_name = sec_cnn.replace(".wav", ".json")
-    src_path = utils.cnn_splited_path(broadcast, name, date, f"{sec_hash}/{sec_cnn}") # stt 처리 타겟
-    dst_path = utils.stt_raw_path(broadcast, name, date, sec_hash)
-
-    # stt 결과 저장
-    interval = 20  # seconds
-    data = stt.google_stt(src_path, interval, broadcast, name, date)
-    utils.save_json(data, f"{dst_path}/{save_name}")
-
-    global stt_count
-    stt_count+=1
-    
-    with app.app_context():
-        process = Process.query.filter_by(broadcast=broadcast, radio_name=name, radio_date=str(date)).first()
-        if process:
-            process.end_stt = stt_count
-        else:
-            process = Process(broadcast=broadcast, radio_name = name, radio_date = date, raw=1, split1=1, split2=1,
-                              end_stt=stt_count, all_stt=num_file, script=0, sum=0, error = 0)
-
-            db.session.add(process)
-        db.session.commit()
-    logger.debug(f"[stt] 끝: {sec_hash}/{sec_cnn}")
-    logger.debug(f'[stt] {utils.memory_usage()*100}%')
-    
-    return
-
-
 # ------------------------------------------------------------------------------------------ stt 이후 과정
-
-
 import wave
 import os
 import json
@@ -687,17 +515,6 @@ def sum_wav_sections(broadcast, name, date):
         output_stream.writeframes(input_stream.readframes(input_stream.getnframes()))
         input_stream.close()
     output_stream.close()
-    
-    # DB에 기록    
-    global stt_count, num_file
-    with app.app_context():
-        process = Process.query.filter_by(broadcast=broadcast, radio_name=name, radio_date=str(date)).first()
-        if process:
-            process.sum = 1
-            db.session.add(process)
-            db.session.commit()
-        else:
-            logger.debug(f"[make_script] [오류] {name} {date} 가 있어야 하는데, DB에서 찾지 못함")
     
     logger.debug("[contents] sum.wav done.")
     
