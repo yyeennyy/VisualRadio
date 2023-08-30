@@ -139,7 +139,9 @@ def process_audio_file(broadcast, name, date):
     with app.app_context():
         process = bring_process(broadcast, name, date)
         process.set_raw()
-        # (필요시 사용) 모든 Process 진행사항 지우기 : process.del_all()
+        # (필요시 사용) 모든 Process 진행사항 지우기 
+        # process.del_all()
+        # commit(process)
         try:
             # start!
             s_time = time.time()
