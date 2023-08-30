@@ -14,7 +14,7 @@ import stt
 import settings as settings
 import time
 from models import Process
-
+from memory_profiler import profile
 
 
 auth = Blueprint('auth', __name__)
@@ -114,6 +114,9 @@ def admin_update():
     t = threading.Thread(target=process_audio_file, args=(broadcast, program_name, date))
     t.start()
 
+    # 종료
+    t.join(0.1)
+
     return jsonify({'message': 'Success'})
 
 
@@ -123,14 +126,16 @@ def bring_process(broadcast, name, date):
     if process:
         return process
     else:
-        return Process(broadcast, name, date)
+        process = Process(broadcast, name, date)
+        commit(process)
+        return process
         
 def commit(o):
     db.session.add(o)
     db.session.commit()
     return
 
-
+@profile
 def process_audio_file(broadcast, name, date):
     storage = f"{settings.STORAGE_PATH}/{broadcast}/{name}/{date}/"
     utils.delete_ini_files(storage)
@@ -197,7 +202,6 @@ def process_audio_file(broadcast, name, date):
             logger.debug("[업로드] 오디오 처리 완료")
             logger.debug(f"[업로드] 소요시간: {(time.time() - s_time)/60} 분")
             process = None
-
 
         except Exception as e:
             logger.debug(e)
