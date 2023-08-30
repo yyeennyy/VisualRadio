@@ -14,7 +14,6 @@ import stt
 import settings as settings
 import time
 from models import Process
-from memory_profiler import profile
 
 
 auth = Blueprint('auth', __name__)
@@ -114,9 +113,6 @@ def admin_update():
     t = threading.Thread(target=process_audio_file, args=(broadcast, program_name, date))
     t.start()
 
-    # 종료
-    t.join(0.1)
-
     return jsonify({'message': 'Success'})
 
 
@@ -135,7 +131,6 @@ def commit(o):
     db.session.commit()
     return
 
-@profile
 def process_audio_file(broadcast, name, date):
     storage = f"{settings.STORAGE_PATH}/{broadcast}/{name}/{date}/"
     utils.delete_ini_files(storage)
