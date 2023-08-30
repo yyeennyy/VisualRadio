@@ -12,13 +12,9 @@ import settings as settings
 import librosa
 import queue
 
-stt_count = 0
-num_file = 0
-
 # logger
 from VisualRadio import CreateLogger
 logger = CreateLogger("STT")
-
 
 # STT 도구1 : google
 from VisualRadio import db, app
@@ -67,52 +63,18 @@ def speech_to_text(broadcast, name, date, ment_start_end):
     storage = f"{settings.STORAGE_PATH}/{broadcast}/{name}/{date}/"
     audio_origin, sr = librosa.load(os.path.join(storage, "sum.wav"))
     logger.debug(f"{len(audio_origin)}")
+
+    # 작업에 사용할 인자 리스트 준비
+    args_list = []
     for order, target in enumerate(ment_start_end):
-        # target 구간의 오디오 슬라이싱 & stt 진행 (병렬 처리)
         start = int(utils.convert_to_second_float(target[0]) * sr)
         end = int(utils.convert_to_second_float(target[1]) * sr)
-        logger.debug(f"[stt] enqueue! {order+1}/{len(ment_start_end)} __ {target}")
-        thread = multiprocessing.Process(target=stt_proccess,
-                                args=(broadcast, name, date, start, audio_origin[start:end], sr, order))
-        th_q.put(thread)
+        args_list.append((broadcast, name, date, start, audio_origin[start:end], sr, order))
 
-    th_q_fin = []
-    start_time = time.time()  # 시작 시간 기록
-    timeout = 7200  # 1시간 (초 단위)
-    while not th_q.empty():
-        # -------------------- Process -------------------------
-        if time.time() - start_time > timeout:
-            logger.debug("[시간 초과] 설정한 시간을 초과하여 stt를 종료합니다.")
-            with app.app_context():
-                process = Process.query.filter_by(broadcast=broadcast, radio_name=name, radio_date=str(date)).first()
-                if process:
-                    process.error = 1
-                db.session.commit()
-                return
-        # ----------------------------------------------------
-            
-        # if len(multiprocessing.active_children()) < 7:
-        time.sleep(random.uniform(0.1, 1))
-        if utils.memory_usage("stt") < 0.70:
-            this_process = th_q.get()
-            this_process.start()
-            logger.debug(f"[stt] 처리중인 stt 프로세스 수 {len(multiprocessing.active_children())} ({this_process.name} started!)")
-            th_q_fin.append(this_process)
-
-    for thread in th_q_fin:
-        thread.join(20)
-        # -------------------- Process -------------------------
-        while(thread.is_alive()):
-            if(time.time() - start_time > timeout):
-                logger.debug("[시간 초과] 설정한 시간을 초과하여 stt를 종료합니다.")
-                with app.app_context():
-                    process = Process.query.filter_by(broadcast=broadcast, radio_name=name, radio_date=str(date)).first()
-                    if process:
-                        process.set_error = 1
-                    db.session.commit()
-                return
-        # ----------------------------------------------------
-        del thread
+    # multiprocessing.Pool을 통한 stt 병렬처리 진행
+    num_processes = 8
+    with multiprocessing.Pool(processes=num_processes) as pool:
+        pool.starmap(stt_proccess, args_list)
 
     gc.collect()
 
