@@ -234,7 +234,8 @@ def compose_paragraph(broadcast, name, date):
                     #컨텐츠에 하나하나 등록
                     item = db.session.query(Contents).filter_by(broadcast=broadcast, radio_name=name, radio_date=date, time=t, keyword=k).first()
                     if item == None:
-                        img_link = extract_img(settings.CLIENT_ID, settings.CLINET_SECRET, k)
+                        # img_link = extract_img(settings.CLIENT_ID, settings.CLINET_SECRET, k)
+                        img_link = "urllib.error.HTTPError: HTTP Error 429: Too Many Requests"
                         db.session.add(Contents(broadcast=broadcast, radio_name=name, radio_date=date, time=t, content=chunk, keyword=k, link=img_link))
             db.session.commit()
         except Exception as e:

@@ -38,10 +38,14 @@ def google_stt(start, audio, sample_rate, interval):
         sf.write(tmp_file, audio_segment, sample_rate, format="WAV")
         
         # google stt 진행
-        with sr.AudioFile(tmp_file) as tmp:
-            tmp_audio = r.record(tmp)
-            text = r.recognize_google(tmp_audio, language='ko-KR')
-
+        try:
+            with sr.AudioFile(tmp_file) as tmp:
+                tmp_audio = r.record(tmp)
+                text = r.recognize_google(tmp_audio, language='ko-KR')
+        except sr.UnknownValueError:
+            # 이번 20초는 음성인식 결과가 없을 경우
+            text = "(stt결과가 없다.)"
+        
         # scipt에 추가
         script.append({f"time":utils.format_time((start_time+start)/sample_rate), "txt":text})
 
@@ -58,22 +62,6 @@ def speech_to_text(broadcast, name, date, ment_start_end):
     th_q = queue.Queue()
     logger.debug("[stt] start!")
     start_time = time.time()
-
-    # -------------- Process ----------------------
-    section_dir = utils.cnn_splited_path(broadcast, name, date)       # 2차분할 결과로 반드시 존재 (rm되어서 지금은 X)
-    section_list = utils.ourlistdir(section_dir)
-    global num_file                                        
-    num_file = utils.count_files(section_dir)
-    with app.app_context():
-        process = Process.query.filter_by(broadcast=broadcast, radio_name=name, radio_date=str(date)).first()
-        if process:
-            process.all_stt = num_file
-        else:
-            process = Process(broadcast=broadcast, radio_name = name, radio_date = date, raw=1, split1=1, split2=1,
-                              end_stt=0, all_stt=num_file, script=0, sum=0, error = 0)
-            db.session.add(process)
-        db.session.commit()
-    # ----------------------------------------------
 
     logger.debug(f"[stt] 오디오 로드중..")
     storage = f"{settings.STORAGE_PATH}/{broadcast}/{name}/{date}/"
@@ -120,22 +108,13 @@ def speech_to_text(broadcast, name, date, ment_start_end):
                 with app.app_context():
                     process = Process.query.filter_by(broadcast=broadcast, radio_name=name, radio_date=str(date)).first()
                     if process:
-                        process.error = 1
+                        process.set_error = 1
                     db.session.commit()
                 return
         # ----------------------------------------------------
         del thread
 
     gc.collect()
-    
-            
-
-    # -------------------- Process -------------------------
-    with app.app_context():
-        process = Process.query.filter_by(broadcast = broadcast, radio_name=name, radio_date=date).first()
-        if not process:
-            logger.debug(f"[stt] [오류] {broadcast} {name} {date} 가 있어야 하는데, DB에서 찾지 못함")
-    # ----------------------------------------------------
 
     end_time = time.time()
     logger.debug(f"[stt] DONE IN {end_time - start_time} SECONDS")
@@ -146,32 +125,38 @@ def speech_to_text(broadcast, name, date, ment_start_end):
 def stt_proccess(broadcast, name, date, start, audio, sr, order):
     # stt 방법 설정
     interval = 20  # seconds
-    script = google_stt(start, audio, sr, interval)
+    retries = 0
+    MAX_RETRIES = 5
+    while retries < MAX_RETRIES:
+        try:
+            script = google_stt(start, audio, sr, interval)
+            break
+        except Exception as e:
+            logger.debug(f"[stt] {order}번째 stt 다시 시도 중... (남은 시도 횟수: {MAX_RETRIES - retries})")
+            retries += 1
+            time.sleep(1)  # 잠시 대기 후 다시 시도
 
-    # 저장
+    if retries == MAX_RETRIES:
+        logger.debug(f"{order} 번째 stt는 다시 해도 안되네요. 처리를 중단합니다.")
+        raise Exception("stt 망함")
+
+
+    # stt조각 저장
     utils.save_json(script, f"{settings.STORAGE_PATH}/{broadcast}/{name}/{date}/stt/{order}.json")
     logger.debug(f"[stt] 완료! {order}")
 
-    # # -------------------- Process -------------------------
-    # global stt_count
-    # stt_count+=1
-    # with app.app_context():
-    #     process = Process.query.filter_by(broadcast=broadcast, radio_name=name, radio_date=str(date)).first()
-    #     if process:
-    #         process.end_stt = stt_count
-    #     else:
-    #         process = Process(broadcast=broadcast, radio_name = name, radio_date = date, raw=1, split1=1, split2=1,
-    #                           end_stt=stt_count, all_stt=num_file, script=0, sum=0, error = 0)
+    # process테이블 갱신
+    with app.app_context():
+        process = db.session.query(Process).filter_by(broadcast=broadcast, radio_name=name, radio_date=date).first()
+        process.set_end_stt()
+        commit(process)
 
-    #         db.session.add(process)
-    #     db.session.commit()
-    # # ----------------------------------------------------
-    # logger.debug(f'[stt] {utils.memory_usage()*100}%')
-    
     return
 
-
-
+def commit(o):
+    db.session.add(o)
+    db.session.commit()
+    return
 
 def make_script(broadcast, name, date):
 

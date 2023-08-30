@@ -225,22 +225,6 @@ def audio_save_db(broadcast, name, date):
         if not wav:
             wav = Wav(radio_name=name, radio_date=date, broadcast=broadcast, radio_section="")
             db.session.add(wav)
-        process = Process.query.filter_by(broadcast = broadcast, radio_name=name, radio_date=str(date)).first()
-        if process:
-            # 기존 객체 수정
-            process.raw = 1
-            process.split1 = 0
-            process.split2 = 0
-            process.end_stt = 0
-            process.all_stt = 0
-            process.script = 0
-            process.sum = 0
-            process.error = 0
-        else:
-            logger.debug("[업로드] Process 테이블에 추가")
-            process = Process(radio_name=name, radio_date=date, broadcast=broadcast, raw=1, split1=0, split2=0, end_stt=0,
-                      all_stt=0, script=0, sum=0, error = 0)
-            db.session.add(process)
         db.session.commit()
         
 def get_segment(broadcast, name, date):
@@ -290,8 +274,6 @@ class MrRemover:
             self.is_running = False
             self.is_done = True
             return
-
-
 
 def remove_mr(broadcast, name, date, duration=int(600/2)):
     logger.debug("[mr제거] 시작")
@@ -445,15 +427,6 @@ def split_cnn(broadcast, name, date):
 
         section_start_time_summary[target_section] = ment_start_times
     with app.app_context():
-        process = Process.query.filter_by(broadcast=broadcast, radio_name=name, radio_date=str(date)).first()
-        if process:
-            process.split2 = 1
-        else:
-            process = Process(broadcast=broadcast, radio_name = name, radio_date = date, raw=1, split1=1, split2=1,
-                              end_stt=0, all_stt=0, script=0, sum=0, error = 0)
-
-            db.session.add(process)
-        
         wav = Wav.query.filter_by(broadcast=broadcast, radio_name=name, radio_date=str(date)).first()
         if wav:
             wav.radio_section = str(content_section_list)
@@ -503,14 +476,6 @@ def split(broadcast, name, date):
         if not wav:
             wav = Wav(radio_name=name, radio_date=date, broadcast=broadcast)
             db.session.add(wav)
-        process = Process.query.filter_by(broadcast=broadcast, radio_name=name, radio_date=str(date)).first()
-        if process:
-            process.split1 = 1
-        else:
-            process = Process(broadcast=broadcast, radio_name = name, radio_date = date, raw=1, split1=1, split2=0,
-                              end_stt=0, all_stt=0, script=0, sum=0, error = 0)
-
-            db.session.add(process)
         db.session.commit()
 
     return 0
@@ -550,17 +515,6 @@ def sum_wav_sections(broadcast, name, date):
         output_stream.writeframes(input_stream.readframes(input_stream.getnframes()))
         input_stream.close()
     output_stream.close()
-    
-    # DB에 기록    
-    global stt_count, num_file
-    with app.app_context():
-        process = Process.query.filter_by(broadcast=broadcast, radio_name=name, radio_date=str(date)).first()
-        if process:
-            process.sum = 1
-            db.session.add(process)
-            db.session.commit()
-        else:
-            logger.debug(f"[make_script] [오류] {name} {date} 가 있어야 하는데, DB에서 찾지 못함")
     
     logger.debug("[contents] sum.wav done.")
     
