@@ -67,6 +67,7 @@ def get_word_set(document):
 import json
 import utils
 import traceback
+import time
 
 def compose_paragraph(broadcast, name, date):
 # 작업0: 스크립트 불러오기
@@ -225,15 +226,22 @@ def compose_paragraph(broadcast, name, date):
     # 결과물
     logger.debug(f"[compose_paragraph] 만들어진 문단은 {len(chunks)}개 입니다.")
     logger.debug(f"[extract_img] 이미지 링크 생성중..")
+    
+    cnt = 0
     with app.app_context():
         try:
             for idx, chunk in enumerate(chunks):
                 t = chunks_time[idx]
                 keys = keywords[idx]
+                logger.debug(f"{keys}에 대한 이미지 링크 추출을 시작합니다.")
                 for k in keys:
                     #컨텐츠에 하나하나 등록
                     item = db.session.query(Contents).filter_by(broadcast=broadcast, radio_name=name, radio_date=date, time=t, keyword=k).first()
                     if item == None:
+                        if(cnt%10 == 0):
+                            time.sleep(1)
+                        cnt+=1
+                        logger.debug(f"이번 키워드는 {k}입니다.")
                         img_link = extract_img(settings.CLIENT_ID, settings.CLINET_SECRET, k)
                         db.session.add(Contents(broadcast=broadcast, radio_name=name, radio_date=date, time=t, content=chunk, keyword=k, link=img_link))
             db.session.commit()
