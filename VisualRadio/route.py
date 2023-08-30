@@ -15,7 +15,6 @@ import settings as settings
 import time
 from models import Process
 
-
 auth = Blueprint('auth', __name__)
 
 
@@ -112,6 +111,9 @@ def admin_update():
     # 오디오 프로세스 백그라운드로 시작
     t = threading.Thread(target=process_audio_file, args=(broadcast, program_name, date))
     t.start()
+
+    # 종료
+    t.join(0.1)
 
     return jsonify({'message': 'Success'})
 
