@@ -43,7 +43,7 @@ services:
       - TZ=Asia/Seoul
   nginx:
     container_name: nginx
-    image: yenyeny1/nginx:latest
+    image: nginx:mainline-alpine3.18-slim
     restart: always
     ports: 
       - "80:80/tcp"
