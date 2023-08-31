@@ -275,40 +275,50 @@ class MrRemover:
             self.is_done = True
             return
 
-def remove_mr(broadcast, name, date, duration=int(600/2)):
-    logger.debug("[mr제거] 시작")
-    splited_path = utils.hash_splited_path(broadcast, name, date)
-    section_wav_origin_names = natsorted(utils.ourlistdir(splited_path))
 
+from joblib import Parallel, delayed
+def cutting_audio(broadcast, name, date, duration, audio_holder):
     tmp_path = utils.get_path(broadcast, name, date)+"tmp"
-    if not os.path.exists(tmp_path):
-            os.makedirs(tmp_path)
-    
-    for target_section in section_wav_origin_names:
-        idx = 0
-        test_path = os.path.join(splited_path, target_section) # 1차 splited한 sec_n.wav임
-        sec_name = test_path.split("/")[-1].split(".")[0]
-        logger.debug(f"[mr제거] {int(duration/60)}분 파일로 쪼개 저장중: {sec_name}")
-        sec_name = test_path.split("/")[-1].split(".")[0] # sec_n으로 나옴.
+    # splited_path = utils.hash_splited_path(broadcast, name, date)
+    # section_wav_origin_names = natsorted(utils.ourlistdir(splited_path))
 
-        audio, sr = librosa.load(test_path)
+    # 작업에 사용할 인자 리스트 준비
+    splits = audio_holder.splits
+    for split in splits:
+        split_name = split[0]
+        audio = split[1]
+        sr = audio_holder.sr
+
+        idx = 0
+        logger.debug(f"[mr제거] {int(duration/60)}분 파일로 쪼개 저장중: {split_name}")
         if(len(audio) > duration*sr):
             for i in range(0, len(audio)-duration*sr, duration*sr):
                 seg_audio = audio[i : i+duration*sr]
-                save_name = f"{tmp_path}/{sec_name}-{str(idx)}.wav"
+                save_name = f"{tmp_path}/{split_name}-{str(idx)}.wav"
                 sf.write(save_name, seg_audio, sr)
                 idx+= 1
-            save_name = f"{tmp_path}/{sec_name}-{str(idx)}.wav"
+            save_name = f"{tmp_path}/{split_name}-{str(idx)}.wav"
             sf.write(save_name, audio[i+duration*sr:len(audio)], sr)
         else:
-            save_name = f"{tmp_path}/{sec_name}-{str(idx)}.wav"
+            save_name = f"{tmp_path}/{split_name}-{str(idx)}.wav"
             sf.write(save_name, audio, sr)
-    
+        
+    return
+
+def remove_mr(broadcast, name, date, audio_holder, duration=int(600/2)):
+    logger.debug("[mr제거] 시작")
+    tmp_path = utils.get_path(broadcast, name, date)+"tmp"
+    if not os.path.exists(tmp_path):
+            os.makedirs(tmp_path)
+
+    # 오디오 커팅
+    cutting_audio(broadcast, name, date, duration, audio_holder)
+
+    #--------------------------------------------------------------
+    # MR제거
     mr_path = utils.mr_splited_path(broadcast, name, date)
     tmp_mr_path = utils.tmp_mr_splited_path(broadcast, name, date)
     seg_list = utils.ourlistdir(tmp_path)
-
-    #--------------------------------------------------------------
     mr_remover = MrRemover()
     for seg_mr in seg_list:
         logger.debug(f"[mr제거] {seg_mr} mr 제거중..")
@@ -324,7 +334,7 @@ def remove_mr(broadcast, name, date, duration=int(600/2)):
                 # 설정해둔 시간값: duration / 2 : 쪼갠파일이 맥시멈 10분이면, 5분안에 처리되도록 의도
                 if mr_remover.is_running and not mr_remover.is_done:
                     elapsed_time = time.time() - mr_remover.start_time
-                    if elapsed_time > int(duration/2): 
+                    if elapsed_time > int(duration/3): 
                         logger.debug(f"[mr제거] {seg_mr} 오래 걸려서 재시작")
                         mr_remover.stop()
                         mr_remover = None
@@ -367,36 +377,39 @@ def remove_mr(broadcast, name, date, duration=int(600/2)):
     
 from natsort import natsorted 
 
-def split_cnn(broadcast, name, date):
+def split_cnn(broadcast, name, date, audio_holder):
     logger.debug(f"[split_cnn] 구간정보(멘트/광고/노래) 파악 시작")
 
     model_path = settings.MODEL_PATH
     mr_path = utils.mr_splited_path(broadcast, name, date) # 1차 split 이후이므로 이 경로는 반드시 존재함
     section_mr_origin_names = natsorted(utils.ourlistdir(mr_path))
     section_start_time_summary = {}
-    
+        
     content_section_list = []
+    total_duration = 0
+
     for target_section in section_mr_origin_names:
         mr_seg_path = os.path.join(mr_path, target_section)
-        output_path = os.path.join(utils.cnn_splited_path(broadcast, name, date), target_section[:-4])  # 2차 split 결과를 저장할 디렉토리 생성
+        output_path = os.path.join(utils.cnn_splited_path(broadcast, name, date), target_section[:-4])
         sec_path = os.path.join(utils.hash_splited_path(broadcast, name, date))
-        ment_range, content_section, not_ment = save_split(model_path, output_path, mr_seg_path) # 2차 split 시작하기
+        ment_range, content_section, not_ment = save_split(model_path, output_path, mr_seg_path)
         music_range = split_music(f"{sec_path}{target_section}", not_ment)
         
-        total_duration = 0
+        # 현재 섹션의 재생 시간 계산
+        splits = audio_holder.splits
+        sr = audio_holder.sr
+        for split in splits:
+            if split[0] == target_section[:-4]:
+                duration = len(split[1]) / sr
         
-        for filename in section_mr_origin_names:
-            if(filename != target_section):
-                file_path = utils.hash_splited_path(broadcast, name, date, filename)
-                with wave.open(file_path, "r") as wav_file:
-                    duration = wav_file.getnframes() / wav_file.getframerate()
-                    total_duration += int(duration)
-            else:
-                break
-        
-        real_ment_range = [[total_duration + start_time_sec, total_duration + end_time_sec] for start_time_sec, end_time_sec in ment_range]    
+        # 현재 섹션의 범위 계산
+        real_ment_range = [[total_duration + start_time_sec, total_duration + end_time_sec] for start_time_sec, end_time_sec in ment_range]
         real_content_section = [[total_duration + start_time_sec, total_duration + end_time_sec] for start_time_sec, end_time_sec in content_section]
 
+        total_duration += int(duration)
+
+        if target_section == section_mr_origin_names[-1]:
+            break
 
         for i, range_list in enumerate(real_content_section):
             start = range_list[0]
@@ -426,6 +439,7 @@ def split_cnn(broadcast, name, date):
             ment_start_times.append(range[0])
 
         section_start_time_summary[target_section] = ment_start_times
+
     with app.app_context():
         wav = Wav.query.filter_by(broadcast=broadcast, radio_name=name, radio_date=str(date)).first()
         if wav:
@@ -442,7 +456,7 @@ def split_cnn(broadcast, name, date):
 # ★
 import os
 
-def split(broadcast, name, date):
+def split(broadcast, name, date, audio_holder):
     song_path = utils.get_rawwavfile_path(broadcast, name, date)
     save_path = utils.hash_splited_path(broadcast, name, date)
 
@@ -450,7 +464,7 @@ def split(broadcast, name, date):
     with app.app_context():
         process = Process.query.filter_by(broadcast=broadcast, radio_name=name, radio_date=date).first()
         if not process:
-            logger.debug("[split] radio가 등록되지 않음")
+            logger.debug("[split] radio의 Process가 등록되지 않음")
             return
         elif process.split1 != 0:
             logger.debug(f"[split] 기존 1차 split 정보 존재")
@@ -462,7 +476,7 @@ def split(broadcast, name, date):
     # 주어진 메인 음성을 split한다.
 
     start_time = time.time()
-    start_split(song_path, name, save_path)
+    start_split(song_path, name, save_path, audio_holder)
 
     end_time = time.time()
     os.makedirs(save_path, exist_ok=True)
@@ -493,32 +507,22 @@ import soundfile as sf
 from natsort import natsorted
 
 
-def sum_wav_sections(broadcast, name, date):
-    # 각 파일의 input stream을
-    # 하나의 output stream에 이어쓰기하여 sum.wav로 만들기
-    src_path = utils.hash_splited_path(broadcast, name, date)
-    dst_path = utils.get_path(broadcast, name, date) + "/sum.wav"
-    src_files = natsorted(utils.ourlistdir(src_path))
+import librosa
+import numpy as np
+import soundfile as sf
 
-    # input stream 리스트 생성 & wav파일의 파라미터 정보 가져오기
-    input_streams = []
-    for src in src_files:
-        input_streams.append(wave.open(os.path.join(src_path, src), 'rb'))
-    params = input_streams[0].getparams()
-
-    # output stream을 wb로 열기 & 파라미터 세팅
-    output_stream = wave.open(dst_path, 'wb')
-    output_stream.setparams(params)
-
-    # output stream에 input stream 내용 이어쓰기
-    for input_stream in input_streams:
-        output_stream.writeframes(input_stream.readframes(input_stream.getnframes()))
-        input_stream.close()
-    output_stream.close()
-    
-    logger.debug("[contents] sum.wav done.")
-    
+def sum_wav(audio_holder):
+    # 불러온 오디오 배열을 저장할 리스트
+    splits = audio_holder.splits
+    audio = []
+    for split in splits:
+        audio.append(split[1])
+    concatenated_audio = np.concatenate(audio)
+    concatenated_audio = concatenated_audio.astype('float32')
+    audio_holder.set_sum = concatenated_audio
+    sf.write(utils.get_path(audio_holder.broadcast, audio_holder.name, audio_holder.date) + "sum.wav", concatenated_audio, audio_holder.sr)
     return
+
 
 
 ###################################### 서비스 로직 ###################################

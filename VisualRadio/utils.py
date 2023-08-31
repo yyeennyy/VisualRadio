@@ -41,6 +41,10 @@ def stt_raw_path(broadcast, name, date, filepath=""):
     answer = checkdir(f"./{settings.STORAGE_PATH}/{broadcast}/{name}/{date}/raw_stt/{filepath}")
     return answer
 
+def stt_dir(broadcast, name, date, filepath=""):
+    answer = checkdir(f"./{settings.STORAGE_PATH}/{broadcast}/{name}/{date}/stt/{filepath}")
+    return answer
+
 def stt_final_path(broadcast, name, date, filepath=""):
     answer = checkdir(f"./{settings.STORAGE_PATH}/{broadcast}/{name}/{date}/stt_final/{filepath}")
     return answer

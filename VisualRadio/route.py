@@ -14,6 +14,9 @@ import stt
 import settings as settings
 import time
 from models import Process
+from natsort import natsorted
+import librosa
+import numpy as np
 
 auth = Blueprint('auth', __name__)
 
@@ -21,6 +24,34 @@ auth = Blueprint('auth', __name__)
 # 로거
 from VisualRadio import CreateLogger
 logger = CreateLogger("route")
+
+
+class AudioHolder:
+    def __init__(self, broadcast, name, date):
+        self.broadcast = broadcast
+        self.name = name
+        self.date = date
+        self.splits = []
+        self.sr = 0
+        self.sum = []
+    
+    def set_audio_info(self):
+        logger.debug("[audio_holder] setting..")
+        path = f"{settings.STORAGE_PATH}/{self.broadcast}/{self.name}/{self.date}/split_wav/"
+        file_names = natsorted(os.listdir(path))
+        sum = []
+        for name in file_names:
+            path_ = os.path.join(path, name)
+            y, sr = librosa.load(path_)
+            self.splits.append([name[:-4], y])
+            sum.append(y)
+        self.sum = np.concatenate(sum)
+        self.sr = sr    
+        logger.debug("[audio_holder] done..")
+    
+    def set_sum(self, audio_arr):
+        self.sum = audio_arr
+
 
 # ------------------------------------- 서치 컨텐츠 라우트
 
@@ -136,6 +167,7 @@ def commit(o):
 def process_audio_file(broadcast, name, date):
     storage = f"{settings.STORAGE_PATH}/{broadcast}/{name}/{date}/"
     utils.delete_ini_files(storage)
+    audio_holder = AudioHolder(broadcast, name, date)
     with app.app_context():
         process = bring_process(broadcast, name, date)
         process.set_raw()
@@ -148,30 +180,27 @@ def process_audio_file(broadcast, name, date):
 
             # audio split
             if not process.split1_:
-                services.split(broadcast, name, date)
+                services.split(broadcast, name, date, audio_holder)  # audio_holder: sum, splits, sr
                 process.set_split1()
+                process.set_sum()
                 commit(process)
-                utils.rm(os.path.join(storage, "raw.wav"))
             else:
                 logger.debug("[split1] pass")
-
+            if len(audio_holder.splits) == 0 or len(audio_holder.sum) == 0 or audio_holder.sr == 0:
+                audio_holder.set_audio_info()
+                process.set_sum()
+                commit(process)
+            utils.rm(os.path.join(storage, "raw.wav"))
+            
             if not process.split2_:
-                services.remove_mr(broadcast, name, date)
-                services.split_cnn(broadcast, name, date)
+                services.remove_mr(broadcast, name, date, audio_holder)
+                services.split_cnn(broadcast, name, date, audio_holder) 
                 process.set_split2()
                 commit(process)
                 utils.rm(os.path.join(storage, "mr_wav"))
                 utils.rm(os.path.join(storage, "tmp_mr_wav"))
             else:
                 logger.debug("[split2] pass")
-
-            # sum.wav
-            if not process.sum_:
-                services.sum_wav_sections(broadcast, name, date)
-                process.set_sum()
-                commit(process)
-            else:
-                logger.debug("[sum.wav] pass")
 
             # text processing
             # - 기존: split한 wav파일의 duraion을 파악해서 time정보를 직접 계산했음
@@ -181,7 +210,8 @@ def process_audio_file(broadcast, name, date):
                 process.set_all_stt(len(ment_start_end))
                 process.del_stt()
                 commit(process)
-                stt.speech_to_text(broadcast, name, date, ment_start_end)
+
+                stt.speech_to_text(broadcast, name, date, ment_start_end, audio_holder)
                 stt.make_script(broadcast, name, date)
                 paragraph.compose_paragraph(broadcast, name, date) # stt가 재진행되면 문단구성도 새로 해야 함
                 process.set_script()
@@ -210,6 +240,7 @@ def process_audio_file(broadcast, name, date):
             traceback_str = traceback.format_exc()
             logger.debug(traceback_str)
 
+    audio_holder = None
     return "ok"
 
 def audio_save(broadcast, program_name, date, audiofile):

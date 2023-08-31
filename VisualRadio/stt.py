@@ -38,6 +38,11 @@ def google_stt(start, audio, sample_rate, interval):
             with sr.AudioFile(tmp_file) as tmp:
                 tmp_audio = r.record(tmp)
                 text = r.recognize_google(tmp_audio, language='ko-KR')
+        except sr.RequestError:
+            logger.debug(f"[stt] 재시도 {start}")
+            sf.write(tmp_file, audio_segment, sample_rate, format="WAV")
+            r = sr.Recognizer()
+            continue
         except sr.UnknownValueError:
             # 이번 20초는 음성인식 결과가 없을 경우
             text = "(stt결과가 없다.)"
@@ -54,15 +59,18 @@ def google_stt(start, audio, sample_rate, interval):
 
 from VisualRadio import db, app
 
-def speech_to_text(broadcast, name, date, ment_start_end):
+def speech_to_text(broadcast, name, date, ment_start_end, audio_holder):
     th_q = queue.Queue()
     logger.debug("[stt] start!")
     start_time = time.time()
 
     logger.debug(f"[stt] 오디오 로드중..")
-    storage = f"{settings.STORAGE_PATH}/{broadcast}/{name}/{date}/"
-    audio_origin, sr = librosa.load(os.path.join(storage, "sum.wav"))
-    logger.debug(f"{len(audio_origin)}")
+    if len(audio_holder.sum) != 0:
+        audio_origin = audio_holder.sum
+        sr = audio_holder.sr
+    else:
+        storage = f"{settings.STORAGE_PATH}/{broadcast}/{name}/{date}/"
+        audio_origin, sr = librosa.load(os.path.join(storage, "sum.wav"))
 
     # 작업에 사용할 인자 리스트 준비
     args_list = []
@@ -72,8 +80,7 @@ def speech_to_text(broadcast, name, date, ment_start_end):
         args_list.append((broadcast, name, date, start, audio_origin[start:end], sr, order))
 
     # multiprocessing.Pool을 통한 stt 병렬처리 진행
-    num_processes = 8
-    with multiprocessing.Pool(processes=num_processes) as pool:
+    with multiprocessing.Pool(processes=8) as pool:
         pool.starmap(stt_proccess, args_list)
 
     gc.collect()
@@ -94,6 +101,7 @@ def stt_proccess(broadcast, name, date, start, audio, sr, order):
             script = google_stt(start, audio, sr, interval)
             break
         except Exception as e:
+            logger.error(e)
             logger.debug(f"[stt] {order}번째 stt 다시 시도 중... (남은 시도 횟수: {MAX_RETRIES - retries})")
             retries += 1
             time.sleep(1)  # 잠시 대기 후 다시 시도
@@ -104,7 +112,7 @@ def stt_proccess(broadcast, name, date, start, audio, sr, order):
 
 
     # stt조각 저장
-    utils.save_json(script, f"{settings.STORAGE_PATH}/{broadcast}/{name}/{date}/stt/{order}.json")
+    utils.save_json(script, utils.stt_dir(broadcast, name, date, f"{order}.json"))
     logger.debug(f"[stt] 완료! {order}")
 
     # process테이블 갱신
@@ -122,7 +130,7 @@ def commit(o):
 
 def make_script(broadcast, name, date):
 
-    input_dir = f"{settings.STORAGE_PATH}/{broadcast}/{name}/{date}/stt/"
+    input_dir = utils.checkdir(f"{settings.STORAGE_PATH}/{broadcast}/{name}/{date}/stt/")
     output_dir = f"{settings.STORAGE_PATH}/{broadcast}/{name}/{date}/result/"
     output_filename = "script.json"
 
@@ -141,8 +149,6 @@ def make_script(broadcast, name, date):
     utils.save_json(combined_list, output_path)
     logger.debug("[stt] script 생성 완료")
     return
-
-
 
 def get_stt_target(broadcast, name, date):
     # 저장된 section 정보 가져오기
