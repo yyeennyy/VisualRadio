@@ -1,17 +1,22 @@
-FROM python:3.8.17-slim-buster
+FROM python:3.8.17-slim-buster as builder
 
-RUN apt update && apt-get install -y python3-pip
+
+
+WORKDIR /app
+# COPY main.py /app
+# git 설치
+# RUN apt-get update && apt-get install -y libsndfile1
 RUN pip install --upgrade pip
+RUN apt-get update && apt-get install -y git
+RUN apt update && apt-get install -y python3-pip
 RUN apt-get install -y ffmpeg
 RUN apt-get install flac
 
-WORKDIR /app
+RUN apt-get install -y default-jdk default-jre
 
-# git 설치
-RUN apt-get update && apt-get install -y git
+
 
 RUN pip3 install git+https://github.com/openai/whisper.git
-RUN apt-get install -y default-jdk default-jre
 
 RUN pip install typer==0.3.2
 RUN pip install flask==2.0.0
@@ -44,6 +49,23 @@ RUN pip install numpy --upgrade
 RUN pip install numba==0.55.2
 RUN pip install gensim==3.4.0
 
+
+
+# 두 번째 스테이지: 최종 이미지 설정
+FROM python:3.8.17-slim-buster
+
+# 첫 번째 스테이지에서 설치한 필요한 패키지들 복사
+COPY --from=builder /usr/local/lib/python3.8/site-packages /usr/local/lib/python3.8/site-packages
+
+# 작업 디렉토리 설정
+WORKDIR /app
+
+RUN apt update && apt-get install -y python3-pip
+RUN apt-get install -y ffmpeg
+RUN apt-get install flac
+
+RUN apt-get install -y default-jdk default-jre
+
 EXPOSE 5001
 
-CMD [ "python", "main.py" ]
+CMD [ "python", "main.py"]
