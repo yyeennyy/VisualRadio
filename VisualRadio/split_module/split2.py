@@ -189,17 +189,18 @@ def save_split(model_path, output_path, mr_path): # 섹션마다의 길이를 �
 
     # 여기 광고 구분하는 로직 출현시키기!!!
     
+    # ■ 수정: Wav테이블에 radio_section이 저장되어서 stt대상인 ment구간이 저장되는 구조이므로, 실제 wav파일은 이제 없어도 된다. 
     # 각 구간별로 오디오 자르기
     for idx, segment in enumerate(ment_without_ad):
-        start_time, end_time = segment
-        start_sample = int(start_time * sr)
-        end_sample = int((end_time) * sr)
-        sliced_audio = audio[start_sample:end_sample]
+    #     start_time, end_time = segment
+    #     start_sample = int(start_time * sr)
+    #     end_sample = int((end_time) * sr)
+    #     sliced_audio = audio[start_sample:end_sample]
 
-        # 잘린 오디오 저장
-        name = f"/sec_{idx}.wav"
-        sf.write(output_path+name, sliced_audio, sr)
-        logger.debug(f"Segment {idx} 저장 완료: {name}")
+    #     # 잘린 오디오 저장
+    #     name = f"/sec_{idx}.wav"
+    #     # sf.write(output_path+name, sliced_audio, sr)
+        logger.debug(f"Segment {idx} ★")
         
     return ment_without_ad, all_range, not_ment # content_range
 

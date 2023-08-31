@@ -35,18 +35,32 @@ def split_about(path, program_name):
     
     return song_info_list, real_time
 
-def start_split(path, program_name, save_path):
-    song_info, time = split_about(path, program_name)
 
-    audio = AudioSegment.from_file(path).set_channels(1).set_frame_rate(settings.SAMPLE_RATE)
+import numpy as np
+import librosa
+import soundfile as sf
+def start_split(path, program_name, save_path, audio_holder):
+    song_info, time = split_about(path, program_name)
+    # audio = AudioSegment.from_file(path).set_channels(1).set_frame_rate(settings.SAMPLE_RATE)
+    audio, sr = librosa.load(path, sr=None)
+    holder_list = []
     for i in range(len(time)):
-        start = time[i]*1000
-        if(i!=len(time)-1):
-            end = time[i+1]*1000
+        start = int(time[i] * sr)
+        if i != len(time) - 1:
+            end = int(time[i + 1] * sr)
         else:
-            end = len(audio)-1
+            end = len(audio) - 1
         seg = audio[start:end]
-        seg.export(save_path+"/sec_"+str(i)+".wav", format='wav')
+        seg_path = f"{save_path}/sec_{i}.wav"
+        sf.write(seg_path, seg, sr)
+        holder_list.append(["sec_" + str(i), seg])
+
+    concatenated_audio = np.concatenate([seg for _, seg in holder_list])
+    audio_holder.splits = holder_list
+    audio_holder.sum = concatenated_audio
+    audio_holder.sr = sr
+
+    return
 
     
     
