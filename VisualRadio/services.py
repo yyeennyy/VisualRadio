@@ -10,7 +10,10 @@ import time
 import utils
 import wave
 from split_module.split import start_split
-from split_module.split2 import save_split, split_music
+# split2 경로가 바뀌었으므로, 수정해줌.
+from split2.split2 import save_split, split_music, SplitMent
+from split2.MrRemoverToArray import MrRemoverToArray, remove_mr_to_array
+# from split2.MrRemoverToFile import MrRemoverToFile
 import threading
 from datetime import datetime
 from datetime import timedelta
@@ -239,161 +242,44 @@ def get_segment(broadcast, name, date):
             res = wav.radio_section.replace("'", "\"")
             return json.loads(res)
         
-from spleeter.separator import Separator
-import shutil
-import numpy as np
-from natsort import natsorted
-
-# 클래스로 뺐다 (진행시간 고려해서 spleeter 돌리려고)
-class MrRemover:
-    def __init__(self):
-        self.is_running = False
-        self.is_done = False
-        self.thread = None
-        self.separator = Separator('spleeter:2stems')
-
-    def set_path(self, audio_path, tmp_mr_path):
-        self.audio_path = audio_path
-        self.tmp_mr_path = tmp_mr_path
-
-    def start(self):
-        self.is_running = True
-        self.is_done = False
-        self.start_time = time.time()  # 작업 시작시간 기록
-        self.thread = threading.Thread(target=self.background_process)
-        self.thread.start()
-
-    def stop(self):
-        self.is_running = False
-        if self.thread:
-            self.thread.join(timeout=0.1)
-
-    def background_process(self):
-        while self.is_running:
-            self.separator.separate_to_file(self.audio_path, self.tmp_mr_path) # 오래 걸리는 작업
-            self.is_running = False
-            self.is_done = True
-            return
-
-
-from joblib import Parallel, delayed
-def cutting_audio(broadcast, name, date, duration, audio_holder):
-    tmp_path = utils.get_path(broadcast, name, date)+"tmp"
-    # splited_path = utils.hash_splited_path(broadcast, name, date)
-    # section_wav_origin_names = natsorted(utils.ourlistdir(splited_path))
-
-    # 작업에 사용할 인자 리스트 준비
-    splits = audio_holder.splits
-    for split in splits:
-        split_name = split[0]
-        audio = split[1]
-        sr = audio_holder.sr
-
-        idx = 0
-        logger.debug(f"[mr제거] {int(duration/60)}분 파일로 쪼개 저장중: {split_name}")
-        if(len(audio) > duration*sr):
-            for i in range(0, len(audio)-duration*sr, duration*sr):
-                seg_audio = audio[i : i+duration*sr]
-                save_name = f"{tmp_path}/{split_name}-{str(idx)}.wav"
-                sf.write(save_name, seg_audio, sr)
-                idx+= 1
-            save_name = f"{tmp_path}/{split_name}-{str(idx)}.wav"
-            sf.write(save_name, audio[i+duration*sr:len(audio)], sr)
-        else:
-            save_name = f"{tmp_path}/{split_name}-{str(idx)}.wav"
-            sf.write(save_name, audio, sr)
         
-    return
+# mr제거에 관한 부분을 클래스로 뺏으므로, 이 부분은 단순히 MrRemoverToArray를 호출하게만 했습니다.
+def remove_mr(audio_holder):
+    remove_mr_to_array(audio_holder)
 
-def remove_mr(broadcast, name, date, audio_holder, duration=int(600/2)):
-    logger.debug("[mr제거] 시작")
-    tmp_path = utils.get_path(broadcast, name, date)+"tmp"
-    if not os.path.exists(tmp_path):
-            os.makedirs(tmp_path)
-
-    # 오디오 커팅
-    cutting_audio(broadcast, name, date, duration, audio_holder)
-
-    #--------------------------------------------------------------
-    # MR제거
-    mr_path = utils.mr_splited_path(broadcast, name, date)
-    tmp_mr_path = utils.tmp_mr_splited_path(broadcast, name, date)
-    seg_list = utils.ourlistdir(tmp_path)
-    mr_remover = MrRemover()
-    for seg_mr in seg_list:
-        logger.debug(f"[mr제거] {seg_mr} mr 제거중..")
-        audio_path = os.path.join(tmp_path, seg_mr)
-
-        mr_remover.set_path(audio_path, tmp_mr_path)
-        mr_remover.start()
-        try:
-            while True:
-                time.sleep(10)
-                gc.collect()
-                # 작업이 너무 오래 걸릴 경우 재시작 & 초기화
-                # 설정해둔 시간값: duration / 2 : 쪼갠파일이 맥시멈 10분이면, 5분안에 처리되도록 의도
-                if mr_remover.is_running and not mr_remover.is_done:
-                    elapsed_time = time.time() - mr_remover.start_time
-                    if elapsed_time > int(duration/3): 
-                        logger.debug(f"[mr제거] {seg_mr} 오래 걸려서 재시작")
-                        mr_remover.stop()
-                        mr_remover = None
-                        mr_remover = MrRemover()
-                        mr_remover.set_path(audio_path, tmp_mr_path)
-                        mr_remover.start()
-                        gc.collect()
-                elif not mr_remover.is_running and mr_remover.is_done:
-                    break
-        except:
-            print("에러")
-
-    mr_remover.stop()
-    mr_remover = None
-    gc.collect()
-    #--------------------------------------------------------------
-
-    # 디렉토리 자체 삭제
-    shutil.rmtree(tmp_path)
-    
-    section_wav__names = natsorted(utils.ourlistdir(tmp_mr_path))
-    for fname in section_wav__names:
-        rname = fname.split("-")[0]
-        logger.debug(f"[mr제거] 오디오 합치는 중.. {fname}")
-        vocals = f"{tmp_mr_path}{fname}/vocals.wav"
-        x, sr = librosa.load(vocals)
-        for a in section_wav__names:
-            if(fname == a):
-                continue
-            r2name = a.split("-")[0]
-            if(r2name == rname):
-                vocals2 = f"{tmp_mr_path}{a}/vocals.wav"
-                y, sr = librosa.load(vocals2)
-                x = np.concatenate((x, y),axis=0)
-        direct = f"{mr_path}/{rname}.wav"
-        if not os.path.exists(direct):
-            sf.write(direct, x, sr)
-    
-    return
-    
+import numpy as np
 from natsort import natsorted 
+
 
 def split_cnn(broadcast, name, date, audio_holder):
     logger.debug(f"[split_cnn] 구간정보(멘트/광고/노래) 파악 시작")
 
     model_path = settings.MODEL_PATH
-    mr_path = utils.mr_splited_path(broadcast, name, date) # 1차 split 이후이므로 이 경로는 반드시 존재함
-    section_mr_origin_names = natsorted(utils.ourlistdir(mr_path))
+    
+    # 기존에는 utils로 불러왔지만, 이제는 audio_holder가 거의 모든 것을 갖고있습니다.
+    section_mr_origin_names = audio_holder.sum_mrs
+    sec_wav_list = audio_holder.splits
     section_start_time_summary = {}
-        
+    
     content_section_list = []
     total_duration = 0
-
-    for target_section in section_mr_origin_names:
-        mr_seg_path = os.path.join(mr_path, target_section)
-        output_path = os.path.join(utils.cnn_splited_path(broadcast, name, date), target_section[:-4])
-        sec_path = os.path.join(utils.hash_splited_path(broadcast, name, date))
-        ment_range, content_section, not_ment = save_split(model_path, output_path, mr_seg_path)
-        music_range = split_music(f"{sec_path}{target_section}", not_ment)
+    
+    # 모델을 사전에 로드하기 위해서, 클래스를 미리 선언해줍니다.
+    split_ment = SplitMent()
+    split_ment.set_model(model_path)
+    
+    idx = 0 # enumerate같은 놈
+    for target_section, mr in section_mr_origin_names:
+        wav = sec_wav_list[idx][1]
+        idx += 1
+        
+        # 멘트 split에서 넘겨주는 인자들이 바뀌었습니다. 이 외에도, 불필요한게 몇개 있어보이지만 이 부분은 추후 수정하겠습니다.
+        ment_range, content_section, not_ment = save_split(model_path, mr, audio_holder.sr, target_section, split_ment)
+        logger.debug(f"[split_cnn] {target_section} split ment 끝, split_music 시작")
+        
+        # 광고 분류할 때 있어서도, 넘겨주는 인자가 바뀌게 됩니다.
+        music_range = split_music(wav, audio_holder.sr, not_ment)
+        logger.debug(f"[split_cnn] {target_section} split_music 끝")
         
         # 현재 섹션의 재생 시간 계산
         splits = audio_holder.splits

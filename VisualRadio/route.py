@@ -26,17 +26,20 @@ from VisualRadio import CreateLogger
 logger = CreateLogger("route")
 
 
-class AudioHolder:
+class AudioHolderToArray:
     def __init__(self, broadcast, name, date):
         self.broadcast = broadcast
         self.name = name
         self.date = date
         self.splits = []
+        self.tmps = [] # 5분 단위로 쪼갠 tmp음성
+        self.mrs = [] # 5분 단위로 쪼갠 음성을 여기에 저장합니다.
         self.sr = 0
         self.sum = []
+        self.sum_mrs = [] # 5분 단위로 쪼갠 음성을 합쳐줍니다.
     
     def set_audio_info(self):
-        logger.debug("[audio_holder] setting..")
+        logger.debug("[AudioHolderToArray] setting..")
         path = f"{settings.STORAGE_PATH}/{self.broadcast}/{self.name}/{self.date}/split_wav/"
         file_names = natsorted(os.listdir(path))
         sum = []
@@ -47,7 +50,7 @@ class AudioHolder:
             sum.append(y)
         self.sum = np.concatenate(sum)
         self.sr = sr    
-        logger.debug("[audio_holder] done..")
+        logger.debug("[AudioHolderToArray] done..")
     
     def set_sum(self, audio_arr):
         self.sum = audio_arr
@@ -167,7 +170,7 @@ def commit(o):
 def process_audio_file(broadcast, name, date):
     storage = f"{settings.STORAGE_PATH}/{broadcast}/{name}/{date}/"
     utils.delete_ini_files(storage)
-    audio_holder = AudioHolder(broadcast, name, date)
+    audio_holder = AudioHolderToArray(broadcast, name, date)
     with app.app_context():
         process = bring_process(broadcast, name, date)
         process.set_raw()
@@ -193,10 +196,13 @@ def process_audio_file(broadcast, name, date):
             utils.rm(os.path.join(storage, "raw.wav"))
             
             if not process.split2_:
-                services.remove_mr(broadcast, name, date, audio_holder)
-                services.split_cnn(broadcast, name, date, audio_holder) 
+                # audio_holder를 넘겨주는 것만으로도, 어느정도의 처리가 가능해집니다.
+                services.remove_mr(audio_holder)
+                services.split_cnn(broadcast, name, date, audio_holder)
                 process.set_split2()
                 commit(process)
+                
+                # 사실 이 부분은 필요 없어지지만, 추후 array와 file을 둘 다 구현해주어 선택할 수 있게 할 예정이므로 남겨둡니다.
                 utils.rm(os.path.join(storage, "mr_wav"))
                 utils.rm(os.path.join(storage, "tmp_mr_wav"))
             else:
