@@ -13,22 +13,20 @@ import soundfile as sf
 from VisualRadio import CreateLogger
 logger = CreateLogger("우리가1등(^o^)b")
 
+# 모델을 미리 다운 받아놓는 클래스를 정의했습니다.
 class SplitMent:
     def __init__(self):
         self.model = None
     
-    def set_model(self, model_path):
-        model = models.resnet18(pretrained=True) # 모델의 구조를 정의하고 객체 생성
+    def set_model(self, model_path): # 인자로 모델 경로를 받은 후,
+        model = models.resnet18(pretrained=True)
 
-        # ResNet-18 모델의 fully connected layer를 수정하여 클래스에 맞게 설정
-        num_classes = 2  # 분류하려는 클래스 수에 맞게 설정
-        
-
+        num_classes = 2 
         num_ftrs = model.fc.in_features
         model.fc = nn.Linear(num_ftrs, num_classes)
 
+        # 모델을 로드하고, 필드에 넣어줍니다.
         model.load_state_dict(torch.load(model_path))
-        
         self.model = model
         
 
@@ -51,6 +49,8 @@ def find_voice(audio, sr, sec=0.5, threshold=0.009):
   return ment_range
 
 def model_predict(audio, sr, ment_range, split_ment, isPrint=False, sec = 1):
+    
+    # 이 부분에서, 모델을 로드하지 않고 클래스에서 꺼내오는 방식으로 사용합니다.
     model = split_ment.model
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     model.eval()  # 모델을 추론 모드로 변경 (필요에 따라 설정)
@@ -96,9 +96,6 @@ def model_predict(audio, sr, ment_range, split_ment, isPrint=False, sec = 1):
 
         # 예측된 클래스 레이블을 얻기 위해 클래스 차원(class dimension, axis=1)에서 가장 큰 값의 인덱스를 가져옴
         _, predicted_labels = torch.max(outputs, dim=1)
-
-        # logger.debug(f"{start/sr} {end/sr}")
-        # logger.debug(predicted_labels)
         
         if(torch.mean(predicted_labels.float()) <= 0.5):
             real_ment.append(i)
@@ -185,13 +182,7 @@ def merge_and_sort_ranges(range_list1, range_list2):
     return sorted_ranges
 
 def save_split(model_path, audio, sr, wav_name, split_ment): # 섹션마다의 길이를 누적해서 더해줘야함!
-    # wav_name = output_path.split("/")[-1]
-    # os.makedirs(output_path, exist_ok=True)
-    logger.debug(f"[split2] audio.shape : {audio.shape}")
-    # audio, sr = librosa.load(mr_path)
     ment_range = find_voice(audio, sr)
-    logger.debug(f"[split2] sr : {sr}")
-    logger.debug(f"[split2] {wav_name} predict 시작")
     real_ment = model_predict(audio, sr, ment_range, split_ment)
     real_ment_time = divide_all_elements(real_ment, sr)
     merged_real_ment_time = merge_intervals(real_ment_time, 10)
@@ -201,19 +192,8 @@ def save_split(model_path, audio, sr, wav_name, split_ment): # 섹션마다의 �
 
 
     logger.debug(f"not_ment : {not_ment}")
-    # 여기 광고 구분하는 로직 출현시키기!!!
     
-    # ■ 수정: Wav테이블에 radio_section이 저장되어서 stt대상인 ment구간이 저장되는 구조이므로, 실제 wav파일은 이제 없어도 된다. 
-    # 각 구간별로 오디오 자르기
     for idx, segment in enumerate(ment_without_ad):
-    #     start_time, end_time = segment
-    #     start_sample = int(start_time * sr)
-    #     end_sample = int((end_time) * sr)
-    #     sliced_audio = audio[start_sample:end_sample]
-
-    #     # 잘린 오디오 저장
-    #     name = f"/sec_{idx}.wav"
-    #     # sf.write(output_path+name, sliced_audio, sr)
         logger.debug(f"Segment {idx} ★")
         
     return ment_without_ad, all_range, not_ment # content_range
@@ -288,13 +268,6 @@ def is_difference_valid(x, y):
     return diff % 20 == 1 or diff % 20 == 19 or diff % 20 == 0
 
 def split_music(y, sr, not_ment):
-
-#   y, sr = librosa.load(sec_path)
-    logger.debug(y)
-    logger.debug(type(y))
-    logger.debug(y.shape)
-    logger.debug(sr)
-
     music_lst = []
 
     for ran in not_ment:
@@ -302,9 +275,6 @@ def split_music(y, sr, not_ment):
         end = ran[1]
 
         seg = y[int(start*sr):int(end*sr)]
-        logger.debug(ran)
-        logger.debug(seg)
-        logger.debug(seg.shape)
 
         if(find_quiet_time(seg, sr)):
             music_lst.append(ran)
