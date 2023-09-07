@@ -13,6 +13,25 @@ import soundfile as sf
 from VisualRadio import CreateLogger
 logger = CreateLogger("우리가1등(^o^)b")
 
+class SplitMent:
+    def __init__(self):
+        self.model = None
+    
+    def set_model(self, model_path):
+        model = models.resnet18(pretrained=True) # 모델의 구조를 정의하고 객체 생성
+
+        # ResNet-18 모델의 fully connected layer를 수정하여 클래스에 맞게 설정
+        num_classes = 2  # 분류하려는 클래스 수에 맞게 설정
+        
+
+        num_ftrs = model.fc.in_features
+        model.fc = nn.Linear(num_ftrs, num_classes)
+
+        model.load_state_dict(torch.load(model_path))
+        
+        self.model = model
+        
+
 def find_voice(audio, sr, sec=0.5, threshold=0.009):
   ment_range = []
   window_size = int(sec*sr)
@@ -31,17 +50,9 @@ def find_voice(audio, sr, sec=0.5, threshold=0.009):
     ment_range.append([start, len(audio)])
   return ment_range
 
-def model_predict(audio, sr, ment_range, model_path, isPrint=False, sec = 1):
-    model = models.resnet18(pretrained=True) # 모델의 구조를 정의하고 객체 생성
-
-    # ResNet-18 모델의 fully connected layer를 수정하여 클래스에 맞게 설정
-    num_classes = 2  # 분류하려는 클래스 수에 맞게 설정
+def model_predict(audio, sr, ment_range, split_ment, isPrint=False, sec = 1):
+    model = split_ment.model
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-
-    num_ftrs = model.fc.in_features
-    model.fc = nn.Linear(num_ftrs, num_classes)
-
-    model.load_state_dict(torch.load(model_path))
     model.eval()  # 모델을 추론 모드로 변경 (필요에 따라 설정)
 
     real_ment = []
@@ -50,8 +61,8 @@ def model_predict(audio, sr, ment_range, model_path, isPrint=False, sec = 1):
 
     for i in ment_range:
         x_test = []
-        start = i[0]
-        end = i[1]
+        start = int(i[0])
+        end = int(i[1])
         for start in range(start, end, sec*sr):
             end = start+sec * sr
             # 음성 데이터에서 현재 프레임을 추출
@@ -173,20 +184,23 @@ def merge_and_sort_ranges(range_list1, range_list2):
     sorted_ranges = sorted(merged_ranges, key=lambda x: x[0])
     return sorted_ranges
 
-def save_split(model_path, output_path, mr_path): # 섹션마다의 길이를 누적해서 더해줘야함!
-    wav_name = output_path.split("/")[-1]
-    os.makedirs(output_path, exist_ok=True)
-    
-    audio, sr = librosa.load(mr_path)
+def save_split(model_path, audio, sr, wav_name, split_ment): # 섹션마다의 길이를 누적해서 더해줘야함!
+    # wav_name = output_path.split("/")[-1]
+    # os.makedirs(output_path, exist_ok=True)
+    logger.debug(f"[split2] audio.shape : {audio.shape}")
+    # audio, sr = librosa.load(mr_path)
     ment_range = find_voice(audio, sr)
-    logger.debug(f"[save_split] {wav_name} predict 시작")
-    real_ment = model_predict(audio, sr, ment_range, model_path)
+    logger.debug(f"[split2] sr : {sr}")
+    logger.debug(f"[split2] {wav_name} predict 시작")
+    real_ment = model_predict(audio, sr, ment_range, split_ment)
     real_ment_time = divide_all_elements(real_ment, sr)
     merged_real_ment_time = merge_intervals(real_ment_time, 10)
     ment_without_ad = drop_doubt_ad(merged_real_ment_time, 10) # 20초로 하는게 좋아보임!
     not_ment = extract_not_ment(ment_without_ad, len(audio)/sr)
     all_range = merge_and_sort_ranges(ment_without_ad, not_ment)
 
+
+    logger.debug(f"not_ment : {not_ment}")
     # 여기 광고 구분하는 로직 출현시키기!!!
     
     # ■ 수정: Wav테이블에 radio_section이 저장되어서 stt대상인 ment구간이 저장되는 구조이므로, 실제 wav파일은 이제 없어도 된다. 
@@ -273,18 +287,25 @@ def is_difference_valid(x, y):
     diff = abs(x - y)
     return diff % 20 == 1 or diff % 20 == 19 or diff % 20 == 0
 
-def split_music(sec_path, not_ment):
+def split_music(y, sr, not_ment):
 
-  y, sr = librosa.load(sec_path)
+#   y, sr = librosa.load(sec_path)
+    logger.debug(y)
+    logger.debug(type(y))
+    logger.debug(y.shape)
+    logger.debug(sr)
 
-  music_lst = []
+    music_lst = []
 
-  for ran in not_ment:
-    start = ran[0]
-    end = ran[1]
+    for ran in not_ment:
+        start = ran[0]
+        end = ran[1]
 
-    seg = y[int(start*sr):int(end*sr)]
+        seg = y[int(start*sr):int(end*sr)]
+        logger.debug(ran)
+        logger.debug(seg)
+        logger.debug(seg.shape)
 
-    if(find_quiet_time(seg, sr)):
-      music_lst.append(ran)
-  return music_lst
+        if(find_quiet_time(seg, sr)):
+            music_lst.append(ran)
+    return music_lst
