@@ -41,8 +41,8 @@ import librosa
 import soundfile as sf
 def start_split(path, program_name, save_path, audio_holder):
     song_info, time = split_about(path, program_name)
-    # audio = AudioSegment.from_file(path).set_channels(1).set_frame_rate(settings.SAMPLE_RATE)
-    audio, sr = librosa.load(path, sr=None)
+    # 이제부터 sr을 22050으로 고정적으로 바꿔줍니다. 이는 PR에 자세히 작성하겠습니다.
+    audio, sr = librosa.load(path, sr=22050)
     holder_list = []
     for i in range(len(time)):
         start = int(time[i] * sr)
