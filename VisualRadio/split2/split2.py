@@ -21,6 +21,7 @@ class SplitMent:
     def set_model(self, model_path): # 인자로 모델 경로를 받은 후,
         model = models.resnet18(pretrained=True)
 
+        # 분류할 클래스의 수
         num_classes = 2 
         num_ftrs = model.fc.in_features
         model.fc = nn.Linear(num_ftrs, num_classes)
