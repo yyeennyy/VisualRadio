@@ -250,23 +250,36 @@ def remove_mr(audio_holder):
 import numpy as np
 from natsort import natsorted 
 
+
 def split_cnn(broadcast, name, date, audio_holder):
     logger.debug(f"[split_cnn] 구간정보(멘트/광고/노래) 파악 시작")
 
     model_path = settings.MODEL_PATH
-    mr_path = utils.mr_splited_path(broadcast, name, date) # 1차 split 이후이므로 이 경로는 반드시 존재함
-    section_mr_origin_names = natsorted(utils.ourlistdir(mr_path))
+    
+    # 기존에는 utils로 불러왔지만, 이제는 audio_holder가 거의 모든 것을 갖고있습니다.
+    section_mr_origin_names = audio_holder.sum_mrs
+    sec_wav_list = audio_holder.splits
     section_start_time_summary = {}
-        
+    
     content_section_list = []
     total_duration = 0
-
-    for target_section in section_mr_origin_names:
-        mr_seg_path = os.path.join(mr_path, target_section)
-        output_path = os.path.join(utils.cnn_splited_path(broadcast, name, date), target_section[:-4])
-        sec_path = os.path.join(utils.hash_splited_path(broadcast, name, date))
-        ment_range, content_section, not_ment = save_split(model_path, output_path, mr_seg_path)
-        music_range = split_music(f"{sec_path}{target_section}", not_ment)
+    
+    # 모델을 사전에 로드하기 위해서, 클래스를 미리 선언해줍니다.
+    split_ment = SplitMent()
+    split_ment.set_model(model_path)
+    
+    idx = 0 # enumerate같은 놈
+    for target_section, mr in section_mr_origin_names:
+        wav = sec_wav_list[idx][1]
+        idx += 1
+        
+        # 멘트 split에서 넘겨주는 인자들이 바뀌었습니다. 이 외에도, 불필요한게 몇개 있어보이지만 이 부분은 추후 수정하겠습니다.
+        ment_range, content_section, not_ment = save_split(model_path, mr, audio_holder.sr, target_section, split_ment)
+        logger.debug(f"[split_cnn] {target_section} split ment 끝, split_music 시작")
+        
+        # 광고 분류할 때 있어서도, 넘겨주는 인자가 바뀌게 됩니다.
+        music_range = split_music(wav, audio_holder.sr, not_ment)
+        logger.debug(f"[split_cnn] {target_section} split_music 끝")
         
         # 현재 섹션의 재생 시간 계산
         splits = audio_holder.splits
