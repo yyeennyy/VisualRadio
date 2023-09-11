@@ -27,6 +27,7 @@ class MrRemoverToArray:
 
     def stop(self):
         self.is_running = False
+        self.separator = None
         if self.thread:
             self.thread.join(timeout=0.1)
 
@@ -111,27 +112,21 @@ def remove_mr_to_array(audio_holder, duration=int(600/2)):
     mr_remover.input_mrs = mr_targets
     mr_remover.start()
 
-    # 기존의 try-except 구문은 지워두겠습니다.
-
-
+    # 기존의 try-except 구문은 간소화해두겠습니다.
+    # 필요성 불필요성은 차선으로 두겠습니다.
+    try:
+        while True:
+            time.sleep(5) # 5초마다 종료 체크
+            if not mr_remover.is_running and mr_remover.is_done:
+                break
+    except:
+        print("에러")
+    mr_remover.stop()
     #--------------------------------------------------------------
-
+    
     section_wav__names = mr_remover.split_mrs
     name_list = []
 
-    logger.debug(f"mr제거 전 input->mr제거 전후 개수 확인")
-    logger.debug(f"{len(mr_remover.split_mrs)}")
-    logger.debug(f"{len(mr_remover.input_mrs)}")
-
-    logger.debug(f"각 sec.wav별 길이 비교")
-    sm = mr_remover.split_mrs
-    im = mr_remover.input_mrs
-    for i in range(len(section_wav__names)):
-        logger.debug(f"mr이후{sm[i][0]} vs mr이전{im[i][0]}")
-        logger.debug(f"{len(sm[i][1])} vs {len(im[i][1])}")
-
-    
-    logger.debug("여기부터 시작")
     for fname, wav in section_wav__names:
         rname = fname.split("-")[0]
         if rname+".wav" in name_list:
