@@ -54,8 +54,12 @@ NUM_WORKERS = 24
 
 
 # CNN 모델 path
-# MODEL_PATH = './VisualRadio/split_module/split_good_model.h5'
-MODEL_PATH = './VisualRadio/split_module/resnet_model_test1.pth'
+# MENT_MODEL_PATH = './VisualRadio/split_module/split_good_model.h5'
+MENT_MODEL_PATH = './VisualRadio/split2/resnet_model_test1.pth'
+
+MUSIC_MODEL_PATH = './VisualRadio/split2/bert-kor-base.pth'
+
+CHECKPOINT_NAME = 'kykim/bert-kor-base'
 
 # radio_storage까지의 경로
 STORAGE_PATH = 'VisualRadio/radio_storage'

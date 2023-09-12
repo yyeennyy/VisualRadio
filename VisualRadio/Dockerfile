@@ -48,6 +48,7 @@ RUN pip uninstall numpy -y
 RUN pip install numpy --upgrade
 RUN pip install numba==0.55.2
 RUN pip install gensim==3.4.0
+RUN pip install transformers
 
 
 
