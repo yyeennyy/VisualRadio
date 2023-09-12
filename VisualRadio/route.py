@@ -18,7 +18,8 @@ from natsort import natsorted
 import librosa
 import numpy as np
 import psutil
-
+from numba import cuda
+from numba.cuda.cudadrv.driver import CudaAPIError
 
 auth = Blueprint('auth', __name__)
 
@@ -194,7 +195,6 @@ def clean_gpu():
         # CPU 모드에서는 정리할 것이 없다
         pass
 
-from numba import cuda
 def process_audio_file(broadcast, name, date):
     storage = f"{settings.STORAGE_PATH}/{broadcast}/{name}/{date}/"
     utils.delete_ini_files(storage)
