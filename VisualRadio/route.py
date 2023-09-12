@@ -126,6 +126,20 @@ def get_process(broadcast, radio_name, radio_date):
 def check_wav(broadcast, program_name, date):
     path = f"VisualRadio/radio_storage/{broadcast}/{program_name}/{date}/raw.wav"
     if os.path.isfile(path):
+        # 빠른 업로드! ################
+        # 1. 올바른 경로에 raw.wav 미리 넣어두기
+        # 2. 해당 wav 데이터를 지우는 쿼리 실행
+        with app.app_context():
+            try:
+                db.session.query(Wav).filter_by(broadcast=broadcast, radio_name=program_name, radio_date=date).delete()
+                db.session.commit()
+                logger.debug(f"[테스트모드ON] 기존 Wav 데이터를 삭제하고 재진행합니다!")
+            except Exception as e:
+                db.session.rollback()
+                logger.debug(f"[테스트모드ON] 삭제쿼리 실패! {str(e)}")
+            finally:
+                db.session.close()
+        ##############################
         logger.debug("[업로드] wav가 이미 존재한다! (이득!!!!)")
         return jsonify({'wav':'true'})
     else:
