@@ -12,7 +12,8 @@ instance/*
 __pycache__/
 
 # model
-VisualRadio/split_module/split_good_model.h5
+VisualRadio/split2/resnet_model_test1.pth
+VisualRadio/split2/bert-kor-base.pth
 
 # C extensions
 *.so
