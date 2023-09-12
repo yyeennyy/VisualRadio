@@ -190,7 +190,7 @@ def clean_gpu():
     try:
         device = cuda.get_current_device()
         device.reset()
-    except cuda.CudaAPIError:
+    except CudaAPIError:
         # CPU 모드에서는 정리할 것이 없다
         pass
 
