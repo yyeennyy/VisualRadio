@@ -1,11 +1,6 @@
 FROM python:3.8.17-slim-buster as builder
 
-
-
 WORKDIR /app
-# COPY main.py /app
-# git 설치
-# RUN apt-get update && apt-get install -y libsndfile1
 RUN pip install --upgrade pip
 RUN apt-get update && apt-get install -y git
 RUN apt update && apt-get install -y python3-pip
@@ -14,8 +9,6 @@ RUN apt-get install flac
 
 RUN apt-get install -y default-jdk default-jre
 
-
-
 RUN pip3 install git+https://github.com/openai/whisper.git
 
 RUN pip install typer==0.3.2
@@ -23,7 +16,13 @@ RUN pip install flask==2.0.0
 RUN pip install click==7.1.2
 RUN pip install typer==0.3.2
 RUN pip install flask==2.0.0
+## tensorflow version by GPU or CPU ########
+# ▼ this is gpu version! 
+#   we have to verify the version 2.11.0 at the CPU mode. 
+#   Otherwise, use 2.13.0 (cpu)
+# RUN pip install tensorflow==2.11.0
 RUN pip install tensorflow==2.13.0
+############################################
 RUN pip install spleeter==2.3.2
 RUN pip install Flask-Caching==2.0.2
 RUN pip install Flask-Cors==4.0.0
@@ -49,7 +48,6 @@ RUN pip install numpy --upgrade
 RUN pip install numba==0.55.2
 RUN pip install gensim==3.4.0
 RUN pip install transformers
-
 
 
 # 두 번째 스테이지: 최종 이미지 설정

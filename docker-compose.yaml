@@ -41,6 +41,13 @@ services:
       - mysql
     environment:
       - TZ=Asia/Seoul
+    # deploy:
+    #   resources:
+    #     reservations:
+    #       devices:
+    #       - driver: nvidia
+    #         count: 1
+    #         capabilities: [gpu]
   nginx:
     container_name: nginx
     image: nginx:mainline-alpine3.18-slim
