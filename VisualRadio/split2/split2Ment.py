@@ -169,6 +169,55 @@ def drop_doubt_ad(time_range, sec):
             res.append(i)
     return res
 
+# 가장 먼저 진행한 stt의 구간에 맞게 멘트 구간을 조정합니다.
+def adjust_json_data(json_data, intervals):
+    adjusted_data = []
+    
+    for start, end in intervals:
+        start_time = None
+        end_time = None
+        past_start_time = None
+        for item in json_data:
+            json_start_time = item['time']
+            
+            # 시작시간을 stt가 나눈 시작 시간으로 매핑합니다.
+            if start_time is None and past_start_time is not None and past_start_time <= start <= json_start_time:
+                start_time = past_start_time
+                
+            # 종료시간을 stt가 나눈 이전 시작 시간으로 매핑합니다.
+            if end_time is None and past_start_time is not None and past_start_time <= end <= json_start_time:
+                end_time = json_start_time
+            
+            # start와 end가 정해지면 append하고 반복을 종료합니다.
+            if start_time is not None and end_time is not None:
+                adjusted_data.append([start_time, end_time])
+                break
+                
+            past_start_time = json_start_time
+
+    return adjust_intervals(adjusted_data) # 마지막으로 구간 다듬기까지!
+
+def adjust_intervals(intervals):
+    # 입력된 구간을 시작 시간을 기준으로 정렬
+    intervals.sort(key=lambda x: x[0])
+
+    adjusted_intervals = []
+
+    current_interval = intervals[0]
+    for interval in intervals[1:]:
+        if interval[0] <= current_interval[1]:
+            # 현재 구간과 다음 구간이 겹칠 경우, 더 큰 범위로 조정
+            current_interval[1] = max(current_interval[1], interval[1])
+        else:
+            # 겹치지 않을 경우, 현재 구간을 결과에 추가하고 다음 구간으로 이동
+            adjusted_intervals.append(current_interval)
+            current_interval = interval
+
+    # 마지막 구간 추가
+    adjusted_intervals.append(current_interval)
+
+    return adjusted_intervals
+
 # 여기에 광고 구간을 쳐내는 로직이 들어가면 딱인데...
 def extract_not_ment(ment_range, length):
     if len(ment_range) == 0:
@@ -203,14 +252,15 @@ def merge_and_sort_ranges(range_list1, range_list2):
     sorted_ranges = sorted(merged_ranges, key=lambda x: x[0])
     return sorted_ranges
 
-def save_split(model_path, audio, sr, wav_name, split_ment): # 섹션마다의 길이를 누적해서 더해줘야함!
+def save_split(audio, sr, split_ment, json_data): # 섹션마다의 길이를 누적해서 더해줘야함!
     ment_range = find_voice(audio, sr)
     real_ment = model_predict(audio, sr, ment_range, split_ment)
     real_ment_time = divide_all_elements(real_ment, sr)
     merged_real_ment_time = merge_intervals(real_ment_time, 10)
     ment_without_ad = drop_doubt_ad(merged_real_ment_time, 10) # 20초로 하는게 좋아보임!
-    not_ment = extract_not_ment(ment_without_ad, len(audio)/sr)
-    all_range = merge_and_sort_ranges(ment_without_ad, not_ment)
+    adjust_ment = adjust_json_data(json_data, ment_without_ad)
+    not_ment = extract_not_ment(adjust_ment, len(audio)/sr)
+    all_range = merge_and_sort_ranges(adjust_ment, not_ment)
 
 
     logger.debug(f"not_ment : {not_ment}")
@@ -218,86 +268,4 @@ def save_split(model_path, audio, sr, wav_name, split_ment): # 섹션마다의 �
     for idx, segment in enumerate(ment_without_ad):
         logger.debug(f"Segment {idx} ★")
         
-    return ment_without_ad, all_range, not_ment # content_range
-
-
-
-def find_quiet_time(y, sr):
-  # 주어진 스펙트로그램 데이터
-  y = np.abs(librosa.stft(y))
-  spec_data = librosa.amplitude_to_db(y, ref=np.max)
-  
-  # 소리가 거의 없는 구간을 저장할 리스트
-  quiet_segments = []
-
-  # 스펙트로그램에서 어두운 영역을 탐색
-  for time_frame, amplitude_frame in enumerate(spec_data.T):
-      if np.max(amplitude_frame) <= -60:  # 진폭이 -40 dB 미만인 영역을 소리가 거의 없는 구간으로 간주
-          quiet_segments.append(time_frame)
-
-  # 프레임 간격 계산
-  hop_length = 512  # STFT에서 사용된 hop length
-  frame_interval = hop_length / sr  # 프레임 간격 (초)
-
-  # quiet_segments에 저장된 값으로부터 시간을 계산
-  quiet_segments_time = [frame_num * frame_interval for frame_num in quiet_segments]
-
-  lst = []
-  for time in quiet_segments_time:
-    intTime = int(time)
-    contains = False
-    for i in lst:
-      if(i == intTime):
-        contains = True
-    if(not contains):
-      lst.append(intTime)
-      
-  if(len(lst)==0):
-      return True
-  
-  merged = []
-  sublist = [lst[0]]  # 첫 번째 원소로 시작하는 부분 리스트 생성
-  
-  for i in range(1, len(lst)):
-      diff = lst[i] - lst[i - 1]  # 현재 원소와 이전 원소 사이의 차이 계산
-      
-      if diff <= 9:
-          sublist.append(lst[i])  # 차이가 9 이하이면 부분 리스트에 추가
-      else:
-          if len(sublist) > 1:
-              merged.append(sublist)  # 차이가 9 이상이면 현재 부분 리스트를 합치고 새로운 부분 리스트 생성
-          else:
-              merged.append([sublist[0]])
-          sublist = [lst[i]]
-  
-  if len(sublist) > 1:
-      merged.append(sublist)  # 마지막 부분 리스트를 추가
-  else:
-      merged.append([sublist[0]])
-  
-  res = [sublist[0] if len(sublist) == 1 else sublist[0] for sublist in merged]
-      
-  x = res[0]
-  for i in range(1, len(res)):
-      y = res[i]
-      if(is_difference_valid(x, y)):
-          return False
-      x = y
-  return True
-
-def is_difference_valid(x, y):
-    diff = abs(x - y)
-    return diff % 20 == 1 or diff % 20 == 19 or diff % 20 == 0
-
-def split_music(y, sr, not_ment):
-    music_lst = []
-
-    for ran in not_ment:
-        start = ran[0]
-        end = ran[1]
-
-        seg = y[int(start*sr):int(end*sr)]
-
-        if(find_quiet_time(seg, sr)):
-            music_lst.append(ran)
-    return music_lst
+    return adjust_ment, all_range, not_ment # content_range

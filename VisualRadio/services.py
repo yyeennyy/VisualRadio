@@ -11,8 +11,9 @@ import utils
 import wave
 from split_module.split import start_split
 # split2 경로가 바뀌었으므로, 수정해줌.
-from split2.split2 import save_split, split_music, SplitMent
+from split2.split2Ment import save_split, SplitMent
 from split2.MrRemoverToArray import MrRemoverToArray, remove_mr_to_array
+from split2.split2Music import split_music_new, split_music_origin
 # from split2.MrRemoverToFile import MrRemoverToFile
 import threading
 from datetime import datetime
@@ -254,7 +255,7 @@ from natsort import natsorted
 def split_cnn(broadcast, name, date, audio_holder):
     logger.debug(f"[split_cnn] 구간정보(멘트/광고/노래) 파악 시작")
 
-    model_path = settings.MODEL_PATH
+    ment_split_model_path = settings.MENT_MODEL_PATH
     
     # 기존에는 utils로 불러왔지만, 이제는 audio_holder가 거의 모든 것을 갖고있습니다.
     section_mr_origin_names = audio_holder.sum_mrs
@@ -266,7 +267,7 @@ def split_cnn(broadcast, name, date, audio_holder):
     
     # 모델을 사전에 로드하기 위해서, 클래스를 미리 선언해줍니다.
     split_ment = SplitMent()
-    split_ment.set_model(model_path)
+    split_ment.set_model(ment_split_model_path)
     
     idx = 0 # enumerate같은 놈
     for target_section, mr in section_mr_origin_names:
@@ -274,11 +275,12 @@ def split_cnn(broadcast, name, date, audio_holder):
         idx += 1
         
         # 멘트 split에서 넘겨주는 인자들이 바뀌었습니다. 이 외에도, 불필요한게 몇개 있어보이지만 이 부분은 추후 수정하겠습니다.
-        ment_range, content_section, not_ment = save_split(model_path, mr, audio_holder.sr, target_section, split_ment)
+        ment_range, content_section, not_ment = save_split(mr, audio_holder.sr, split_ment, audio_holder.jsons)
         logger.debug(f"[split_cnn] {target_section} split ment 끝, split_music 시작")
         
-        # 광고 분류할 때 있어서도, 넘겨주는 인자가 바뀌게 됩니다.
-        music_range = split_music(wav, audio_holder.sr, not_ment)
+        # 광고 분류할 때 있어서도, 넘겨주는 인자가 바뀌게 됩니다. 현재는 기존 분류기를 사용하고, 예은 stt 처리가 완료되면 밑에 주석처리된 것을 사용한다.
+        music_range = split_music_origin(wav, audio_holder.sr, not_ment)
+        # music_range = split_music_new(audio_holder.jsons, not_ment)
         logger.debug(f"[split_cnn] {target_section} split_music 끝")
         
         # 현재 섹션의 재생 시간 계산

@@ -47,6 +47,7 @@ RUN pip uninstall numpy -y
 RUN pip install numpy --upgrade
 RUN pip install numba==0.55.2
 RUN pip install gensim==3.4.0
+RUN pip install transformers
 
 
 # 두 번째 스테이지: 최종 이미지 설정
