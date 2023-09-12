@@ -13,10 +13,12 @@ import utils
 import stt
 import settings as settings
 import time
-from models import Process
+from models import Process, Wav
 from natsort import natsorted
 import librosa
 import numpy as np
+import psutil
+
 
 auth = Blueprint('auth', __name__)
 
@@ -127,6 +129,7 @@ def check_wav(broadcast, program_name, date):
         logger.debug("[업로드] wav가 이미 존재한다! (이득!!!!)")
         return jsonify({'wav':'true'})
     else:
+        logger.debug("[업로드] wav를 업로드합니다.")
         return jsonify({'wav':'false'})
 
 @auth.route('/admin-update', methods=['POST'])
@@ -167,6 +170,16 @@ def commit(o):
     db.session.commit()
     return
 
+# gpu 메모리 완전 정리
+def clean_gpu():
+    try:
+        device = cuda.get_current_device()
+        device.reset()
+    except CudaAPIError:
+        # CPU 모드에서는 정리할 것이 없다
+        pass
+
+from numba import cuda
 def process_audio_file(broadcast, name, date):
     storage = f"{settings.STORAGE_PATH}/{broadcast}/{name}/{date}/"
     utils.delete_ini_files(storage)
@@ -196,10 +209,13 @@ def process_audio_file(broadcast, name, date):
             utils.rm(os.path.join(storage, "raw.wav"))
             
             if not process.split2_:
-                # audio_holder를 넘겨주는 것만으로도, 어느정도의 처리가 가능해집니다.
+                # mr 제거
                 services.remove_mr(audio_holder)
+                clean_gpu()
+                # cnn 분류기 돌리기
                 services.split_cnn(broadcast, name, date, audio_holder)
                 process.set_split2()
+                clean_gpu()
                 commit(process)
                 
                 # 사실 이 부분은 필요 없어지지만, 추후 array와 file을 둘 다 구현해주어 선택할 수 있게 할 예정이므로 남겨둡니다.
@@ -218,6 +234,7 @@ def process_audio_file(broadcast, name, date):
                 commit(process)
 
                 stt.speech_to_text(broadcast, name, date, ment_start_end, audio_holder)
+                clean_gpu()
                 stt.make_script(broadcast, name, date)
                 paragraph.compose_paragraph(broadcast, name, date) # stt가 재진행되면 문단구성도 새로 해야 함
                 process.set_script()
