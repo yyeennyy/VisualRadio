@@ -11,6 +11,8 @@ import random
 import settings as settings
 import librosa
 import queue
+import whisper
+from numba import cuda
 
 # logger
 from VisualRadio import CreateLogger
@@ -165,3 +167,99 @@ def get_stt_target(broadcast, name, date):
             # ment_list.append()
 
     return ment_start_end
+
+
+
+# stt작업과 script과정을 분리하지 않은 상태입니다.
+# 필요하면 나중에 분리할게요!
+def all_stt(audio_holder):
+    split_mr = audio_holder.sum_mrs # [[name, audio], ...]
+
+    # ------------------------ stt 작업 ------------------------
+    stt_results = []
+    sr = audio_holder.sr
+    for data in split_mr:
+        name = data[0]
+        audio = data[1]
+        all_stt_whisper(name, audio, sr, stt_results)
+
+    logger.debug(f"[stt] 전체 stt가 생성되었습니다.")
+    # ------------------------ stt 작업 완료 --------------------
+
+
+    # --------------- 전체 script 제작 시작 ------------------
+    # whisper stt_results의 text는 "."을 기준 text를 나누어놓았다.
+    # 다만, 한단위의 문장보다 잘게 쪼개진 상태다.
+    # 문장으로 어느정도 합쳐주어야 스크립트라고 볼 수 있다.
+    # 길이 제한을 두자. 적어도 30글자 이상 어때? 할게!
+    # -------------------------------------------------------
+    # step0) stt["name"]값을 기준으로 natsorted!
+    from natsort import natsorted
+    stt_sorted = natsorted(stt_results, key=lambda x: x["name"])
+
+    # step1) merge stt data (=> realigning time info)
+    # ▼ 각 txt의 time을 재조정(누적)하여 scripts에 추가한다.
+    script = []
+    cumulative_time = 0
+    for stt in stt_sorted:
+        for content in stt["contents"]:
+            time = content[0] + cumulative_time
+            txt = content[1]
+            script.append({"time":time, "txt":txt})
+        cumulative_time += stt["duration"]
+
+    # step2) rescripting (=> make a long sentence well..)
+    final_script = []
+    start_flag = True
+    s = ""
+    t = ""
+    for sentence in script:
+        txt = sentence['txt']
+        if start_flag:
+            t = sentence['time']
+            start_flag = False
+        if len(txt) < 30: # 현재 txt가 너무 짧으면 이전 txt에 합쳐준다.
+            s += " " + txt
+        else:
+            final_script.append({"time":t, "txt":(s+txt).strip()})
+            s = ""
+            t = ""
+            start_flag = True
+
+    audio_holder.jsons = final_script
+    logger.debug(f"[stt] 전체 stt를 audio_holder.jsons 등록했습니다.")  # 변수명 jsons 대신에 whole_stt 어때요?
+    return audio_holder
+
+def all_stt_whisper(name, audio, sr, list):
+    logger.debug(f"[stt] {name}!")
+    device = "cuda" if cuda.is_available() else "cpu"
+    model = whisper.load_model(settings.WHISPER_MODEL).to(device)
+    results = model.transcribe(audio, temperature=0.0, word_timestamps=True)
+    # 각각의 element: 작은단위의 stt결과가 담김 (i.e. 문장보다 더 잘게 끊긴 text 변환결과)
+    s = ""
+    t = ""
+    sentences = []
+    start_flag = True
+    stt_data = {}
+    for element in results['segments']:
+        time = element['start']
+        txt = element['text'].strip()
+        if len(txt) == 0:
+            continue
+        if start_flag:
+            t = time
+            start_flag = False
+        if txt[-1]=="." or element == results['segments'][-1]:
+            s += " " + txt
+            sentences.append([t, s.strip()])
+            s = ""
+            t = ""
+            start_flag = True
+        else:
+            s += " " + txt
+    stt_data["name"] = name
+    stt_data["duration"] = len(audio) / sr
+    stt_data["contents"] = sentences
+
+    list.append(stt_data)
+    return

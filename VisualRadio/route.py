@@ -227,6 +227,8 @@ def process_audio_file(broadcast, name, date):
                 # mr 제거
                 services.remove_mr(audio_holder)
                 clean_gpu()
+                # mr 제거한 음성 대상으로 stt 돌리기
+                stt.all_stt(audio_holder)
                 # cnn 분류기 돌리기
                 services.split_cnn(broadcast, name, date, audio_holder)
                 process.set_split2()
