@@ -22,6 +22,13 @@ logger = CreateLogger("STT")
 from VisualRadio import db, app
 import soundfile as sf
 
+# regex (종결어미)
+import re
+endings = ['에요', '해요', '예요', '지요', '네요', '[?]{1}', '[가-힣]{1,2}시다', '[가-힣]{1,2}니다', '어요', '구요', '군요', '어요', '아요', '은요', '이요', '든요', '워요', '드리고요', '되죠', '하죠', '까요', '게요', '시죠', '거야', '잖아']
+endings_pattern = '|'.join([re.escape(ending) for ending in endings])
+pattern = f"({endings_pattern})"
+
+
 def google_stt(start, audio, sample_rate, interval):
     script = []
     r = sr.Recognizer()
@@ -249,8 +256,9 @@ def all_stt_whisper(name, audio, sr, list):
         if start_flag:
             t = time
             start_flag = False
-        if txt[-1]=="." or element == results['segments'][-1]:
-            s += " " + txt
+        s += " " + txt
+        # 정규표현식 패턴에 매치되는지 확인
+        if re.search(pattern, txt) or txt[-1]==".":
             sentences.append([t, s.strip()])
             s = ""
             t = ""
