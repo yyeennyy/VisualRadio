@@ -22,6 +22,13 @@ logger = CreateLogger("STT")
 from VisualRadio import db, app
 import soundfile as sf
 
+# regex (종결어미)
+import re
+endings = ['에요', '해요', '예요', '지요', '네요', '[?]{1}', '[가-힣]{1,2}시다', '[가-힣]{1,2}니다', '어요', '구요', '군요', '어요', '아요', '은요', '이요', '든요', '워요', '드리고요', '되죠', '하죠', '까요', '게요', '시죠', '거야', '잖아']
+endings_pattern = '|'.join([re.escape(ending) for ending in endings])
+pattern = f"({endings_pattern})"
+
+
 def google_stt(start, audio, sample_rate, interval):
     script = []
     r = sr.Recognizer()
@@ -228,16 +235,26 @@ def all_stt(audio_holder):
 
     audio_holder.jsons = final_script
     logger.debug(f"[stt] 전체 stt를 audio_holder.jsons 등록했습니다.")  # 변수명 jsons 대신에 whole_stt 어때요?
+    logger.debug(f"[stt] {audio_holder.jsons}")
     return audio_holder
 
+import torch
 def all_stt_whisper(name, audio, sr, list):
     logger.debug(f"[stt] {name}!")
-    device = "cuda" if cuda.is_available() else "cpu"
+    if cuda.is_available():
+        device = "cuda"
+        audio = torch.tensor(audio, dtype=torch.float32)
+        audio = audio.to(device)
+    else:
+        device = "cpu"
+    logger.debug(f"[stt] divice: {device}")
     model = whisper.load_model(settings.WHISPER_MODEL).to(device)
+    logger.debug(f"[stt] transcribe")
     results = model.transcribe(audio, temperature=0.0, word_timestamps=True)
     # 각각의 element: 작은단위의 stt결과가 담김 (i.e. 문장보다 더 잘게 끊긴 text 변환결과)
     s = ""
     t = ""
+    prev_string = "" # 이전문자열과 중복 파악을 위함
     sentences = []
     start_flag = True
     stt_data = {}
@@ -249,14 +266,20 @@ def all_stt_whisper(name, audio, sr, list):
         if start_flag:
             t = time
             start_flag = False
-        if txt[-1]=="." or element == results['segments'][-1]:
+        if prev_string != txt: # 중복되지 않을 경우 문자열을 누적한다.
             s += " " + txt
+        else: # 중복될 경우, 무조건 다음 txt로 넘어간다.
+            continue
+        # 정규표현식 패턴에 매치되는지 확인
+        if re.search(pattern, txt) or txt[-1]==".":
             sentences.append([t, s.strip()])
             s = ""
             t = ""
             start_flag = True
         else:
             s += " " + txt
+        prev_string = txt
+
     stt_data["name"] = name
     stt_data["duration"] = len(audio) / sr
     stt_data["contents"] = sentences
