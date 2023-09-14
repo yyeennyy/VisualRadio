@@ -159,22 +159,19 @@ def make_script(broadcast, name, date):
     logger.debug("[stt] script 생성 완료")
     return
 
+
+
 def get_stt_target(broadcast, name, date):
     # 저장된 section 정보 가져오기
     with app.app_context():
         wav = Wav.query.filter_by(broadcast=broadcast, radio_name=name, radio_date=str(date)).first()
         radio_section = json.loads(wav.radio_section.replace("'", '"'))
-
     # 멘트타입(0)인 section 시간대 가져오기
     ment_start_end = []
     for sec in radio_section:
         if sec['type'] == 0:
-            ment_start_end.append([sec['start_time'], sec['end_time']])
-        # elif sec['type']==1:
-            # ment_list.append()
-
+            ment_start_end.append([float(sec['start_time']), float(sec['end_time'])])
     return ment_start_end
-
 
 
 # stt작업과 script과정을 분리하지 않은 상태입니다.
@@ -204,7 +201,7 @@ def all_stt(audio_holder):
     # whisper stt_results의 text는 "."을 기준 text를 나누어놓았다.
     # 다만, 한단위의 문장보다 잘게 쪼개진 상태다.
     # 문장으로 어느정도 합쳐주어야 스크립트라고 볼 수 있다.
-    # 길이 제한을 두자. 적어도 30글자 이상 어때? 할게!
+    # 길이 제한을 두자. 적어도 15글자 이상 어때? 할게!
     # -------------------------------------------------------
     # step0) stt["name"]값을 기준으로 natsorted!
     from natsort import natsorted
@@ -216,9 +213,13 @@ def all_stt(audio_holder):
     cumulative_time = 0
     for stt in stt_sorted:
         for content in stt["contents"]:
-            time = float(content[0]) + float(cumulative_time)
-            txt = content[1]
-            script.append({"time":time, "txt":txt})
+            if content[0] != '':
+                time = float(content[0]) + float(cumulative_time)
+                txt = content[1]
+                script.append({"time":time, "txt":txt})
+            else:
+                logger.debug(f"[check] {type(content)}")
+                logger.debug(f"[check] content[0]가 0인 경우는 뭐지? {content}")
         cumulative_time += stt["duration"]
 
     # step2) rescripting (=> make a long sentence well..)
@@ -231,8 +232,8 @@ def all_stt(audio_holder):
         if start_flag:
             t = sentence['time']
             start_flag = False
-        s += txt
-        if len(s) < 30: # 누적 s가 너무 짧으면 append하지 않는다.
+        s += " " + txt
+        if len(s) < 15: # 누적 s가 너무 짧으면 append하지 않는다.
             continue
         else: # 누적 s가 충분히 길면 append한다.
             final_script.append({"time":t, "txt":s.strip()})
@@ -253,7 +254,7 @@ def all_stt_whisper(name, audio, sr, stt_results, device):
 
     # name 경로에 저장된 "mr제거된 wav파일"을 대상으로 stt합니다. whisper의 timestamp 문제 때문에, 기존 array audio를 일단 stt에서 사용하지 않겠습니다.
     # 다른 일이 급하니 경로는 일단 name으로 두겠습니다. (:해당 날짜 디렉토리에 굳이 저장 안하겠다는 의미)
-    results = model.transcribe(name, temperature=0.0, word_timestamps=True)
+    results = model.transcribe(name, temperature=0.2, word_timestamps=True, condition_on_previous_text=False)
     # 각각의 element: 작은단위의 stt결과가 담김 (i.e. 문장보다 더 잘게 끊긴 text 변환결과)
     s = ""
     t = ""
