@@ -16,12 +16,8 @@ RUN pip install flask==2.0.0
 RUN pip install click==7.1.2
 RUN pip install typer==0.3.2
 RUN pip install flask==2.0.0
-## tensorflow version by GPU or CPU ########
-# ▼ this is gpu version! 
-#   we have to verify the version 2.11.0 at the CPU mode. 
-#   Otherwise, use 2.13.0 (cpu)
-# RUN pip install tensorflow==2.11.0
-RUN pip install tensorflow==2.13.0
+## tensorflow version ######################
+RUN pip install tensorflow==2.12.0
 ############################################
 RUN pip install spleeter==2.3.2
 RUN pip install Flask-Caching==2.0.2
@@ -29,8 +25,9 @@ RUN pip install Flask-Cors==4.0.0
 RUN pip install pymysql==1.1.0
 RUN pip install flask_sqlalchemy==2.5.0
 RUN pip install black==20.8b0
-RUN pip install torch==2.0.1
-RUN pip install torchvision==0.15.2
+# torch version ############################
+RUN pip install torch==2.0.0+cu118 torchvision==0.15.1+cu118 torchaudio==2.0.1 --index-url https://download.pytorch.org/whl/cu118
+############################################
 RUN pip install cryptography==41.0.3
 RUN pip install setuptools-rust==1.6.0
 RUN pip install SpeechRecognition==3.10.0

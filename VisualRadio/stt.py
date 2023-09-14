@@ -161,6 +161,8 @@ def make_script(broadcast, name, date):
 
 
 
+
+# --------------------- script.json기저장하기 --------------
 def get_stt_target(broadcast, name, date):
     # 저장된 section 정보 가져오기
     with app.app_context():
@@ -173,6 +175,24 @@ def get_stt_target(broadcast, name, date):
             ment_start_end.append([float(sec['start_time']), float(sec['end_time'])])
     return ment_start_end
 
+def save_ment_script(broadcast, name, date, audio_holder, ment_start_end):
+    scripts = audio_holder.jsons 
+    results = []
+    for txt_info in scripts:
+        time = txt_info[0]
+        if is_ment(time, ment_start_end):
+            results.append(txt_info)
+    utils.save_json(results, utils.script_path(broadcast, name, date))
+    logger.debug(f"[stt] script.json 저장 완료")  # 기존 후반부에 있던 stt과정이 필요없어진다.
+
+
+def is_ment(time, ment_start_end):
+    for start, end in ment_start_end:
+        if start <= time and time < end:
+            return True
+    return False
+
+# --------------------------------------------------------------------------
 
 # stt작업과 script과정을 분리하지 않은 상태입니다.
 # 필요하면 나중에 분리할게요!
