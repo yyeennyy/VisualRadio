@@ -191,8 +191,9 @@ def clean_gpu():
     try:
         device = cuda.get_current_device()
         device.reset()
-    except CudaAPIError:
+    except Exception as e:
         # CPU 모드에서는 정리할 것이 없다
+        logger.debug(e)
         pass
 
 def process_audio_file(broadcast, name, date):
