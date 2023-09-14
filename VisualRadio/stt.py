@@ -159,23 +159,39 @@ def make_script(broadcast, name, date):
     logger.debug("[stt] script 생성 완료")
     return
 
+
+
+# --------------------- ment_range를 DB에 업데이트할 때 --------------
+
 def get_stt_target(broadcast, name, date):
     # 저장된 section 정보 가져오기
     with app.app_context():
         wav = Wav.query.filter_by(broadcast=broadcast, radio_name=name, radio_date=str(date)).first()
         radio_section = json.loads(wav.radio_section.replace("'", '"'))
-
     # 멘트타입(0)인 section 시간대 가져오기
     ment_start_end = []
     for sec in radio_section:
         if sec['type'] == 0:
-            ment_start_end.append([sec['start_time'], sec['end_time']])
-        # elif sec['type']==1:
-            # ment_list.append()
-
+            ment_start_end.append([float(sec['start_time']), float(sec['end_time'])])
     return ment_start_end
 
+def save_ment_script(broadcast, name, date, audio_holder, ment_start_end):
+    scripts = audio_holder.jsons 
+    results = []
+    for txt_info in scripts:
+        time = txt_info[0]
+        if is_ment(time, ment_start_end):
+            results.append(txt_info)
+    utils.save_json(results, utils.script_path(broadcast, name, date))
+    logger.debug(f"[stt] script.json 저장 완료")  # 기존 후반부에 있던 stt과정이 필요없어진다.
 
+def is_ment(time, ment_start_end):
+    for start, end in ment_start_end:
+        if start <= time and time < end:
+            return True
+    return False
+
+# --------------------------------------------------------------------------
 
 # stt작업과 script과정을 분리하지 않은 상태입니다.
 # 필요하면 나중에 분리할게요!
@@ -183,12 +199,18 @@ def all_stt(audio_holder):
     split_mr = audio_holder.sum_mrs # [[name, audio], ...]
 
     # ------------------------ stt 작업 ------------------------
+    device = utils.device_info()
+    # audio를 file로 불러들이는 현시점(whisper timestamp problem)에는 audio array를 cuda에 올리지 않아도 된다.
+    # if device == "cuda":
+        # audio = torch.tensor(audio, dtype=torch.float32)
+        # audio = audio.to(device)
+
     stt_results = []
     sr = audio_holder.sr
     for data in split_mr:
         name = data[0]
         audio = data[1]
-        all_stt_whisper(name, audio, sr, stt_results)
+        all_stt_whisper(name, audio, sr, stt_results, device)
 
     logger.debug(f"[stt] 전체 stt가 생성되었습니다.")
     # ------------------------ stt 작업 완료 --------------------
@@ -198,7 +220,7 @@ def all_stt(audio_holder):
     # whisper stt_results의 text는 "."을 기준 text를 나누어놓았다.
     # 다만, 한단위의 문장보다 잘게 쪼개진 상태다.
     # 문장으로 어느정도 합쳐주어야 스크립트라고 볼 수 있다.
-    # 길이 제한을 두자. 적어도 30글자 이상 어때? 할게!
+    # 길이 제한을 두자. 적어도 15글자 이상 어때? 할게!
     # -------------------------------------------------------
     # step0) stt["name"]값을 기준으로 natsorted!
     from natsort import natsorted
@@ -210,9 +232,13 @@ def all_stt(audio_holder):
     cumulative_time = 0
     for stt in stt_sorted:
         for content in stt["contents"]:
-            time = content[0] + cumulative_time
-            txt = content[1]
-            script.append({"time":time, "txt":txt})
+            if content[0] != '':
+                time = float(content[0]) + float(cumulative_time)
+                txt = content[1]
+                script.append({"time":time, "txt":txt})
+            else:
+                logger.debug(f"[check] {type(content)}")
+                logger.debug(f"[check] content[0]가 0인 경우는 뭐지? {content}")
         cumulative_time += stt["duration"]
 
     # step2) rescripting (=> make a long sentence well..)
@@ -225,10 +251,11 @@ def all_stt(audio_holder):
         if start_flag:
             t = sentence['time']
             start_flag = False
-        if len(txt) < 30: # 현재 txt가 너무 짧으면 이전 txt에 합쳐준다.
-            s += " " + txt
-        else:
-            final_script.append({"time":t, "txt":(s+txt).strip()})
+        s += " " + txt
+        if len(s) < 15: # 누적 s가 너무 짧으면 append하지 않는다.
+            continue
+        else: # 누적 s가 충분히 길면 append한다.
+            final_script.append({"time":t, "txt":s.strip()})
             s = ""
             t = ""
             start_flag = True
@@ -239,18 +266,14 @@ def all_stt(audio_holder):
     return audio_holder
 
 import torch
-def all_stt_whisper(name, audio, sr, list):
+def all_stt_whisper(name, audio, sr, stt_results, device):
     logger.debug(f"[stt] {name}!")
-    if cuda.is_available():
-        device = "cuda"
-        audio = torch.tensor(audio, dtype=torch.float32)
-        audio = audio.to(device)
-    else:
-        device = "cpu"
-    logger.debug(f"[stt] divice: {device}")
     model = whisper.load_model(settings.WHISPER_MODEL).to(device)
     logger.debug(f"[stt] transcribe")
-    results = model.transcribe(audio, temperature=0.0, word_timestamps=True)
+
+    # name 경로에 저장된 "mr제거된 wav파일"을 대상으로 stt합니다. whisper의 timestamp 문제 때문에, 기존 array audio를 일단 stt에서 사용하지 않겠습니다.
+    # 다른 일이 급하니 경로는 일단 name으로 두겠습니다. (:해당 날짜 디렉토리에 굳이 저장 안하겠다는 의미)
+    results = model.transcribe(name, temperature=0.2, word_timestamps=True, condition_on_previous_text=False)
     # 각각의 element: 작은단위의 stt결과가 담김 (i.e. 문장보다 더 잘게 끊긴 text 변환결과)
     s = ""
     t = ""
@@ -261,28 +284,35 @@ def all_stt_whisper(name, audio, sr, list):
     for element in results['segments']:
         time = element['start']
         txt = element['text'].strip()
+        if prev_string != txt: # 중복되지 않을 경우 문자열을 누적한다.
+            s += " " + txt
+            prev_string = txt
+        else: # 중복될 경우, 다음 txt로 넘어간다.
+            if element != results['segments'][-1]:  # 단, 마지막 요소가 아닐 때만 그냥 넘어가고..
+                logger.debug(f"중복: {prev_string}")
+                continue
+        if element == results['segments'][-1]: # 만약 마지막 요소인 경우 누적된 문자열을 append하고 종료한다.
+            logger.debug(f"[check] {name} | {t}")
+            sentences.append([t, s.strip()])
+            break;
         if len(txt) == 0:
             continue
         if start_flag:
             t = time
             start_flag = False
-        if prev_string != txt: # 중복되지 않을 경우 문자열을 누적한다.
-            s += " " + txt
-        else: # 중복될 경우, 무조건 다음 txt로 넘어간다.
-            continue
         # 정규표현식 패턴에 매치되는지 확인
+        # 이 txt에서 끊어야 할 경우다. 누적된 문자열을 append한다.
         if re.search(pattern, txt) or txt[-1]==".":
+            logger.debug(f"[check] {name} | {t}")
             sentences.append([t, s.strip()])
             s = ""
             t = ""
             start_flag = True
-        else:
-            s += " " + txt
-        prev_string = txt
+
 
     stt_data["name"] = name
     stt_data["duration"] = len(audio) / sr
     stt_data["contents"] = sentences
 
-    list.append(stt_data)
+    stt_results.append(stt_data)
     return

@@ -221,7 +221,7 @@ def process_audio_file(broadcast, name, date):
                 audio_holder.set_audio_info()
                 process.set_sum()
                 commit(process)
-            utils.rm(os.path.join(storage, "raw.wav"))
+            # utils.rm(os.path.join(storage, "raw.wav"))
             
             if not process.split2_:
                 # mr 제거
@@ -229,12 +229,15 @@ def process_audio_file(broadcast, name, date):
                 clean_gpu()
                 # mr 제거한 음성 대상으로 stt 돌리기
                 stt.all_stt(audio_holder)
+                clean_gpu()
                 # cnn 분류기 돌리기
                 services.split_cnn(broadcast, name, date, audio_holder)
-                process.set_split2()
                 clean_gpu()
+                process.set_split2()
                 commit(process)
-                
+                # script.json 얻기 (앞 분류기 이후 Wav.radio_section이 등록된 상태)
+                ment_start_end = stt.get_stt_target(broadcast, name, date)
+                stt.save_ment_script(broadcast, name, date, audio_holder, ment_start_end)
                 # 사실 이 부분은 필요 없어지지만, 추후 array와 file을 둘 다 구현해주어 선택할 수 있게 할 예정이므로 남겨둡니다.
                 utils.rm(os.path.join(storage, "mr_wav"))
                 utils.rm(os.path.join(storage, "tmp_mr_wav"))
@@ -244,27 +247,27 @@ def process_audio_file(broadcast, name, date):
             # text processing
             # - 기존: split한 wav파일의 duraion을 파악해서 time정보를 직접 계산했음
             # - 변동: wav테이블의 radio_section 컬럼 활용 -> 멘트 구간을 아니까, audio를 바로 슬라이싱 가능 & time 바로 적용
-            if not process.all_stt_ or process.end_stt_ != process.all_stt_:
-                ment_start_end = stt.get_stt_target(broadcast, name, date)
-                process.set_all_stt(len(ment_start_end))
-                process.del_stt()
-                commit(process)
+            # if not process.all_stt_ or process.end_stt_ != process.all_stt_:
+            #     ment_start_end = stt.get_stt_target(broadcast, name, date)
+            #     process.set_all_stt(len(ment_start_end))
+            #     process.del_stt()
+            #     commit(process)
 
-                stt.speech_to_text(broadcast, name, date, ment_start_end, audio_holder)
-                clean_gpu()
-                stt.make_script(broadcast, name, date)
-                paragraph.compose_paragraph(broadcast, name, date) # stt가 재진행되면 문단구성도 새로 해야 함
-                process.set_script()
-                commit(process)
+            #     stt.speech_to_text(broadcast, name, date, ment_start_end, audio_holder)
+            #     clean_gpu()
+            #     stt.make_script(broadcast, name, date)
+            #     paragraph.compose_paragraph(broadcast, name, date) # stt가 재진행되면 문단구성도 새로 해야 함
+            #     process.set_script()
+            #     commit(process)
 
-                # remove files
-                utils.rm(os.path.join(storage, "stt"))
-                utils.rm(os.path.join(storage, "raw_stt"))
-                utils.rm(os.path.join(storage, "split_final"))
-                utils.rm(os.path.join(storage, "split_wav"))
-                utils.rm(os.path.join(storage, "stt_final"))
-            else:
-                logger.debug("[stt] pass")
+            #     # remove files
+            #     utils.rm(os.path.join(storage, "stt"))
+            #     utils.rm(os.path.join(storage, "raw_stt"))
+            #     utils.rm(os.path.join(storage, "split_final"))
+            #     utils.rm(os.path.join(storage, "split_wav"))
+            #     utils.rm(os.path.join(storage, "stt_final"))
+            # else:
+            #     logger.debug("[stt] pass")
 
             if process.error_ == 1:
                 process.del_error()
