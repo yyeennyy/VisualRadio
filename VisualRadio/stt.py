@@ -231,10 +231,11 @@ def all_stt(audio_holder):
         if start_flag:
             t = sentence['time']
             start_flag = False
-        if len(txt) < 30: # 현재 txt가 너무 짧으면 이전 txt에 합쳐준다.
-            s += " " + txt
-        else:
-            final_script.append({"time":t, "txt":(s+txt).strip()})
+        s += txt
+        if len(s) < 30: # 누적 s가 너무 짧으면 append하지 않는다.
+            continue
+        else: # 누적 s가 충분히 길면 append한다.
+            final_script.append({"time":t, "txt":s.strip()})
             s = ""
             t = ""
             start_flag = True
@@ -263,24 +264,31 @@ def all_stt_whisper(name, audio, sr, stt_results, device):
     for element in results['segments']:
         time = element['start']
         txt = element['text'].strip()
+        if prev_string != txt: # 중복되지 않을 경우 문자열을 누적한다.
+            s += " " + txt
+            prev_string = txt
+        else: # 중복될 경우, 다음 txt로 넘어간다.
+            if element != results['segments'][-1]:  # 단, 마지막 요소가 아닐 때만 그냥 넘어가고..
+                logger.debug(f"중복: {prev_string}")
+                continue
+        if element == results['segments'][-1]: # 만약 마지막 요소인 경우 누적된 문자열을 append하고 종료한다.
+            logger.debug(f"[check] {name} | {t}")
+            sentences.append([t, s.strip()])
+            break;
         if len(txt) == 0:
             continue
         if start_flag:
             t = time
             start_flag = False
-        if prev_string != txt: # 중복되지 않을 경우 문자열을 누적한다.
-            s += " " + txt
-        else: # 중복될 경우, 무조건 다음 txt로 넘어간다.
-            continue
         # 정규표현식 패턴에 매치되는지 확인
+        # 이 txt에서 끊어야 할 경우다. 누적된 문자열을 append한다.
         if re.search(pattern, txt) or txt[-1]==".":
+            logger.debug(f"[check] {name} | {t}")
             sentences.append([t, s.strip()])
             s = ""
             t = ""
             start_flag = True
-        else:
-            s += " " + txt
-        prev_string = txt
+
 
     stt_data["name"] = name
     stt_data["duration"] = len(audio) / sr
