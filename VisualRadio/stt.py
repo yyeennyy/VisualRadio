@@ -183,12 +183,18 @@ def all_stt(audio_holder):
     split_mr = audio_holder.sum_mrs # [[name, audio], ...]
 
     # ------------------------ stt 작업 ------------------------
+    device = utils.device_info()
+    # audio를 file로 불러들이는 현시점(whisper timestamp problem)에는 audio array를 cuda에 올리지 않아도 된다.
+    # if device == "cuda":
+        # audio = torch.tensor(audio, dtype=torch.float32)
+        # audio = audio.to(device)
+
     stt_results = []
     sr = audio_holder.sr
     for data in split_mr:
         name = data[0]
         audio = data[1]
-        all_stt_whisper(name, audio, sr, stt_results)
+        all_stt_whisper(name, audio, sr, stt_results, device)
 
     logger.debug(f"[stt] 전체 stt가 생성되었습니다.")
     # ------------------------ stt 작업 완료 --------------------
@@ -239,17 +245,11 @@ def all_stt(audio_holder):
     return audio_holder
 
 import torch
-def all_stt_whisper(name, audio, sr, stt_results):
+def all_stt_whisper(name, audio, sr, stt_results, device):
     logger.debug(f"[stt] {name}!")
-    if cuda.is_available():
-        device = "cuda"
-        audio = torch.tensor(audio, dtype=torch.float32)
-        audio = audio.to(device)
-    else:
-        device = "cpu"
-    logger.debug(f"[stt] divice: {device}")
     model = whisper.load_model(settings.WHISPER_MODEL).to(device)
     logger.debug(f"[stt] transcribe")
+
     # name 경로에 저장된 "mr제거된 wav파일"을 대상으로 stt합니다. whisper의 timestamp 문제 때문에, 기존 array audio를 일단 stt에서 사용하지 않겠습니다.
     # 다른 일이 급하니 경로는 일단 name으로 두겠습니다. (:해당 날짜 디렉토리에 굳이 저장 안하겠다는 의미)
     results = model.transcribe(name, temperature=0.0, word_timestamps=True)
