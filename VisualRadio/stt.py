@@ -250,7 +250,9 @@ def all_stt_whisper(name, audio, sr, list):
     logger.debug(f"[stt] divice: {device}")
     model = whisper.load_model(settings.WHISPER_MODEL).to(device)
     logger.debug(f"[stt] transcribe")
-    results = model.transcribe(audio, temperature=0.0, word_timestamps=True)
+    # name 경로에 저장된 "mr제거된 wav파일"을 대상으로 stt합니다. whisper의 timestamp 문제 때문에, 기존 array audio를 일단 stt에서 사용하지 않겠습니다.
+    # 다른 일이 급하니 경로는 일단 name으로 두겠습니다. (:해당 날짜 디렉토리에 굳이 저장 안하겠다는 의미)
+    results = model.transcribe(name, temperature=0.0, word_timestamps=True)
     # 각각의 element: 작은단위의 stt결과가 담김 (i.e. 문장보다 더 잘게 끊긴 text 변환결과)
     s = ""
     t = ""
