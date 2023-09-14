@@ -161,8 +161,8 @@ def make_script(broadcast, name, date):
 
 
 
-# --------------------- ment_range를 DB에 업데이트할 때 --------------
 
+# --------------------- script.json기저장하기 --------------
 def get_stt_target(broadcast, name, date):
     # 저장된 section 정보 가져오기
     with app.app_context():
@@ -184,6 +184,7 @@ def save_ment_script(broadcast, name, date, audio_holder, ment_start_end):
             results.append(txt_info)
     utils.save_json(results, utils.script_path(broadcast, name, date))
     logger.debug(f"[stt] script.json 저장 완료")  # 기존 후반부에 있던 stt과정이 필요없어진다.
+
 
 def is_ment(time, ment_start_end):
     for start, end in ment_start_end:

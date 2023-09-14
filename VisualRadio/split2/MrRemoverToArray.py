@@ -142,6 +142,10 @@ def remove_mr_to_array(audio_holder, duration=int(600/2)):
                 logger.debug(f"other_wav.shape : {other_wav.shape}")
                 x = np.concatenate((x, other_wav), axis=0)
         direct = f"{rname}.wav"
+        # 임시 변경 : whisper의 timestamp문제를 해결하고자, 기존 array audio가 아닌 wav로 whisper의 오디오파일 파라미터로 넣겠습니다.
+        import soundfile as sf
+        sf.write(direct, x, audio_holder.sr)
+        # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # 
         logger.debug(f"[mr제거] {direct}의 길이는 {x.shape}이고 sr은 {audio_holder.sr}입니다.")
         audio_holder.sum_mrs.append([direct, x])
         name_list.append(direct)

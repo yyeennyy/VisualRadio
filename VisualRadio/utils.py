@@ -4,11 +4,25 @@ import os
 import settings
 from datetime import timedelta, datetime
 
+# logger
+from VisualRadio import CreateLogger
+logger = CreateLogger("Utils")
+
+
 def memory_usage(message: str = 'debug'):
     p = psutil.Process()
     rss = p.memory_info().rss # Bytes
     return rss / psutil.virtual_memory().total
 
+
+from numba import cuda
+def device_info():
+    if cuda.is_available():
+        device = "cuda"
+    else:
+        device = "cpu"
+    logger.debug(f"[stt] divice: {device}")
+    return device
 
 
 
