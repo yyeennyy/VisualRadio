@@ -210,7 +210,7 @@ def all_stt(audio_holder):
     cumulative_time = 0
     for stt in stt_sorted:
         for content in stt["contents"]:
-            time = content[0] + cumulative_time
+            time = float(content[0]) + float(cumulative_time)
             txt = content[1]
             script.append({"time":time, "txt":txt})
         cumulative_time += stt["duration"]
@@ -239,7 +239,7 @@ def all_stt(audio_holder):
     return audio_holder
 
 import torch
-def all_stt_whisper(name, audio, sr, list):
+def all_stt_whisper(name, audio, sr, stt_results):
     logger.debug(f"[stt] {name}!")
     if cuda.is_available():
         device = "cuda"
@@ -286,5 +286,5 @@ def all_stt_whisper(name, audio, sr, list):
     stt_data["duration"] = len(audio) / sr
     stt_data["contents"] = sentences
 
-    list.append(stt_data)
+    stt_results.append(stt_data)
     return
