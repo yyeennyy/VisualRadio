@@ -260,7 +260,8 @@ def search_legth(audio_holder, name):
         start_time = tmp_list[1]
         end_time = tmp_list[2]
 
-        if audio_holder_name == name:
+        # .wav까지 들어가더라고요
+        if audio_holder_name[:-4] == name:
             return start_time, end_time
         
     
