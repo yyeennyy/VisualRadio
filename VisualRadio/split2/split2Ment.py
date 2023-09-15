@@ -26,14 +26,10 @@ class SplitMent:
         num_ftrs = model.fc.in_features
         model.fc = nn.Linear(num_ftrs, num_classes)
 
-        # 모델을 로드
-        # -------- GPU or CPU ---------------
-        # GPU를 사용한다면 텐서를 해당 장치로 이동
-        if cuda.is_available():
-            model.load_state_dict(torch.load(model_path, map_location='cuda:0'))
-        else:
-            model.load_state_dict(torch.load(model_path))
-        # ----------------------------------
+        # 모델을 로드.. cpu 사용합시다 (: cuda 에러 때문에, 임시로)
+        model.to("cpu")
+        model.load_state_dict(torch.load(model_path))
+
         self.model = model
         
 
@@ -60,7 +56,7 @@ def model_predict(audio, sr, ment_range, split_ment, isPrint=False, sec = 1):
     
     # 이 부분에서, 모델을 로드하지 않고 클래스에서 꺼내오는 방식으로 사용합니다.
     model = split_ment.model
-    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    # device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     model.eval()  # 모델을 추론 모드로 변경 (필요에 따라 설정)
 
     real_ment = []
@@ -86,20 +82,20 @@ def model_predict(audio, sr, ment_range, split_ment, isPrint=False, sec = 1):
 
 
         # -------- GPU or CPU ---------------
-        if cuda.is_available():
+        # if cuda.is_available():
             # x_test를 PyTorch Tensor로 변환
-            x_test = torch.tensor(x_test, dtype=torch.float32)
+            # x_test = torch.tensor(x_test, dtype=torch.float32)
             # GPU로 이동
-            x_test = x_test.to(device)
-            model = model.to(device)
-        else:
-            x_test = np.array(x_test) 
+            # x_test = x_test.to(device)
+            # model = model.to(device)
+        # else:
+        x_test = np.array(x_test) 
         # ----------------------------------
 
         # 예측하려는 데이터 (예시: spectrogram_data_resized 변수에 저장된 스펙트로그램 데이터)
         # 이 데이터를 PyTorch 텐서로 변환
-        spectrogram_data = x_test.clone().detach()  # OOM을 피하기위해 필수!
-        # spectrogram_data = torch.tensor(x_test, dtype=torch.float)  # 비권장되는 방식 (기존 구현)
+        # spectrogram_data = x_test.clone().detach()  # GPU OOM방지
+        spectrogram_data = torch.tensor(x_test, dtype=torch.float)
         
         spectrogram_data = spectrogram_data.unsqueeze(1)
 
@@ -107,8 +103,8 @@ def model_predict(audio, sr, ment_range, split_ment, isPrint=False, sec = 1):
 
         # -------- GPU or CPU ---------------
         # GPU를 사용한다면 텐서를 해당 장치로 이동
-        if cuda.is_available():
-            spectrogram_data = spectrogram_data_resized.to(device)
+        # if cuda.is_available():
+            # spectrogram_data = spectrogram_data_resized.to(device)
         # ----------------------------------
 
         # 예측을 위해 forward pass 실행
@@ -263,8 +259,9 @@ def search_legth(audio_holder, name):
         audio_holder_name = tmp_list[0]
         start_time = tmp_list[1]
         end_time = tmp_list[2]
-        
-        if audio_holder_name == name:
+
+        # .wav까지 들어가더라고요
+        if audio_holder_name[:-4] == name:
             return start_time, end_time
         
     
