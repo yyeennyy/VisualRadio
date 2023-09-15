@@ -246,6 +246,7 @@ def all_stt(audio_holder):
         cumulative_time += stt["duration"]
         tmp.append(cumulative_time)
         audio_holder.durations.append(tmp)
+        logger.debug(f"audio_holder.duratoin {audio_holder.durations}")
     
     
 
@@ -269,7 +270,7 @@ def all_stt(audio_holder):
             start_flag = True
 
     audio_holder.jsons = final_script
-    audio_holder.jsons.append([{"time":cumulative_time, "txt": ""}])
+    audio_holder.jsons.append({"time":cumulative_time, "txt": ""})
     logger.debug(f"[stt] 전체 stt를 audio_holder.jsons 등록했습니다.")  # 변수명 jsons 대신에 whole_stt 어때요? 하고싶은대로 하셔요
     logger.debug(f"[stt] {audio_holder.jsons}")
     return audio_holder
@@ -298,10 +299,10 @@ def all_stt_whisper(name, audio, sr, stt_results, device):
             prev_string = txt
         else: # 중복될 경우, 다음 txt로 넘어간다.
             if element != results['segments'][-1]:  # 단, 마지막 요소가 아닐 때만 그냥 넘어가고..
-                logger.debug(f"중복: {prev_string}")
+                # logger.debug(f"중복: {prev_string}")
                 continue
         if element == results['segments'][-1]: # 만약 마지막 요소인 경우 누적된 문자열을 append하고 종료한다.
-            logger.debug(f"[check] {name} | {t}")
+            # logger.debug(f"[check] {name} | {t}")
             sentences.append([t, s.strip()])
             break
         if len(txt) == 0:
@@ -312,7 +313,7 @@ def all_stt_whisper(name, audio, sr, stt_results, device):
         # 정규표현식 패턴에 매치되는지 확인
         # 이 txt에서 끊어야 할 경우다. 누적된 문자열을 append한다.
         if re.search(pattern, txt) or txt[-1]==".":
-            logger.debug(f"[check] {name} | {t}")
+            # logger.debug(f"[check] {name} | {t}")
             sentences.append([t, s.strip()])
             s = ""
             t = ""
