@@ -172,14 +172,18 @@ def get_stt_target(broadcast, name, date):
     ment_start_end = []
     for sec in radio_section:
         if sec['type'] == 0:
-            ment_start_end.append([float(sec['start_time']), float(sec['end_time'])])
+            try:
+                ment_start_end.append([float(sec['start_time']), float(sec['end_time'])])
+            except Exception:
+                # 확인해보니, 여기서 오류가 날 떄는, 가장 마지막 부분에서 오류가 나더라. 가장 마지막 부분은 그냥 버려주자.
+                pass
     return ment_start_end
 
 def save_ment_script(broadcast, name, date, audio_holder, ment_start_end):
     scripts = audio_holder.jsons 
     results = []
     for txt_info in scripts:
-        time = txt_info[0]
+        time = txt_info['time']
         if is_ment(time, ment_start_end):
             results.append(txt_info)
     utils.save_json(results, utils.script_path(broadcast, name, date))
