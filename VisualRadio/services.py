@@ -272,11 +272,11 @@ def split_cnn(broadcast, name, date, audio_holder):
     idx = 0 # enumerate같은 놈
     for target_section, mr in section_mr_origin_names:
         wav = sec_wav_list[idx][1]
-        name = sec_wav_list[idx][0]
+        sec_name = sec_wav_list[idx][0]
         idx += 1
         
         # 멘트 split에서 넘겨주는 인자들이 바뀌었습니다. 이 외에도, 불필요한게 몇개 있어보이지만 이 부분은 추후 수정하겠습니다.
-        ment_range, content_section, not_ment = save_split(mr, name, split_ment, audio_holder)
+        ment_range, content_section, not_ment = save_split(mr, sec_name, split_ment, audio_holder)
         logger.debug(f"[split_cnn] {target_section} split ment 끝, split_music 시작")
         
         # 광고 분류할 때 있어서도, 넘겨주는 인자가 바뀌게 됩니다. 현재는 기존 분류기를 사용하고, 예은 stt 처리가 완료되면 밑에 주석처리된 것을 사용한다.
