@@ -110,7 +110,7 @@ def model_predict(audio, sr, ment_range, split_ment, isPrint=False, sec = 1):
         # 예측을 위해 forward pass 실행
         model.eval()
         with torch.no_grad():
-            outputs = model(spectrogram_data)
+            outputs = model(spectrogram_data_resized)
 
         # 예측된 클래스 레이블을 얻기 위해 클래스 차원(class dimension, axis=1)에서 가장 큰 값의 인덱스를 가져옴
         _, predicted_labels = torch.max(outputs, dim=1)
@@ -205,7 +205,10 @@ def adjust_intervals(intervals):
     intervals.sort(key=lambda x: x[0])
 
     adjusted_intervals = []
-
+    
+    if(len(intervals)==0):
+        return intervals
+    
     current_interval = intervals[0]
     for interval in intervals[1:]:
         if interval[0] <= current_interval[1]:
@@ -286,7 +289,9 @@ def save_split(audio, name, split_ment, audio_holder): # 섹션마다의 길이�
     not_ment = extract_not_ment(adjust_ment, start_time, end_time)
     all_range = merge_and_sort_ranges(adjust_ment, not_ment)
 
-
+    logger.debug(f"real_ment_without_ad : {real_ment_without_ad}")
+    logger.debug(f"adjust_ment : {adjust_ment}")
     logger.debug(f"not_ment : {not_ment}")
+    
         
     return adjust_ment, all_range, not_ment # content_range
