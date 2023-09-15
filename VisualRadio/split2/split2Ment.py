@@ -26,14 +26,10 @@ class SplitMent:
         num_ftrs = model.fc.in_features
         model.fc = nn.Linear(num_ftrs, num_classes)
 
-        # 모델을 로드
-        # -------- GPU or CPU ---------------
-        # GPU를 사용한다면 텐서를 해당 장치로 이동
-        if cuda.is_available():
-            model.load_state_dict(torch.load(model_path, map_location='cuda:0'))
-        else:
-            model.load_state_dict(torch.load(model_path))
-        # ----------------------------------
+        # 모델을 로드.. cpu 사용합시다 (: cuda 에러 때문에, 임시로)
+        model.to("cpu")
+        model.load_state_dict(torch.load(model_path))
+
         self.model = model
         
 
@@ -263,7 +259,7 @@ def search_legth(audio_holder, name):
         audio_holder_name = tmp_list[0]
         start_time = tmp_list[1]
         end_time = tmp_list[2]
-        
+
         if audio_holder_name == name:
             return start_time, end_time
         
