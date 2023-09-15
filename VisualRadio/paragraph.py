@@ -287,3 +287,121 @@ def extract_img(client_id, client_secret, q):
         return json.loads(response_body)["items"][0]["link"]
     else:
         logger.debug("Error Code:" + rescode)
+
+
+# ---------------- 멘트 컨텐츠를 위한 함수 ----------------
+import requests
+import json
+import urllib
+from PIL import Image
+
+# 내 api 키
+with open('./VisualRadio/karlo.txt', 'r', encoding='utf-8') as file:
+    key = file.read()
+REST_API_KEY = key
+
+# 해야 함
+# !pip install googletrans==4.0.0-rc1
+
+# 1: Contents 테이블에서 문단별 time, keyword 가져오기
+def get_paragraph_info(broadcast, name, date):
+    with app.app_context():
+        result = (
+            db.session.query(Contents.time, Contents.keyword)
+            .filter(Contents.broadcast == broadcast, Contents.radio_name == name, Contents.radio_date == date)
+            .group_by(Contents.time, Contents.keyword)
+            .all()
+        )
+        # 결과를 원하는 형식으로 가공
+        paragraphs = {}
+        for row in result:
+            time, keyword = row
+            if time not in paragraphs:
+                paragraphs[time] = {"time": time, "keys": []}
+            paragraphs[time]["keys"].append(keyword)
+
+    # 결과 예시: 
+    # paragraphs = [{"time":454.33, "keys":["가족", "선물", "참여", "퀴즈"]}, {"time":594.355, "keys":["헬스장", "몸", "거울", "방해물"]}]
+    logger.debug(f"[image] 문단별 키워드를 읽어왔습니다: {paragraphs}")
+    return paragraphs
+
+
+# 번역!
+# 한글 -> 영어
+def translate_words(paragraphs):
+    import googletrans
+    translator = googletrans.Translator()
+
+    results = []
+    for data in paragraphs:
+        keys = data["keys"]
+        time = data["time"]
+        key_english = []
+        for key in keys:
+            english = translator.translate(key, dest='en')
+            key_english.append(english.text)
+        results.append({"time":time, "keys":" ".join(key_english)})
+
+    logger.debug(f"[image] 키워드를 번역했습니다: {results}")
+    return results
+
+
+
+
+# 이미지 생성 요청
+def t2i(prompt, negative_prompt):
+    r = requests.post(
+        'https://api.kakaobrain.com/v2/inference/karlo/t2i',
+        json = {
+            'prompt': prompt,
+            'negative_prompt': negative_prompt
+        },
+        headers = {
+            'Authorization': f'KakaoAK {REST_API_KEY}',
+            'Content-Type': 'application/json'
+        }
+    )
+    # 응답 JSON
+    response = json.loads(r.content)
+    return response
+
+
+def generate_image(broadcast, name, date, english_keywords):
+    # ex) input_data: [{'time': 454.33, 'keys': 'family gift Participation Quiz'}, {'time': 594.355, 'keys': 'gym body mirror impediments'}]
+        
+    done = []
+    for data in english_keywords:
+        time = data["time"]
+        prompt = data["keys"] + "as illustration style"
+        negative_prompt = "letter, speech bubble, out of frame, text, watermark, duplicate, pattern, cropped"
+
+        # 이미지 생성하기 by Kalro
+        response = t2i(prompt, negative_prompt)
+
+        # 응답의 첫 번째 이미지 생성 결과
+        result = Image.open(urllib.request.urlopen(response.get("images")[0].get("image")))
+        # result.show()
+        save_path = f"/section/info/{broadcast}/{name}/{date}/{time}"  # 이 경로는 이미지요청 라우트함수로, 새로 구현해야 한다. | 라우트함수의 리턴 이미지: /radio_storage/broadcast/name/date/time.jpg
+        result.save(save_path)
+
+        # 기존의 radio_section.json 데이터 생성
+        content = "ment"
+        time_range = f"[{time}:{time+10}]"  # 현상황: 문단 time은 start_time만 있고 end_time은 저장 안하는 상태임. 그런데, script에는 end_time이 없음. 일단 임의로 end_time 넣고 나중에 완성하고 생각하자. 그럼 sub2 로직도 검토해야 할 것임. 
+        other = save_path
+        done.append({"content":content, "time_range":time_range, "other":other})
+    
+    file_path = utils.get_path(broadcast, name, date) + "result/section.json"
+    try:
+        with open(file_path, 'r', encoding='utf-8') as json_file:
+            data = json.load(json_file)
+    except FileNotFoundError:
+        data = [] # 파일이 없을 경우 빈 리스트로 초기화
+ 
+    data.extend(done)
+
+    with open(file_path, 'w', encoding='utf-8') as json_file:
+        json.dump(data, json_file, ensure_ascii=False)
+
+    logger.debug(f"[image] section.json 저장 완료!")
+    
+    return
