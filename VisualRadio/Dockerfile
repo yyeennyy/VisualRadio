@@ -45,6 +45,7 @@ RUN pip install numpy --upgrade
 RUN pip install numba==0.55.2
 RUN pip install gensim==3.4.0
 RUN pip install transformers
+RUN pip install google-api-python-client
 
 
 # 두 번째 스테이지: 최종 이미지 설정
