@@ -55,35 +55,7 @@ class CustomBertModel(nn.Module):
         x = self.fc(x)
         return x
     
-def separateNotment(not_ment, json_data):
-    res = []
-    for ran in not_ment:
-        start = ran[0]
-        end = ran[1]
-        
-        json_start_time = None
-        json_past_start_time = 0
-        for item in json_data:
-            json_start_time = item['time']
-            if start <= json_start_time < end:
-                if json_past_start_time is not None and json_start_time is not None:
-                    res.append([json_past_start_time, json_start_time])
-                
-                json_past_start_time = json_start_time
-            elif json_start_time == end:
-                res.append([json_past_start_time, json_start_time])
-            else:
-                json_start_time = None
-                json_past_start_time = None
-    
-    if json_past_start_time is not None:
-        res.append([json_past_start_time, not_ment[-1][1]])
-    return res
-    
-def split_music_new(json_data, raw_not_ment):
-    
-    not_ment = separateNotment(raw_not_ment, json_data)
-    
+def split_music_new(json_data, not_ment):
     device = torch.device('cuda:1' if torch.cuda.is_available() else 'cpu')
 
     model_path = settings.MUSIC_MODEL_PATH
@@ -97,23 +69,18 @@ def split_music_new(json_data, raw_not_ment):
     predictor = CustomPredictor(bert, tokenizer, device)
 
     music_list = []
-    ad_list = []
     for start, end in not_ment:
-        logger.debug(f"[{start}, {end}]")
+        music_tmp_list = []
         for item in json_data:
             json_start_time = item['time']
-            json_txt = item['txt']
             
-            if json_start_time == start:
-                output = predictor.predict(json_txt)
-                logger.debug(f"json_txt: {json_txt}")
-                if output==0:
-                    music_list.append([start, end])
-                    logger.debug("노래입니다.")
-                else:
-                    ad_list.append([start, end])
-                    logger.debug("광고입니다.")
-    return music_list, ad_list
+            if(start <= json_start_time < end):
+                output = predictor.predict(item['txt'])
+                music_tmp_list.append(output)
+        if(np.mean(music_tmp_list) < 0.5):
+            music_list.append([start, end])
+            
+    return music_list
 
 def find_quiet_time(y, sr):
   # 주어진 스펙트로그램 데이터
@@ -184,7 +151,7 @@ def is_difference_valid(x, y):
 
 def split_music_origin(y, sr, not_ment):
     music_lst = []
-    ad_lst = []
+
     for ran in not_ment:
         start = ran[0]
         end = ran[1]
@@ -193,7 +160,5 @@ def split_music_origin(y, sr, not_ment):
 
         if(find_quiet_time(seg, sr)):
             music_lst.append(ran)
-        else:
-            ad_lst.append(ran)
-    return music_lst, ad_lst
+    return music_lst
 

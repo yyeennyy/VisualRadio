@@ -272,15 +272,14 @@ def split_cnn(broadcast, name, date, audio_holder):
     idx = 0 # enumerate같은 놈
     for target_section, mr in section_mr_origin_names:
         wav = sec_wav_list[idx][1]
-        name = sec_wav_list[idx][0]
         idx += 1
         
         # 멘트 split에서 넘겨주는 인자들이 바뀌었습니다. 이 외에도, 불필요한게 몇개 있어보이지만 이 부분은 추후 수정하겠습니다.
-        ment_range, content_section, not_ment = save_split(mr, name, split_ment, audio_holder)
+        ment_range, content_section, not_ment = save_split(mr, audio_holder.sr, split_ment, audio_holder.jsons)
         logger.debug(f"[split_cnn] {target_section} split ment 끝, split_music 시작")
         
         # 광고 분류할 때 있어서도, 넘겨주는 인자가 바뀌게 됩니다. 현재는 기존 분류기를 사용하고, 예은 stt 처리가 완료되면 밑에 주석처리된 것을 사용한다.
-        music_range, ad_range = split_music_origin(wav, audio_holder.sr, not_ment)
+        music_range = split_music_origin(wav, audio_holder.sr, not_ment)
         # music_range = split_music_new(audio_holder.jsons, not_ment)
         logger.debug(f"[split_cnn] {target_section} split_music 끝")
         
@@ -314,24 +313,13 @@ def split_cnn(broadcast, name, date, audio_holder):
             
             start_time = f"{int(start) // 60}:{int(start) % 60:02d}.{ms_start}"
             end_time = f"{int(end) // 60}:{int(end) % 60:02d}.{ms_end}"
-            past_type = None
-            pleaseDealWith = False
+            
             if range_list in real_ment_range:
                 item = {"start_time": str(start_time), "end_time": str(end_time), "type": 0}
-                past_type = 0
             elif range_list in music_range:
                 item = {"start_time": str(start_time), "end_time": str(end_time), "type": 1}
-                past_type = 0
-            elif range_list in ad_range:
-                item = {"start_time": str(start_time), "end_time": str(end_time), "type": 2}
-                past_type = 0
             else:
-                # 완전 처음 : 만약 whipser가 3초부터 시작하면, 0~3초는 그냥 멘트라고 생각.
-                if(past_type is None):
-                    item = {"start_time": str(start_time), "end_time": str(end_time), "type": 0}
-                else:
-                    item = {"start_time": str(start_time), "end_time": str(end_time), "type": past_type}
-                    
+                item = {"start_time": str(start_time), "end_time": str(end_time), "type": 2}
             content_section_list.append(item)
         
         ment_start_times = []

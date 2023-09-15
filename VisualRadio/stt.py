@@ -231,7 +231,7 @@ def all_stt(audio_holder):
     # ▼ 각 txt의 time을 재조정(누적)하여 scripts에 추가한다.
     script = []
     cumulative_time = 0
-    for stt in stt_sorted: 
+    for stt in stt_sorted:
         for content in stt["contents"]:
             if content[0] != '':
                 time = float(content[0]) + float(cumulative_time)
@@ -240,14 +240,7 @@ def all_stt(audio_holder):
             else:
                 logger.debug(f"[check] {type(content)}")
                 logger.debug(f"[check] content[0]가 0인 경우는 뭐지? {content}")
-        tmp = []
-        tmp.append(stt["name"])
-        tmp.append(cumulative_time)
         cumulative_time += stt["duration"]
-        tmp.append(cumulative_time)
-        audio_holder.durations.append(tmp)
-    
-    
 
     # step2) rescripting (=> make a long sentence well..)
     final_script = []
@@ -269,8 +262,7 @@ def all_stt(audio_holder):
             start_flag = True
 
     audio_holder.jsons = final_script
-    audio_holder.jsons.append([{"time":cumulative_time, "txt": ""}])
-    logger.debug(f"[stt] 전체 stt를 audio_holder.jsons 등록했습니다.")  # 변수명 jsons 대신에 whole_stt 어때요? 하고싶은대로 하셔요
+    logger.debug(f"[stt] 전체 stt를 audio_holder.jsons 등록했습니다.")  # 변수명 jsons 대신에 whole_stt 어때요?
     logger.debug(f"[stt] {audio_holder.jsons}")
     return audio_holder
 
@@ -303,7 +295,7 @@ def all_stt_whisper(name, audio, sr, stt_results, device):
         if element == results['segments'][-1]: # 만약 마지막 요소인 경우 누적된 문자열을 append하고 종료한다.
             logger.debug(f"[check] {name} | {t}")
             sentences.append([t, s.strip()])
-            break
+            break;
         if len(txt) == 0:
             continue
         if start_flag:

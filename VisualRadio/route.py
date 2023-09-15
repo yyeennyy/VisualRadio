@@ -41,7 +41,6 @@ class AudioHolderToArray:
         self.sum = []
         self.sum_mrs = [] # 5분 단위로 쪼갠 음성을 합쳐줍니다.
         self.jsons = [] # 가장 먼저 진행되는 json들을 넣어줍니다. 이 때, time 속성은 초단위!!
-        self.durations = [] # 각 음성의 길이를 whisper가 인식한대로 저장합니다. [ [이름, 시작시간, 끝시간], ...]
     
     def set_audio_info(self):
         logger.debug("[AudioHolderToArray] setting..")
