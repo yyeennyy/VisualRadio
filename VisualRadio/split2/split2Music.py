@@ -57,6 +57,9 @@ class CustomBertModel(nn.Module):
     
 def separateNotment(not_ment, json_data):
     res = []
+    if(len(not_ment)==0):
+        return not_ment
+    
     for ran in not_ment:
         start = ran[0]
         end = ran[1]
@@ -84,7 +87,8 @@ def split_music_new(json_data, raw_not_ment):
     
     not_ment = separateNotment(raw_not_ment, json_data)
     
-    device = torch.device('cuda:1' if torch.cuda.is_available() else 'cpu')
+    # device = torch.device('cuda:1' if torch.cuda.is_available() else 'cpu')
+    device = torch.device('cpu')
 
     model_path = settings.MUSIC_MODEL_PATH
     CHECKPOINT_NAME = settings.CHECKPOINT_NAME
