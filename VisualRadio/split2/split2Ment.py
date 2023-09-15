@@ -169,23 +169,28 @@ def drop_doubt_ad(time_range, sec):
             res.append(i)
     return res
 
-# 가장 먼저 진행한 stt의 구간에 맞게 멘트 구간을 조정합니다.
+def add_length_list(list, length):
+    for i in list:
+        i[0] += length
+        i[1] += length
+    return list
+
 def adjust_json_data(json_data, intervals):
     adjusted_data = []
     
     for start, end in intervals:
         start_time = None
         end_time = None
-        past_start_time = None
+        past_start_time = 0
         for item in json_data:
             json_start_time = item['time']
             
             # 시작시간을 stt가 나눈 시작 시간으로 매핑합니다.
-            if start_time is None and past_start_time is not None and past_start_time <= start <= json_start_time:
+            if start_time is None and past_start_time is not None and past_start_time <= start < json_start_time:
                 start_time = past_start_time
                 
             # 종료시간을 stt가 나눈 이전 시작 시간으로 매핑합니다.
-            if end_time is None and past_start_time is not None and past_start_time <= end <= json_start_time:
+            if end_time is None and past_start_time is not None and past_start_time < end <= json_start_time:
                 end_time = json_start_time
             
             # start와 end가 정해지면 append하고 반복을 종료합니다.
@@ -194,7 +199,9 @@ def adjust_json_data(json_data, intervals):
                 break
                 
             past_start_time = json_start_time
-
+        # 즉, stt구간은 시작시간이므로 마지막 시간이 나와있지 않다. 이러한 부분은 여기서 처리해준다.
+        # 멘트라고 판단된 구간이 stt의 제일 마지막 문단 뒤에 하나만 존재할 보장은 없다. 따라서 처음부터 다시 탐색하는 것이 좋다.
+        
     return adjust_intervals(adjusted_data) # 마지막으로 구간 다듬기까지!
 
 def adjust_intervals(intervals):
@@ -218,10 +225,9 @@ def adjust_intervals(intervals):
 
     return adjusted_intervals
 
-# 여기에 광고 구간을 쳐내는 로직이 들어가면 딱인데...
-def extract_not_ment(ment_range, length):
+def extract_not_ment(ment_range, start_time, end_time):
     if len(ment_range) == 0:
-        return [[0, length]]
+        return [[start_time, end_time]]
     
     # 구간 시작점을 기준으로 정렬
     ment_range.sort(key=lambda x: x[0])
@@ -229,9 +235,9 @@ def extract_not_ment(ment_range, length):
     # 결과 리스트 초기화
     result = []
 
-    # 첫 번째 구간의 시작점이 0보다 크다면, 0부터 첫 번째 구간의 시작점까지의 빈 구간 추가
-    if ment_range[0][0] > 0:
-        result.append([0.0, ment_range[0][0]])
+    # 첫 번째 구간의 시작점이 start_time보다 크다면, start_time부터 첫 번째 구간의 시작점까지의 빈 구간 추가
+    if ment_range[0][0] > start_time:
+        result.append([start_time, ment_range[0][0]])
 
     # 구간들 사이의 빈 구간을 찾기
     for i in range(1, len(ment_range)):
@@ -242,8 +248,8 @@ def extract_not_ment(ment_range, length):
 
     # 마지막 구간의 끝점이 리스트의 길이보다 작다면, 마지막 구간의 끝점부터 리스트의 길이까지의 빈 구간 추가
     last_end = ment_range[-1][1]
-    if last_end < length:
-        result.append([last_end, length])
+    if last_end < end_time:
+        result.append([last_end, end_time])
 
     return result
 
@@ -252,20 +258,38 @@ def merge_and_sort_ranges(range_list1, range_list2):
     sorted_ranges = sorted(merged_ranges, key=lambda x: x[0])
     return sorted_ranges
 
-def save_split(audio, sr, split_ment, json_data): # 섹션마다의 길이를 누적해서 더해줘야함!
+def search_legth(audio_holder, name):
+    for tmp_list in audio_holder.durations:
+        audio_holder_name = tmp_list[0]
+        start_time = tmp_list[1]
+        end_time = tmp_list[2]
+        
+        if audio_holder_name == name:
+            return start_time, end_time
+        
+    
+
+def save_split(audio, name, split_ment, audio_holder): # 섹션마다의 길이를 누적해서 더해줘야함!
+    sr = audio_holder.sr
+    json_data = audio_holder.jsons
+    
+    start_time, end_time = search_legth(audio_holder, name)
+    
     ment_range = find_voice(audio, sr)
     real_ment = model_predict(audio, sr, ment_range, split_ment)
     real_ment_time = divide_all_elements(real_ment, sr)
     merged_real_ment_time = merge_intervals(real_ment_time, 10)
     ment_without_ad = drop_doubt_ad(merged_real_ment_time, 10) # 20초로 하는게 좋아보임!
-    adjust_ment = adjust_json_data(json_data, ment_without_ad)
-    not_ment = extract_not_ment(adjust_ment, len(audio)/sr)
+    
+    # stt로 맞춰야해서 여기 구간조차도 stt에 맞아야함. 즉, 무조건 모든 sec_n 음성이 0부터 시작하면 안됨.
+    real_ment_without_ad = add_length_list(ment_without_ad, start_time) 
+    
+    # 여기에, 우선 ment_without_ad가 들어와야햠.
+    adjust_ment = adjust_json_data(json_data, real_ment_without_ad)
+    not_ment = extract_not_ment(adjust_ment, start_time, end_time)
     all_range = merge_and_sort_ranges(adjust_ment, not_ment)
 
 
     logger.debug(f"not_ment : {not_ment}")
-    
-    for idx, segment in enumerate(ment_without_ad):
-        logger.debug(f"Segment {idx} ★")
         
     return adjust_ment, all_range, not_ment # content_range
