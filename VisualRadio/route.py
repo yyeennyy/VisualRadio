@@ -209,68 +209,61 @@ def process_audio_file(broadcast, name, date):
         try:
             # start!
             s_time = time.time()
-
-            # audio split
-            if not process.split1_:
-                services.split(broadcast, name, date, audio_holder)  # audio_holder: sum, splits, sr
-                process.set_split1()
-                process.set_sum()
-                commit(process)
-            else:
-                logger.debug("[split1] pass")
-            if len(audio_holder.splits) == 0 or len(audio_holder.sum) == 0 or audio_holder.sr == 0:
-                audio_holder.set_audio_info()
-                process.set_sum()
-                commit(process)
-            # utils.rm(os.path.join(storage, "raw.wav"))
             
-            if not process.split2_:
-                # mr 제거
-                services.remove_mr(audio_holder)
-                clean_gpu()
-                # mr 제거한 음성 대상으로 stt 돌리기
-                stt.all_stt(audio_holder)
-                clean_gpu()
-                # cnn 분류기 돌리기
-                services.split_cnn(broadcast, name, date, audio_holder)
-                clean_gpu()
-                process.set_split2()
-                commit(process)
-                # script.json 얻기 (앞 분류기 이후 Wav.radio_section이 등록된 상태)
-                ment_start_end = stt.get_stt_target(broadcast, name, date)
-                stt.save_ment_script(broadcast, name, date, audio_holder, ment_start_end)
-                # 사실 이 부분은 필요 없어지지만, 추후 array와 file을 둘 다 구현해주어 선택할 수 있게 할 예정이므로 남겨둡니다.
 
+            # # audio split
+            # services.split(broadcast, name, date, audio_holder)  # audio_holder: sum, splits, sr
+            # process.set_split1()
+            # process.set_sum()
+            # commit(process)
+            # logger.debug("[split1] pass")
+            # audio_holder.set_audio_info()
+            # process.set_sum()
+            # commit(process)
+            # # utils.rm(os.path.join(storage, "raw.wav"))
 
-                # Contents테이블에 "문단분류 & 키워드 가중치 저장" 테스트
-                logger.debug(f"[contents] Contents 테이블에 문단분류 결과를 저장합니다. 그리고!")
-                logger.debug(f"[contents] Contents 테이블에 keyword와 weight를 저장합니다.")
-                script_path = utils.script_path(broadcast, name, date)
-                chunks, keywords, chunks_time = paragraph.compose_paragraph(script_path)
-            
-                # 문단별로 각각 keyword를 저장.. (빈 리스트일 수도 O)
-                for idx in range(len(chunks)):
-                    chunk = chunks[idx]
-                    keys = keywords[idx]
-                    chunk_time = chunks_time[idx]
-                    for data in keys:
-                        key = data["keyword"]
-                        weight = data["weight"]
-                        db.session.add(Contents(broadcast=broadcast, radio_name=name, radio_date=date, time=chunk_time, content=chunk, keyword=key, weight=weight, link=None))  # link 이제 필요 없을 것 같쥐? (naver api 사용해서 키워드 이미지 link 뽑아온거)
-                    db.session.commit()
-                    
-                # 이미지 생성
-                paragraphs = paragraph.get_paragraph_info(broadcast, name, date) # 문단 time별 키워드 가져오기
-                english_keywords = paragraph.translate_words(paragraphs)         # 키워드를 영어로 전환
-                paragraph.generate_image(broadcast, name, date, english_keywords) # 이미지 생성 후 section.json에 저장완료까지 함
+            # # mr 제거
+            # services.remove_mr(audio_holder)
+            # clean_gpu()
+            # # mr 제거한 음성 대상으로 stt 돌리기
+            # stt.all_stt(audio_holder)
+            # clean_gpu()
+            # # cnn 분류기 돌리기
+            # services.split_cnn(broadcast, name, date, audio_holder)
+            # clean_gpu()
+            # process.set_split2()
+            # commit(process)
+            # # script.json 얻기 (앞 분류기 이후 Wav.radio_section이 등록된 상태)
+            # ment_start_end = stt.get_stt_target(broadcast, name, date)
+            # stt.save_ment_script(broadcast, name, date, audio_holder, ment_start_end)
+            # # 사실 이 부분은 필요 없어지지만, 추후 array와 file을 둘 다 구현해주어 선택할 수 있게 할 예정이므로 남겨둡니다.
+            # # utils.rm(os.path.join(storage, "mr_wav"))
+            # # utils.rm(os.path.join(storage, "tmp_mr_wav"))
 
+            # -------------------------------------------------------------------- 이제 script.json이 존재합니다.
+            # Contents테이블에 "문단분류 & 키워드 가중치 저장" 테스트
+            # script.json이 만들어졌다면, 이전 과정은 주석처리해도 됩니다.
 
-
-
-                utils.rm(os.path.join(storage, "mr_wav"))
-                utils.rm(os.path.join(storage, "tmp_mr_wav"))
-            else:
-                logger.debug("[split2] pass")
+            logger.debug(f"[contents] Contents 테이블에 문단분류 결과를 저장합니다. 그리고!")
+            logger.debug(f"[contents] Contents 테이블에 keyword와 weight를 저장합니다.")
+            script_path = utils.script_path(broadcast, name, date)
+            chunks, keywords, chunks_time = paragraph.compose_paragraph(script_path)
+        
+            # 문단별로 각각 keyword를 저장.. (빈 리스트일 수도 O)
+            for idx in range(len(chunks)):
+                chunk = chunks[idx]
+                keys = keywords[idx]
+                chunk_time = chunks_time[idx]
+                for data in keys:
+                    key = data["keyword"]
+                    weight = data["weight"]
+                    db.session.add(Contents(broadcast=broadcast, radio_name=name, radio_date=date, time=chunk_time, content=chunk, keyword=key, weight=weight, link=None))  # link 이제 필요 없을 것 같쥐? (naver api 사용해서 키워드 이미지 link 뽑아온거)
+                db.session.commit()
+                
+            # 이미지 생성
+            paragraphs = paragraph.get_paragraph_info(broadcast, name, date) # 문단 time별 키워드 가져오기
+            english_keywords = paragraph.translate_words(paragraphs)         # 키워드를 영어로 전환
+            paragraph.generate_image(broadcast, name, date, english_keywords) # 이미지 생성 후 section.json에 저장완료까지 함
 
             # text processing
             # - 기존: split한 wav파일의 duraion을 파악해서 time정보를 직접 계산했음
