@@ -71,24 +71,19 @@ def remove_mr_to_array(audio_holder, duration=int(600/2)):
         wav_reshape = np.reshape(seg_mr[1], (-1, 1))
         mr_targets.append([seg_name, wav_reshape])
 
-    # removing process in MrRemover!
+    # remove mr! -------------------------------------------------
     mr_remover.input_mrs = mr_targets
-
     for target in mr_remover.input_mrs:
         name = target[0]
         audio = target[1]
         logger.debug(f"[mr제거] {name}.. 오디오 길이 {len(audio)}")
         y = mr_remover.separator.separate(audio) # 오래 걸리는 작업
         vocal = y['vocals'] 
-        logger.debug(f"[mr제거] {name}.. 추출된 vocals 길이 {len(vocal)}")
         mono_data = np.mean(vocal, axis=1)
-        logger.debug(f"[mr제거] {name}.. 만들어진 mono_data 길이 {len(mono_data)}")
         mr_remover.split_mrs.append([name, mono_data])
-        logger.debug(f"[mr제거] 완료되었습니다. spleeter객체를 초기화해볼게요!") # mr제거 결과가 하나씩 밀리는 문제를 객체초기화로 해결!
         mr_remover.separator = Separator('spleeter:2stems')
     del mr_remover.separator
     gc.collect()
-
     #--------------------------------------------------------------
     
     section_wav__names = mr_remover.split_mrs
@@ -105,23 +100,17 @@ def remove_mr_to_array(audio_holder, duration=int(600/2)):
                 continue
             r2name = name.split("-")[0]
             if(r2name == rname):
-                logger.debug(f"{fname}과 {name}이 같습니다.")
-                logger.debug(f"other_wav.shape : {other_wav.shape}")
                 x = np.concatenate((x, other_wav), axis=0)
         direct = f"{rname}.wav"
+        
         # 임시 변경 : whisper의 timestamp문제를 해결하고자, 기존 array audio가 아닌 wav로 whisper의 오디오파일 파라미터로 넣겠습니다.
         import soundfile as sf
         sf.write(direct, x, audio_holder.sr)
         # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # 
-        logger.debug(f"[mr제거] {direct}의 길이는 {x.shape}이고 sr은 {audio_holder.sr}입니다.")
+
         audio_holder.sum_mrs.append([direct, x])
         name_list.append(direct)
     
-    # print(audio_holder.sum_mrs)
-    logger.debug("끝, 이 전에 긴 문장이 나와야해여")
-    logger.debug(f"audio_holder.sum_mrs : {audio_holder.sum_mrs}")
-    # print(mr_remover.name_list)
-    # audio_holder.sr = int(audio_holder.sr/2)
     mr_remover = None
     gc.collect()
     return
