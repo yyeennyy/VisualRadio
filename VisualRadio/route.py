@@ -13,7 +13,7 @@ import utils
 import stt
 import settings as settings
 import time
-from models import Process, Wav
+from models import Process, Wav, Contents
 from natsort import natsorted
 import librosa
 import numpy as np
@@ -240,6 +240,33 @@ def process_audio_file(broadcast, name, date):
                 ment_start_end = stt.get_stt_target(broadcast, name, date)
                 stt.save_ment_script(broadcast, name, date, audio_holder, ment_start_end)
                 # 사실 이 부분은 필요 없어지지만, 추후 array와 file을 둘 다 구현해주어 선택할 수 있게 할 예정이므로 남겨둡니다.
+
+
+                # Contents테이블에 "문단분류 & 키워드 가중치 저장" 테스트
+                logger.debug(f"[contents] Contents 테이블에 문단분류 결과를 저장합니다. 그리고!")
+                logger.debug(f"[contents] Contents 테이블에 keyword와 weight를 저장합니다.")
+                script_path = script_path(broadcast, name, date)
+                chunks, keywords, chunks_time = paragraph.compose_paragraph(script_path)
+            
+                # 문단별로 각각 keyword를 저장.. (빈 리스트일 수도 O)
+                for idx in range(len(chunks)):
+                    chunk = chunks[idx]
+                    keys = keywords[idx]
+                    chunk_time = chunks_time[idx]
+                    for data in keys:
+                        key = data["keyword"]
+                        weight = data["weight"]
+                        db.session.add(Contents(broadcast=broadcast, radio_name=name, radio_date=date, time=chunk_time, content=chunk, keyword=key, weight=weight, link=None))  # link 이제 필요 없을 것 같쥐? (naver api 사용해서 키워드 이미지 link 뽑아온거)
+                    db.session.commit()
+                    
+                # 이미지 생성
+                paragraphs = paragraph.get_paragraph_info(broadcast, name, date) # 문단 time별 키워드 가져오기
+                english_keywords = paragraph.translate_words(paragraphs)         # 키워드를 영어로 전환
+                paragraph.generate_image(broadcast, name, date, english_keywords) # 이미지 생성 후 section.json에 저장완료까지 함
+
+
+
+
                 utils.rm(os.path.join(storage, "mr_wav"))
                 utils.rm(os.path.join(storage, "tmp_mr_wav"))
             else:
