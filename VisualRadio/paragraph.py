@@ -77,6 +77,7 @@ def load_script(script_file):
     return sentences, sentences_time
 
 def extract_keywords(sentences, sentences_time, vectorizer, tokenizer):
+    tokenizer = Okt()
     target = ['Noun']
     document = []  
 
@@ -153,6 +154,8 @@ def extract_keywords(sentences, sentences_time, vectorizer, tokenizer):
     return chunks, chunks_time
 
 def extract_tfidf_keywords(chunks, vectorizer):
+    tokenizer = Okt()
+
     target = ['Noun']
     new_chunks = []
 
@@ -283,7 +286,7 @@ def start_extract_image(broadcast, name, date, chunks, chunks_time, keywords):
     return
 
 
-# ---------------- 멘트 컨텐츠를 위한 함수 ----------------
+# ---------------- 멘트 컨텐츠를 위한 함수 -------------------------------------------------------------------
 import requests
 import json
 import urllib
@@ -306,13 +309,15 @@ def get_paragraph_info(broadcast, name, date):
         # 결과를 원하는 형식으로 가공
         paragraphs = {}
         for row in result:
-            time, keyword = row
+            time = row[0]
+            keyword = row[1]
             if time not in paragraphs:
-                paragraphs[time] = {"time": time, "keys": []}
-            paragraphs[time]["keys"].append(keyword)
+                paragraphs[time] = []
+            else:
+                paragraphs[time].append(keyword)
 
-    # 결과 예시: 
-    # paragraphs = [{"time":454.33, "keys":["가족", "선물", "참여", "퀴즈"]}, {"time":594.355, "keys":["헬스장", "몸", "거울", "방해물"]}]
+    # 결과 예시: time이 키고 keyword리스트가 값인 딕셔너리
+    # paragraphs = {454.33:["가족", "선물", "참여", "퀴즈"], 594.355:["헬스장", "몸", "거울", "방해물"]}
     logger.debug(f"[image] 문단별 키워드를 읽어왔습니다: {paragraphs}")
     return paragraphs
 
@@ -320,24 +325,38 @@ def get_paragraph_info(broadcast, name, date):
 # 번역!
 # 한글 -> 영어
 def translate_words(paragraphs):
+    logger.debug("[image] 키워드를 영번역중.. 좀 오래 걸려요..")
     import googletrans
     translator = googletrans.Translator()
+    translator.raise_Exception = True
 
+    # 전체 키워드 수 계산해보기 (쓸모없지만 진행상황 보려고)##############
+    total_cnt = 0
+    for para_time in paragraphs:
+        total_cnt += len(paragraphs[para_time])
+    ##################################################################
+
+    done_cnt = 0
     results = []
-    for data in paragraphs:
-        keys = data["keys"]
-        time = data["time"]   
+    memo = {} # 메모이제이션 적용 (번역속도가 아주 느리기 때문)
+    for para_time in paragraphs:
+        keywords = paragraphs[para_time]
         key_english = []
-        for key in keys:
-            english = translator.translate(key, dest='en')
-            key_english.append(english.text)
-        results.append({"time":time, "keys":" ".join(key_english)})
+        for key in keywords:
+            if key in memo:
+                english = memo[key]
+            else:
+                english = translator.translate(key, dest='en').text
+                memo[key] = english
+            key_english.append(english)
+            done_cnt += 1
+        time.sleep(0.4) # Google Translate HTTP Error 429 too many requests를 피하기 위한 sleep
+        results.append({"time":para_time, "keys":" ".join(key_english)})
+        logger.debug(f"[image] 번역중.. {round(done_cnt/total_cnt*100, 2)}%")
 
-    logger.debug(f"[image] 키워드를 번역했습니다: {results}")
+
+    logger.debug(f"[image] (드디어) 키워드를 번역했습니다: {results}")
     return results
-
-
-
 
 # 이미지 생성 요청
 def t2i(prompt, negative_prompt):
@@ -356,29 +375,30 @@ def t2i(prompt, negative_prompt):
     response = json.loads(r.content)
     return response
 
-
 def generate_image(broadcast, name, date, english_keywords):
     # ex) input_data: [{'time': 454.33, 'keys': 'family gift Participation Quiz'}, {'time': 594.355, 'keys': 'gym body mirror impediments'}]
         
     done = []
+    cnt = 0
     for data in english_keywords:
-        time = data["time"]
-        prompt = data["keys"] + "as illustration style"
+        time = float(data["time"])
+        prompt = data["keys"] + " as illustration style."
         negative_prompt = "letter, speech bubble, out of frame, text, watermark, duplicate, pattern, cropped"
 
         # 이미지 생성하기 by Kalro
         response = t2i(prompt, negative_prompt)
+        cnt += 1
+        logger.debug(f"[image] 이미지 생성 완료 {round(cnt/len(english_keywords)*100, 2)}% --- {time}")
 
         # 응답의 첫 번째 이미지 생성 결과
         result = Image.open(urllib.request.urlopen(response.get("images")[0].get("image")))
         # result.show()
-        save_path = f"/section/info/{broadcast}/{name}/{date}/{time}"  # 이 경로는 이미지요청 라우트함수로, 새로 구현해야 한다. | 라우트함수의 리턴 이미지: /radio_storage/broadcast/name/date/time.jpg
-        result.save(save_path)
+        result.save(utils.checkdir(utils.get_path(broadcast, name, date) + f"para_img/{time}.jpg"))
 
         # 기존의 radio_section.json 데이터 생성
         content = "ment"
         time_range = f"[{time}:{time+10}]"  # 현상황: 문단 time은 start_time만 있고 end_time은 저장 안하는 상태임. 그런데, script에는 end_time이 없음. 일단 임의로 end_time 넣고 나중에 완성하고 생각하자. 그럼 sub2 로직도 검토해야 할 것임. 
-        other = save_path
+        other = f"/section/info/{broadcast}/{name}/{date}/{time}"  # 이 경로는 이미지요청 라우트함수로, 새로 구현해야 한다. | 라우트함수의 리턴 이미지: /radio_storage/broadcast/name/date/time.jpg
         done.append({"content":content, "time_range":time_range, "other":other})
     
     file_path = utils.get_path(broadcast, name, date) + "result/section.json"
