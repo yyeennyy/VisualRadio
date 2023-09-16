@@ -351,7 +351,7 @@ def translate_words(paragraphs):
             key_english.append(english)
             done_cnt += 1
         time.sleep(0.4) # Google Translate HTTP Error 429 too many requests를 피하기 위한 sleep
-        results.append({"time":para_time, "keys":" ".join(key_english)})
+        results.append({"time":para_time, "keys":", ".join(key_english)})
         logger.debug(f"[image] 번역중.. {round(done_cnt/total_cnt*100, 2)}%")
 
 
@@ -382,8 +382,12 @@ def generate_image(broadcast, name, date, english_keywords):
     cnt = 0
     for data in english_keywords:
         time = float(data["time"])
-        prompt = data["keys"] + " as illustration style."
-        negative_prompt = "letter, speech bubble, out of frame, text, watermark, duplicate, pattern, cropped"
+        keys = data["keys"]
+        if keys=="" or keys==" ":
+            logger.debug(f"[키 없음] {keys}")
+            continue
+        prompt = data["keys"] + ", illustration style, drawing, painting"
+        negative_prompt = "letter, speech bubble, out of frame, text, watermark, duplicate, pattern, cropped, reality"
 
         # 이미지 생성하기 by Kalro
         response = t2i(prompt, negative_prompt)
@@ -393,7 +397,7 @@ def generate_image(broadcast, name, date, english_keywords):
         # 응답의 첫 번째 이미지 생성 결과
         result = Image.open(urllib.request.urlopen(response.get("images")[0].get("image")))
         # result.show()
-        result.save(utils.checkdir(utils.get_path(broadcast, name, date) + f"para_img/{time}.jpg"))
+        result.save(utils.checkdir(utils.get_path(broadcast, name, date) + f"para_img/{time}_{prompt}.jpg"))
 
         # 기존의 radio_section.json 데이터 생성
         content = "ment"
