@@ -186,7 +186,11 @@ def save_ment_script(broadcast, name, date, audio_holder, ment_start_end):
     for txt_info in scripts:
         time = txt_info['time']
         if is_ment(time, ment_start_end):
-            logger.debug(f"아래의 부분은 멘트입니다. : {txt_info['txt']}")
+            txt = txt_info['txt']
+            fine_txt = remove_repeated(txt)
+            fine_txt = remove_repeated_one_letter(fine_txt)
+            logger.debug(f"아래의 부분은 멘트입니다. : {fine_txt}")
+            txt_info['txt'] = fine_txt
             results.append(txt_info)
     utils.save_json(results, utils.script_path(broadcast, name, date))
     logger.debug(f"[stt] script.json 저장 완료")  # 기존 후반부에 있던 stt과정이 필요없어진다.
@@ -330,3 +334,61 @@ def all_stt_whisper(name, audio, sr, stt_results, device):
 
     stt_results.append(stt_data)
     return
+
+
+import re
+
+
+# 공백으로 분리된 문자의 반복 제거
+def remove_repeated(text, split_point=" ", threshold=5):
+    word_list = text.split(split_point)
+    repeat_cnt = [0] * len(word_list)
+    prev = word_list[0]
+    cnt = 0
+    for i, word in enumerate(word_list[1:]):
+        idx = i + 1
+        if word == prev:
+            cnt += 1
+            continue
+        repeat_cnt[idx-1] = cnt + 1
+        prev = word
+        cnt = 0
+    new_list = []
+    for idx, dup in enumerate(repeat_cnt):
+        if dup == 0:
+            if idx == len(repeat_cnt) - 1:
+                new_list.append(word_list[idx])
+                break 
+            continue
+        if dup >= threshold:
+            new_list.append(word_list[idx])
+        else:
+            new_list.extend(word_list[idx-dup+1:idx+1])
+
+    return " ".join(new_list)
+
+# 공백으로 분리되지 않은 글자(한글자) 반복 제거
+def remove_repeated_one_letter(text, threshold=5):
+    word_list = text.split(" ")
+    new_list = []
+    for word in word_list:
+        word
+        prev = ""
+        target = ""
+        cnt = 0
+        dup_flag = False
+        for letter in word:
+            if letter == prev:
+                target = letter
+                cnt += 1
+            if cnt >= threshold:
+                word = word.replace(target, "")  #과감히 삭제
+                if not len(word) == 0:
+                    new_list.append(word)
+                dup_flag = True
+                break;
+            prev = letter
+        if not dup_flag:
+            new_list.append(word)
+        
+    return " ".join(new_list)
