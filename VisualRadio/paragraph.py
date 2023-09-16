@@ -8,23 +8,16 @@ import settings as settings
 from VisualRadio import CreateLogger
 logger = CreateLogger("paragraph")
 
-# 벡터화 도구
-from sklearn.feature_extraction.text import TfidfVectorizer
-vectorizer = TfidfVectorizer(min_df=1, decode_error='ignore')
-from scipy.sparse import csr_matrix
 import scipy as sp
+from sklearn.feature_extraction.text import TfidfVectorizer
+from scipy.sparse import csr_matrix
+import konlpy
+from konlpy.tag import Okt
+from gensim.models import Word2Vec
+
 def distance_of_vectors(v1, v2):
     delta = v1 - v2
     return sp.linalg.norm(delta.toarray())
-
-# 형태소 분석기 - Okt를 선택 (고유명사를 더 잘 보존)
-import konlpy
-from konlpy.tag import Okt
-tokenizer = Okt()
-
-# 연관어 추출기
-from gensim.models import Word2Vec
-model = Word2Vec.load('VisualRadio/ko.bin')
 
 # 라디오 전용 불용어
 stop_words = [
@@ -68,23 +61,25 @@ import json
 import utils
 import traceback
 import time
+import json
 
-def compose_paragraph(broadcast, name, date):
-# 작업0: 스크립트 불러오기
-    # 스크립트 
+def load_script(script_file):
     sentences = []
     sentences_time = []
+
     # JSON 파일을 읽기 모드로 열기
-    with open(utils.script_path(broadcast, name, date), 'r') as json_file:
+    with open(script_file, 'r') as json_file:
         ex = json.load(json_file)
         for e in ex:
             sentences.append(e['txt'])
             sentences_time.append(e['time'])
 
-    # 작업1: 원하는 형태소만 남긴다 (처리를 위해)
+    return sentences, sentences_time
+
+def extract_keywords(sentences, sentences_time, vectorizer, tokenizer):
     target = ['Noun']
     document = []  
-    indexs = []       
+
     for idx, row in enumerate(sentences):
         line = ''
         words = tokenizer.pos(row)
@@ -95,56 +90,22 @@ def compose_paragraph(broadcast, name, date):
             # print(f"[형태소 없음] {row}")
             continue
         document.append(line.strip()) 
-        indexs.append(idx)
 
-    # 작업2: 연관 단어를 추가! (등장했다고 가정하는 셈)
-    # word_set = get_word_set(document)
-    # new_document = []
-    # for sentence in document:
-    #     new_sentence = []
-    #     for w in sentence.split(" "):
-    #         new_sentence.append(w)
-    #         try:
-    #             sim = model.wv.most_similar(w)
-    #             new_sentence.extend([element[0] for element in sim if element[1] > 0.7 and element[0] in word_set and element[0] != word][:2])
-    #         except:
-    #             pass
-    #     new_document.append(" ".join(new_sentence).strip())
-
-    # document = new_document
-    # print(document)
-
-    # 작업3: 문장의 벡터화
     vectorized = vectorizer.fit_transform(document)
-    # print("sentenses & tokens :", vectorized.shape[0], "&", vectorized.shape[1])
 
-    # 작업3-1: 벡터값 조정
-    # new_vectorized = []
-    # for v in vectorized.toarray():
-    #     top_indices = np.argsort(v)[-9:]
-    #     result_vector = np.zeros_like(v)
-    #     # 상위 값은 그대로, 나머지는 0으로 설정
-    #     result_vector[top_indices] = v[top_indices]
-    #     new_vectorized.append(result_vector)
-    # print("벡터값 k개 미만으로 조정 완료 (연관된 문장인데도 단어수가 차이나서 distance가 증가되는 것을 방지 | 또는 연관 안된 문장인데도 단어수가 많아서 착각하는 것 방지)")
-    # vectorized = csr_matrix(new_vectorized)
-
-    # 작업4: 문단 인식 시작
     num_of_sentences = vectorized.shape[0]
     visit = [False] * len(sentences)
     chunks = []
     chunks_time = []
     chunk = ''
-
-    # vectorized를 기반으로 유사한 문장끼리 문단 묶기 시작!
-    i = 0
     th = 1.4
+
+    i = 0
     while i < num_of_sentences:
         if len(chunk) == 0:
-            chunks_time.append(sentences_time[indexs[i]])
-        if not visit[indexs[i]]:
-            chunk += " ▶ " + sentences[indexs[i]]
-            # print(sentences[indexs[i]])
+            chunks_time.append(sentences_time[i])
+        if not visit[i]:
+            chunk += " ▶ " + sentences[i]
 
         now = vectorized.getrow(i)
 
@@ -160,23 +121,23 @@ def compose_paragraph(broadcast, name, date):
 
         if i+3 < num_of_sentences:
             if d1 < th and d3 > th-0.1:
-                chunk += " ▶ " + sentences[indexs[i+1]]
-                visit[indexs[i+1]] = True
+                chunk += " ▶ " + sentences[i+1]
+                visit[i+1] = True
                 i += 1
             elif d2 < th and d3 > th-0.1:
-                chunk += " ▶ " + sentences[indexs[i+1]]
-                chunk += " ▶ " + sentences[indexs[i+2]]
-                visit[indexs[i+1]] = True
-                visit[indexs[i+2]] = True
+                chunk += " ▶ " + sentences[i+1]
+                chunk += " ▶ " + sentences[i+2]
+                visit[i+1] = True
+                visit[i+2] = True
                 i += 2
             else:
                 if d3 <= th-0.1:
-                    chunk += " ▶ " + sentences[indexs[i+1]]
-                    chunk += " ▶ " + sentences[indexs[i+2]]
-                    chunk += " ▶ " + sentences[indexs[i+3]]
-                    visit[indexs[i+1]] = True
-                    visit[indexs[i+2]] = True
-                    visit[indexs[i+3]] = True
+                    chunk += " ▶ " + sentences[i+1]
+                    chunk += " ▶ " + sentences[i+2]
+                    chunk += " ▶ " + sentences[i+3]
+                    visit[i+1] = True
+                    visit[i+2] = True
+                    visit[i+3] = True
                     i += 3
                     continue
                 chunks.append(chunk)
@@ -185,14 +146,16 @@ def compose_paragraph(broadcast, name, date):
         else:
             chunks.append(chunk)
             chunks.append(" ▶ ".join(sentences[-3:]))
-            chunks_time.append(sentences_time[indexs[i]])
+            chunks_time.append(sentences_time[i])
             chunk = ''
             break
 
-    # 최종 chunks에서 키워드추출
+    return chunks, chunks_time
+
+def extract_tfidf_keywords(chunks, vectorizer):
     target = ['Noun']
     new_chunks = []
-    indexs = []       
+
     for idx, row in enumerate(chunks):
         line = ''
         words = tokenizer.pos(row)
@@ -203,28 +166,95 @@ def compose_paragraph(broadcast, name, date):
             print(f"[형태소 없음] {row}")
             continue
         new_chunks.append(line.strip()) 
-        indexs.append(idx)
+
     tfidf_matrix = vectorizer.fit_transform(new_chunks)
-    feature_names = vectorizer.get_feature_names_out() # 단어목록 추출
+    feature_names = vectorizer.get_feature_names_out()
     keywords = []
+
     for idx, chunk in enumerate(new_chunks):
         keys = []
         tfidf = tfidf_matrix[idx].indices
-        for i in tfidf:
-            keys.append([feature_names[i], tfidf_matrix[idx, i]])
-            
-        keys = sorted(keys, key=lambda x: x[1], reverse=True)
+        for cnt, i in enumerate(tfidf):
+            keys.append({"keyword": feature_names[i], "weight": tfidf_matrix[idx, i]})
+            if cnt==6: # 키워드의 수를 제한 (가중치 높은 k개만 얻기)
+                break
+        keys = sorted(keys, key=lambda x: x["weight"], reverse=True)
         keywords.append(keys)
+
     result = []
+
     for k in keywords:
         tmp = []
         for k_ in k:
-            tmp.append(k_[0])
+            tmp.append({"keyword": k_["keyword"], "weight": k_["weight"]})
         result.append(tmp)
-    keywords = result
+
+    return result
+
+
+def compose_paragraph(script_file):
+    
+    tokenizer = Okt() # 형태소 분석기 - Okt를 선택 (고유명사를 더 잘 보존)
+    vectorizer = TfidfVectorizer(min_df=1, decode_error='ignore') # 벡터화도구
+    model = Word2Vec.load('VisualRadio/ko.bin') # 연관어 추출기 - 현재미사용중
+
+    # 작업0: 스크립트 불러오기
+    sentences, sentences_time = load_script(script_file)
+    # 작업3: 문장의 벡터화
+    chunks, chunks_time = extract_keywords(sentences, sentences_time, vectorizer, tokenizer)
+    # 작업4: 문단 인식 및 키워드 추출
+    vectorizer = TfidfVectorizer(min_df=1, decode_error='ignore')
+    keywords = extract_tfidf_keywords(chunks, vectorizer)
+
+    logger.debug(f"[compose_paragraph] 만들어진 문단은 {len(chunks)}개 입니다.")
 
     # 결과물
-    logger.debug(f"[compose_paragraph] 만들어진 문단은 {len(chunks)}개 입니다.")
+    return chunks, keywords, chunks_time
+
+    
+
+
+
+# 임시 검색기능
+def tmp_search_paragraph(searchInput):
+    result = Contents.query.filter_by(keyword=searchInput).all()
+    info = []
+    for r in result:
+        data = {
+            'broadcast':r.broadcast,
+            'radio_name':r.radio_name,
+            'radio_date':r.radio_date,
+            'time':r.time,
+            'content':r.content
+        }
+        info.append(data)
+    return info
+
+import os
+import sys
+import urllib.request
+import json
+
+
+def extract_img(client_id, client_secret, q):
+    client_id = client_id
+    client_secret = client_secret
+    encText = urllib.parse.quote(q)
+
+    url = "https://openapi.naver.com/v1/search/image?query=" + encText # JSON 결과
+    request = urllib.request.Request(url)
+    request.add_header("X-Naver-Client-Id", client_id)
+    request.add_header("X-Naver-Client-Secret", client_secret)
+    response = urllib.request.urlopen(request)
+    rescode = response.getcode()
+    if(rescode==200):
+        response_body = response.read()
+        return json.loads(response_body)["items"][0]["link"]
+    else:
+        logger.debug("Error Code:" + rescode)
+
+
+def start_extract_image(broadcast, name, date, chunks, chunks_time, keywords):
     logger.debug(f"[extract_img] 이미지 링크 생성중..")
     
     cnt = 0
@@ -250,43 +280,7 @@ def compose_paragraph(broadcast, name, date):
             traceback_str = traceback.format_exc()
             logger.debug(traceback_str)
 
-
-# 임시 검색기능
-def tmp_search_paragraph(searchInput):
-    result = Contents.query.filter_by(keyword=searchInput).all()
-    info = []
-    for r in result:
-        data = {
-            'broadcast':r.broadcast,
-            'radio_name':r.radio_name,
-            'radio_date':r.radio_date,
-            'time':r.time,
-            'content':r.content
-        }
-        info.append(data)
-    return info
-
-import os
-import sys
-import urllib.request
-import json
-
-def extract_img(client_id, client_secret, q):
-    client_id = client_id
-    client_secret = client_secret
-    encText = urllib.parse.quote(q)
-
-    url = "https://openapi.naver.com/v1/search/image?query=" + encText # JSON 결과
-    request = urllib.request.Request(url)
-    request.add_header("X-Naver-Client-Id", client_id)
-    request.add_header("X-Naver-Client-Secret", client_secret)
-    response = urllib.request.urlopen(request)
-    rescode = response.getcode()
-    if(rescode==200):
-        response_body = response.read()
-        return json.loads(response_body)["items"][0]["link"]
-    else:
-        logger.debug("Error Code:" + rescode)
+    return
 
 
 # ---------------- 멘트 컨텐츠를 위한 함수 ----------------
@@ -299,9 +293,6 @@ from PIL import Image
 with open('./VisualRadio/karlo.txt', 'r', encoding='utf-8') as file:
     key = file.read()
 REST_API_KEY = key
-
-# 해야 함
-# !pip install googletrans==4.0.0-rc1
 
 # 1: Contents 테이블에서 문단별 time, keyword 가져오기
 def get_paragraph_info(broadcast, name, date):
@@ -335,7 +326,7 @@ def translate_words(paragraphs):
     results = []
     for data in paragraphs:
         keys = data["keys"]
-        time = data["time"]
+        time = data["time"]   
         key_english = []
         for key in keys:
             english = translator.translate(key, dest='en')

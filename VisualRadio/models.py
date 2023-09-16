@@ -179,15 +179,17 @@ class Contents(db.Model):
     time = db.Column(db.String(20), primary_key=True)
     content = db.Column(LONGTEXT)
     keyword = db.Column(db.String(20), nullable=False, default="", primary_key=True)
+    weight = db.Column(db.Float(50), nullable=False, default=0.0)
     link = db.Column(db.String(500), default="None")
     
-    def __init__(self, broadcast, radio_name, radio_date, time, content, keyword, link):
+    def __init__(self, broadcast, radio_name, radio_date, time, content, keyword, weight, link="None"):
         self.broadcast = broadcast
         self.radio_name = radio_name
         self.radio_date = radio_date
         self.time = time
         self.content = content
         self.keyword = keyword
+        self.weight = weight
         self.link = link
     
     def __repr__(self):
