@@ -245,7 +245,7 @@ def process_audio_file(broadcast, name, date):
                 # Contents테이블에 "문단분류 & 키워드 가중치 저장" 테스트
                 logger.debug(f"[contents] Contents 테이블에 문단분류 결과를 저장합니다. 그리고!")
                 logger.debug(f"[contents] Contents 테이블에 keyword와 weight를 저장합니다.")
-                script_path = script_path(broadcast, name, date)
+                script_path = utils.script_path(broadcast, name, date)
                 chunks, keywords, chunks_time = paragraph.compose_paragraph(script_path)
             
                 # 문단별로 각각 keyword를 저장.. (빈 리스트일 수도 O)
