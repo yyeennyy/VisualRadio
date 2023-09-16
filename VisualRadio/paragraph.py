@@ -300,9 +300,6 @@ with open('./VisualRadio/karlo.txt', 'r', encoding='utf-8') as file:
     key = file.read()
 REST_API_KEY = key
 
-# 해야 함
-# !pip install googletrans==4.0.0-rc1
-
 # 1: Contents 테이블에서 문단별 time, keyword 가져오기
 def get_paragraph_info(broadcast, name, date):
     with app.app_context():

@@ -46,6 +46,7 @@ RUN pip install numba==0.55.2
 RUN pip install gensim==3.4.0
 RUN pip install transformers
 RUN pip install google-api-python-client
+RUN pip install googletrans==4.0.0-rc1
 
 
 # 두 번째 스테이지: 최종 이미지 설정

@@ -269,6 +269,7 @@ def split_cnn(broadcast, name, date, audio_holder):
     split_ment = SplitMent()
     split_ment.set_model(ment_split_model_path)
     
+    past_type = None
     idx = 0 # enumerate같은 놈
     for target_section, mr in section_mr_origin_names:
         wav = sec_wav_list[idx][1]
@@ -285,56 +286,39 @@ def split_cnn(broadcast, name, date, audio_holder):
         logger.debug(f"[split_cnn] {target_section} split_music 끝")
         
         # 현재 섹션의 재생 시간 계산
-        splits = audio_holder.splits
-        sr = audio_holder.sr
-        for split in splits:
-            if split[0] == target_section[:-4]:
-                duration = len(split[1]) / sr
-        
-        # 현재 섹션의 범위 계산
-        real_ment_range = [[total_duration + start_time_sec, total_duration + end_time_sec] for start_time_sec, end_time_sec in ment_range]
-        real_content_section = [[total_duration + start_time_sec, total_duration + end_time_sec] for start_time_sec, end_time_sec in content_section]
-
-        total_duration += int(duration)
+        # splits = audio_holder.splits
+        # sr = audio_holder.sr
+        # for split in splits:
+        #     if split[0] == target_section[:-4]:
+        #         duration = len(split[1]) / sr
 
         if target_section == section_mr_origin_names[-1]:
             break
 
-        for i, range_list in enumerate(real_content_section):
+        for i, range_list in enumerate(content_section):
             start = range_list[0]
             end = range_list[1]
-            if(start - 0.5 == int(start)):
-                ms_start = "500"
-            else:
-                ms_start = "000"
-            if(end - 0.5 == int(start)):
-                ms_end = "500"
-            else:
-                ms_end = "000"
             
-            start_time = f"{int(start) // 60}:{int(start) % 60:02d}.{ms_start}"
-            end_time = f"{int(end) // 60}:{int(end) % 60:02d}.{ms_end}"
-            past_type = None
-            if range_list in real_ment_range:
-                item = {"start_time": str(start_time), "end_time": str(end_time), "type": 0}
+            if range_list in ment_range:
+                item = {"start_time": str(start), "end_time": str(end), "type": 0}
                 past_type = 0
             elif range_list in music_range:
-                item = {"start_time": str(start_time), "end_time": str(end_time), "type": 1}
+                item = {"start_time": str(start), "end_time": str(end), "type": 1}
                 past_type = 0
             elif range_list in ad_range:
-                item = {"start_time": str(start_time), "end_time": str(end_time), "type": 2}
+                item = {"start_time": str(start), "end_time": str(end), "type": 2}
                 past_type = 0
             else:
                 # 완전 처음 : 만약 whipser가 3초부터 시작하면, 0~3초는 그냥 멘트라고 생각.
                 if(past_type is None):
-                    item = {"start_time": str(start_time), "end_time": str(end_time), "type": 0}
+                    item = {"start_time": str(start), "end_time": str(end), "type": 0}
                 else:
-                    item = {"start_time": str(start_time), "end_time": str(end_time), "type": past_type}
+                    item = {"start_time": str(start), "end_time": str(end), "type": past_type}
                     
             content_section_list.append(item)
         
         ment_start_times = []
-        for range in real_ment_range:
+        for range in ment_range:
             ment_start_times.append(range[0])
 
         section_start_time_summary[target_section] = ment_start_times
@@ -376,6 +360,7 @@ def split(broadcast, name, date, audio_holder):
 
     start_time = time.time()
     start_split(song_path, name, save_path, audio_holder)
+    sum_wav(audio_holder)
 
     end_time = time.time()
     os.makedirs(save_path, exist_ok=True)

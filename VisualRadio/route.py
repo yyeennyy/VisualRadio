@@ -270,6 +270,7 @@ def process_audio_file(broadcast, name, date):
             # else:
             #     logger.debug("[stt] pass")
 
+            process = db.session.merge(process)
             if process.error_ == 1:
                 process.del_error()
             logger.debug("[업로드] 오디오 처리 완료")
