@@ -9,48 +9,11 @@ import gc
 
 class MrRemoverToArray:
     def __init__(self):
-        self.is_running = False
-        self.is_done = False
-        self.thread = None
         self.separator = Separator('spleeter:2stems')
         self.split_mrs = []
         self.input_mrs = []
-    
-    def start(self):
-        # update status
-        self.is_running = True
-        self.is_done = False
-        self.start_time = time.time()
-        # start theadings
-        self.thread = threading.Thread(target=self.background_process)
-        self.thread.start()
 
-    def stop(self):
-        self.is_running = False
-        self.separator = None
-        if self.thread:
-            self.thread.join(timeout=0.1)
 
-    def background_process(self):
-        while self.is_running:
-            # input_mrs
-            for target in self.input_mrs:
-                name = target[0]
-                audio = target[1]
-                logger.debug(f"[mr제거] {name}.. 오디오 길이 {len(audio)}")
-                y = self.separator.separate(audio) # 오래 걸리는 작업
-                vocal = y['vocals'] 
-                logger.debug(f"[mr제거] {name}.. 추출된 vocals 길이 {len(vocal)}")
-                mono_data = np.mean(vocal, axis=1)
-                logger.debug(f"[mr제거] {name}.. 만들어진 mono_data 길이 {len(mono_data)}")
-                self.split_mrs.append([name, mono_data])
-                logger.debug(f"[mr제거] 완료되었습니다. spleeter객체를 초기화해볼게요!") # mr제거 결과가 하나씩 밀리는 문제를 객체초기화로 해결!
-                self.separator = Separator('spleeter:2stems')
-            self.is_running = False
-            self.is_done = True
-            return
-            
-            
 def cutting_audio(duration, audio_holder):
 
     # 작업에 사용할 인자 리스트 준비
@@ -110,18 +73,22 @@ def remove_mr_to_array(audio_holder, duration=int(600/2)):
 
     # removing process in MrRemover!
     mr_remover.input_mrs = mr_targets
-    mr_remover.start()
 
-    # 기존의 try-except 구문은 간소화해두겠습니다.
-    # 필요성 불필요성은 차선으로 두겠습니다.
-    try:
-        while True:
-            time.sleep(5) # 5초마다 종료 체크
-            if not mr_remover.is_running and mr_remover.is_done:
-                break
-    except:
-        print("에러")
-    mr_remover.stop()
+    for target in mr_remover.input_mrs:
+        name = target[0]
+        audio = target[1]
+        logger.debug(f"[mr제거] {name}.. 오디오 길이 {len(audio)}")
+        y = mr_remover.separator.separate(audio) # 오래 걸리는 작업
+        vocal = y['vocals'] 
+        logger.debug(f"[mr제거] {name}.. 추출된 vocals 길이 {len(vocal)}")
+        mono_data = np.mean(vocal, axis=1)
+        logger.debug(f"[mr제거] {name}.. 만들어진 mono_data 길이 {len(mono_data)}")
+        mr_remover.split_mrs.append([name, mono_data])
+        logger.debug(f"[mr제거] 완료되었습니다. spleeter객체를 초기화해볼게요!") # mr제거 결과가 하나씩 밀리는 문제를 객체초기화로 해결!
+        mr_remover.separator = Separator('spleeter:2stems')
+    del mr_remover.separator
+    gc.collect()
+
     #--------------------------------------------------------------
     
     section_wav__names = mr_remover.split_mrs
