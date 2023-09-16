@@ -251,9 +251,7 @@ def all_stt(audio_holder):
         tmp.append(cumulative_time)
         cumulative_time += stt["duration"]
         tmp.append(cumulative_time)
-        audio_holder.durations.append(tmp)
-        logger.debug(f"audio_holder.duratoin {audio_holder.durations}")
-    
+        audio_holder.durations.append(tmp)    
     
 
     # step2) rescripting (=> make a long sentence well..)
@@ -270,14 +268,13 @@ def all_stt(audio_holder):
         if len(s) < 15: # 누적 s가 너무 짧으면 append하지 않는다.
             continue
         else: # 누적 s가 충분히 길면 append한다.
-            final_script.append({"time":t, "txt":s.strip()})
+            final_script.append({"time":"{:.2f}".format(float(t)), "txt":s.strip()})
             s = ""
             t = ""
             start_flag = True
-
     audio_holder.jsons = final_script
-    audio_holder.jsons.append({"time":cumulative_time, "txt": ""})
-    logger.debug(f"[stt] 전체 stt를 audio_holder.jsons 등록했습니다.")  # 변수명 jsons 대신에 whole_stt 어때요? 하고싶은대로 하셔요
+    audio_holder.jsons.append({"time":"{:.2f}".format(float(cumulative_time)), "txt": ""})
+    logger.debug(f"[stt] 전체 stt를 audio_holder.jsons 등록했습니다.")  # 변수명 jsons 대신에 whole_stt 어때요? 하고싶은대로 하셔요 <- ㅋㅋㅋㅋㅋㅋ 냅둘래!!
     logger.debug(f"[stt] {audio_holder.jsons}")
     return audio_holder
 
@@ -314,10 +311,7 @@ def all_stt_whisper(name, audio, sr, stt_results, device):
         if len(txt) == 0:
             continue
         if start_flag:
-            integer_part, decimal_part = str(time).split(".")
-            decimal_part = decimal_part[:2]
-            
-            t = f"{integer_part}.{decimal_part}"
+            t = time
             start_flag = False
         # 정규표현식 패턴에 매치되는지 확인
         # 이 txt에서 끊어야 할 경우다. 누적된 문자열을 append한다.
