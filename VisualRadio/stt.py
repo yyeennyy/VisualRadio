@@ -268,12 +268,13 @@ def all_stt(audio_holder):
         if len(s) < 15: # 누적 s가 너무 짧으면 append하지 않는다.
             continue
         else: # 누적 s가 충분히 길면 append한다.
-            final_script.append({"time":"{:.2f}".format(float(t)), "txt":s.strip()})
+            # 소수점 2자리의 "소수"로 저장
+            final_script.append({"time":round(float(t), 2), "txt":s.strip()})
             s = ""
             t = ""
             start_flag = True
     audio_holder.jsons = final_script
-    audio_holder.jsons.append({"time":"{:.2f}".format(float(cumulative_time)), "txt": ""})
+    audio_holder.jsons.append({"time":round(float(cumulative_time), 2), "txt": ""})
     logger.debug(f"[stt] 전체 stt를 audio_holder.jsons 등록했습니다.")  # 변수명 jsons 대신에 whole_stt 어때요? 하고싶은대로 하셔요 <- ㅋㅋㅋㅋㅋㅋ 냅둘래!!
     logger.debug(f"[stt] {audio_holder.jsons}")
     return audio_holder
