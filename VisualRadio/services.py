@@ -447,3 +447,26 @@ def get_radio_process(broadcast, radio_name, radio_date):
         all_process = {'end': end, 'all': all, 'error':process.error}
     return all_process
 
+from googleapiclient.discovery import build
+
+def get_music_link(music_name):
+    # 내가 발급받은 키!!
+    DEVELOPER_KEY = "AIzaSyBs569DvvdHwqmhdAomwc1qka6repVwgI0"
+    YOUTUBE_API_SERVICE_NAME="youtube"
+    YOUTUBE_API_VERSION="v3"
+    youtube = build(YOUTUBE_API_SERVICE_NAME,YOUTUBE_API_VERSION, developerKey=DEVELOPER_KEY)
+
+    search_response = youtube.search().list(
+        q = music_name+" M/V",
+        order = "relevance",
+        part = "snippet",
+        maxResults = 30
+        ).execute()
+
+    base = 'https://www.youtube.com/watch?v='
+    
+    # API 응답에서 첫 번째 항목의 링크 가져오기
+    link = search_response['items'][0]['id']['videoId']
+    youtube_link = base+link
+    
+    return youtube_link
