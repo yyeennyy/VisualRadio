@@ -174,8 +174,9 @@ def get_stt_target(broadcast, name, date):
         if sec['type'] == 0:
             try:
                 ment_start_end.append([float(sec['start_time']), float(sec['end_time'])])
-            except Exception:
+            except Exception as e:
                 # 확인해보니, 여기서 오류가 날 떄는, 가장 마지막 부분에서 오류가 나더라. 가장 마지막 부분은 그냥 버려주자.
+                logger.debug(e)
                 pass
     return ment_start_end
 
@@ -185,6 +186,7 @@ def save_ment_script(broadcast, name, date, audio_holder, ment_start_end):
     for txt_info in scripts:
         time = txt_info['time']
         if is_ment(time, ment_start_end):
+            logger.debug(f"아래의 부분은 멘트입니다. : {txt_info['txt']}")
             results.append(txt_info)
     utils.save_json(results, utils.script_path(broadcast, name, date))
     logger.debug(f"[stt] script.json 저장 완료")  # 기존 후반부에 있던 stt과정이 필요없어진다.
@@ -312,7 +314,10 @@ def all_stt_whisper(name, audio, sr, stt_results, device):
         if len(txt) == 0:
             continue
         if start_flag:
-            t = time
+            integer_part, decimal_part = str(time).split(".")
+            decimal_part = decimal_part[:2]
+            
+            t = f"{integer_part}.{decimal_part}"
             start_flag = False
         # 정규표현식 패턴에 매치되는지 확인
         # 이 txt에서 끊어야 할 경우다. 누적된 문자열을 append한다.
