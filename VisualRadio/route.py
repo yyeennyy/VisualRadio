@@ -209,7 +209,6 @@ def process_audio_file(broadcast, name, date):
         try:
             # start!
             s_time = time.time()
-            
 
             # audio split
             services.split(broadcast, name, date, audio_holder)  # audio_holder: sum, splits, sr
@@ -217,7 +216,7 @@ def process_audio_file(broadcast, name, date):
             process.set_sum()
             commit(process)
             logger.debug("[split1] pass")
-            audio_holder.set_audio_info()
+            # audio_holder.set_audio_info() # split1 건너뛰었을 때 setting하는 부분인데 이제안쓸듯
             process.set_sum()
             commit(process)
             # utils.rm(os.path.join(storage, "raw.wav"))
