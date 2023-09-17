@@ -14,7 +14,7 @@ import axios from 'axios';
 // import ScriptData from "./script.json";
 
 import Section1 from './component/Section1';
-import Section from './section.json'; // !!! : 수정해야 함. API 요청으로 받아오게
+import Section from './section.json';
 
 // npm i -s react-router-dom
 
@@ -67,7 +67,7 @@ function Section2() {
 // 원래 Audio 컴포넌트 있던 자리
 
 
-const GetScript = (props) => {
+const GetScript = ({broadcast, radio_name, date}) => {
   const [scriptData, setScriptData] = useState([]);
 
 //   useEffect(() => {
@@ -79,11 +79,9 @@ const GetScript = (props) => {
 //       setScriptData(data);
 //     });
   axios.get(`/dummy/script.json`)
-  
-  // axios.get(`api/${props.broadcast}/${props.radio_name}/${props.date}/result/script`) // !!! : 수정해야 함
-  .then(response => {
-    setScriptData(response.data);
-  })
+    .then(response => {
+      setScriptData(response.data);
+    })
 //     .catch(error => {
 //       console.error('Error fetching script data:', error);
 //     });
@@ -108,7 +106,6 @@ function App() {
   // const radio_name = searchParams.get('radio_name');
   // const date = searchParams.get('date');
 
-  // !!! : url에서 따오게 변경해야 함(위에 코드 써보면 될 듯)
   // const broadcast = 'MBC FM4U';
   const radio_name = '이석훈의 브런치카페';
   const date = '2023-06-18';
@@ -125,33 +122,16 @@ function App() {
   const [currentTime, setCurrentTime] = useState(0);
   const audioRef = useRef(null);
 
-  // const audioElement = document.getElementById('audio');
-
-  // if (content === 'music') {
-  //   // 오디오 멈춤 + clearInterval
-  // } else {
-  //   // 오디오 재생 + setInterval
-  // }
-
-  
+  const updateCurrentTime = () => {
+    if (audioRef.current) {
+      const newCurrentTime = audioRef.current.audioEl.current.currentTime;
+      console.log('현재 재생 시간은 ', newCurrentTime);
+      setCurrentTime(newCurrentTime);
+    }
+  };
 
   useEffect(() => {
-    const updateCurrentTime = () => {
-      if (audioRef.current) {
-        const newCurrentTime = audioRef.current.audioEl.current.currentTime;
-        console.log('현재 재생 시간은 ', newCurrentTime);
-        setCurrentTime(newCurrentTime);
-      }
-    };
-  
-    const intervalId = setInterval(updateCurrentTime, 1000);
-  
-    return () => {
-      clearInterval(intervalId);
-    };
-  }, []);
 
-  useEffect(() => {
     const foundSection = Section.find((section) => {
       const [start, end] = section.time_range;
       return currentTime >= start && currentTime <= end;
@@ -159,12 +139,22 @@ function App() {
 
     if (foundSection) {
       console.log('현재 content는 ', foundSection.content);
-      console.log('현재 other은 ', foundSection.other);
+      // console.log('현재 other은 ', foundSection.other);
       setCurrentSection(foundSection);
+
+      if (foundSection.content === 'music') {
+        audioRef.current.audioEl.current.pause();
+        clearInterval(updateCurrentTime);
+      } else {
+        audioRef.current.audioEl.current.play();
+        const newInterval = setInterval(updateCurrentTime, 1000);
+
+        return () => {
+          clearInterval(newInterval);
+        };
+      }
     }
   }, [currentTime]);
-  
-  
 
   return (
     <div className="App">
@@ -180,9 +170,9 @@ function App() {
         {/* <Audio src="audio/sum.wav"></Audio>*/}
         <ReactAudioPlayer
           ref={audioRef}
-          src="audio/sum.wav"
-          autoPlay
-          muted
+          src="audio/sum.wav" // !!! : 여기 경로 수정
+          // autoPlay
+          // muted
           controls
         ></ReactAudioPlayer>
       </div>
