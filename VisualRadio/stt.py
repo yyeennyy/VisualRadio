@@ -187,10 +187,8 @@ def save_ment_script(broadcast, name, date, audio_holder, ment_start_end):
         time = txt_info['time']
         if is_ment(time, ment_start_end):
             txt = txt_info['txt']
-            fine_txt = remove_repeated(txt)
-            fine_txt = remove_repeated_one_letter(fine_txt)
-            logger.debug(f"아래의 부분은 멘트입니다. : {fine_txt}")
-            txt_info['txt'] = fine_txt
+            logger.debug(f"아래의 부분은 멘트입니다. : {txt}")
+            txt_info['txt'] = txt
             results.append(txt_info)
     utils.save_json(results, utils.script_path(broadcast, name, date))
     logger.debug(f"[stt] script.json 저장 완료")  # 기존 후반부에 있던 stt과정이 필요없어진다.
@@ -314,7 +312,7 @@ def all_stt_whisper(name, audio_len, stt_results, device):
                 continue
         if element == results['segments'][-1]: # 만약 마지막 요소인 경우 누적된 문자열을 append하고 종료한다.
             # logger.debug(f"[check] {name} | {t}")
-            sentences.append([t, s.strip()])
+            sentences.append([t, make_fine_txt(s)])
             break
         if len(txt) == 0:
             continue
@@ -325,7 +323,7 @@ def all_stt_whisper(name, audio_len, stt_results, device):
         # 이 txt에서 끊어야 할 경우다. 누적된 문자열을 append한다.
         if re.search(pattern, txt) or txt[-1]==".":
             # logger.debug(f"[check] {name} | {t}")
-            sentences.append([t, s.strip()])
+            sentences.append([t, make_fine_txt(s)])
             s = ""
             t = ""
             start_flag = True
@@ -395,3 +393,37 @@ def remove_repeated_one_letter(text, threshold=5):
             new_list.append(word)
         
     return " ".join(new_list)
+
+# 공백으로 분리된 문자의 반복 제거
+def remove_repeated(text, split_point=" ", threshold=5):
+    word_list = text.split(split_point)
+    repeat_cnt = [0] * len(word_list)
+    prev = word_list[0]
+    cnt = 0
+    for i, word in enumerate(word_list[1:]):
+        idx = i + 1
+        if word == prev:
+            cnt += 1
+            continue
+        repeat_cnt[idx-1] = cnt + 1
+        prev = word
+        cnt = 0
+    new_list = []
+    for idx, dup in enumerate(repeat_cnt):
+        if dup == 0:
+            if idx == len(repeat_cnt) - 1:
+                new_list.append(word_list[idx])
+                break 
+            continue
+        if dup >= threshold:
+            new_list.append(word_list[idx])
+        else:
+            new_list.extend(word_list[idx-dup+1:idx+1])
+
+    return " ".join(new_list)
+
+# "중복 없는" 괜찮은 텍스트를 만들기
+def make_fine_txt(txt):
+    fine_txt = remove_repeated(txt)
+    fine_txt = remove_repeated_one_letter(fine_txt)
+    return fine_txt
