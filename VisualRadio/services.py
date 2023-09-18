@@ -169,6 +169,8 @@ def all_date_of(broadcast, radio_name, year, month):
         only_day_list = [wav.radio_date.split('-')[-1] for wav in targets]
         date_list = [{'date': day} for day in only_day_list]
         date_json = json.dumps(date_list)
+        
+        logger.debug(date_json)
 
         return date_json
 
@@ -259,6 +261,7 @@ def split_cnn(broadcast, name, date, audio_holder):
     
     # 기존에는 utils로 불러왔지만, 이제는 audio_holder가 거의 모든 것을 갖고있습니다.
     section_mr_origin_names = audio_holder.sum_mrs
+
     sec_wav_list = audio_holder.splits
     section_start_time_summary = {}
     
@@ -270,30 +273,16 @@ def split_cnn(broadcast, name, date, audio_holder):
     split_ment.set_model(ment_split_model_path)
     
     past_type = None
-    idx = 0 # enumerate같은 놈
-    for target_section, mr in section_mr_origin_names:
-        wav = sec_wav_list[idx][1]
-        sec_name = sec_wav_list[idx][0]
-        idx += 1
+    for data in section_mr_origin_names:
+        sec_name = data[0]
+        mr_audio = data[1]
         
-        # 멘트 split에서 넘겨주는 인자들이 바뀌었습니다. 이 외에도, 불필요한게 몇개 있어보이지만 이 부분은 추후 수정하겠습니다.
-        ment_range, content_section, not_ment = save_split(mr, sec_name, split_ment, audio_holder)
-        logger.debug(f"[split_cnn] {target_section} split ment 끝, split_music 시작")
+        ment_range, content_section, not_ment = save_split(mr_audio, sec_name, split_ment, audio_holder)
+        # del mr_audio
+        logger.debug(f"[split_cnn] {sec_name} split ment 끝, split_music 시작")
         
-        # 광고 분류할 때 있어서도, 넘겨주는 인자가 바뀌게 됩니다. 현재는 기존 분류기를 사용하고, 예은 stt 처리가 완료되면 밑에 주석처리된 것을 사용한다.
-        # music_range, ad_range = split_music_origin(wav, audio_holder.sr, not_ment)
         music_range, ad_range = split_music_new(audio_holder.jsons, not_ment)
-        logger.debug(f"[split_cnn] {target_section} split_music 끝")
-        
-        # 현재 섹션의 재생 시간 계산
-        # splits = audio_holder.splits
-        # sr = audio_holder.sr
-        # for split in splits:
-        #     if split[0] == target_section[:-4]:
-        #         duration = len(split[1]) / sr
-
-        if target_section == section_mr_origin_names[-1]:
-            break
+        logger.debug(f"[split_cnn] {sec_name} split_music 끝")
 
         for i, range_list in enumerate(content_section):
             start = range_list[0]
@@ -321,8 +310,12 @@ def split_cnn(broadcast, name, date, audio_holder):
         for range in ment_range:
             ment_start_times.append(range[0])
 
-        section_start_time_summary[target_section] = ment_start_times
+        section_start_time_summary[sec_name] = ment_start_times
 
+
+    del audio_holder.sum_mrs # 앞으로 쓰지않을 sum_mrs를 제거
+    gc.collect()
+    
     with app.app_context():
         wav = Wav.query.filter_by(broadcast=broadcast, radio_name=name, radio_date=str(date)).first()
         if wav:
