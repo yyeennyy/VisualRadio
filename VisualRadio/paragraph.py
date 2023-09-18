@@ -167,7 +167,7 @@ def extract_tfidf_keywords(chunks, vectorizer):
                 line += ' ' + word[0]
         if len(line) == 0:
             print(f"[형태소 없음] {row}")
-            continue
+            line = ''
         new_chunks.append(line.strip()) 
 
     tfidf_matrix = vectorizer.fit_transform(new_chunks)
@@ -210,6 +210,8 @@ def compose_paragraph(script_file):
     keywords = extract_tfidf_keywords(chunks, vectorizer)
 
     logger.debug(f"[compose_paragraph] 만들어진 문단은 {len(chunks)}개 입니다.")
+    logger.debug(f"[개수체크] keywords: {len(keywords)}")
+    logger.debug(f"[개수체크] chunks_time: {len(chunks_time)}")
 
     # 결과물
     return chunks, keywords, chunks_time
