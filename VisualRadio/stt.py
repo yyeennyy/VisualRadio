@@ -220,8 +220,8 @@ def all_stt(audio_holder):
     sr = audio_holder.sr
     for data in split_mr:
         name = data[0]
-        audio = data[1]
-        all_stt_whisper(name, audio, sr, stt_results, device)
+        audio_len = len(data[1]) / sr
+        all_stt_whisper(name, audio_len, stt_results, device)
 
     logger.debug(f"[stt] 전체 stt가 생성되었습니다.")
     # ------------------------ stt 작업 완료 --------------------
@@ -284,7 +284,7 @@ def all_stt(audio_holder):
     return audio_holder
 
 import torch
-def all_stt_whisper(name, audio, sr, stt_results, device):
+def all_stt_whisper(name, audio_len, stt_results, device):
     logger.debug(f"[stt] {name}!")
     model = whisper.load_model(settings.WHISPER_MODEL).to(device)
     logger.debug(f"[stt] transcribe")
@@ -329,7 +329,7 @@ def all_stt_whisper(name, audio, sr, stt_results, device):
 
 
     stt_data["name"] = name
-    stt_data["duration"] = len(audio) / sr
+    stt_data["duration"] = audio_len
     stt_data["contents"] = sentences
 
     stt_results.append(stt_data)
