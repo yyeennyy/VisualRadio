@@ -243,13 +243,16 @@ def all_stt(audio_holder):
     cumulative_time = 0
     for stt in stt_sorted: 
         for content in stt["contents"]:
-            if content[0] != '':
+            if content[0] != '' and cumulative_time != '':
                 time = float(content[0]) + float(cumulative_time)
                 txt = content[1]
                 script.append({"time":time, "txt":txt})
-            else:
+            elif content[0] == '':
                 logger.debug(f"[check] {type(content)}")
                 logger.debug(f"[check] content[0]가 0인 경우는 뭐지? {content}")
+            elif cumulative_time == '':
+                logger.debug(f"[check] {type(cumulative_time)}")
+                logger.debug(f"[check] cumulative_time[0]가 0인 경우는 뭐지? {cumulative_time}")
         tmp = []
         tmp.append(stt["name"])
         tmp.append(cumulative_time)
