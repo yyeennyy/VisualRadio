@@ -259,12 +259,12 @@ def merge_and_sort_ranges(range_list1, range_list2):
 
 def search_legth(audio_holder, name):
     for tmp_list in audio_holder.durations:
+
         audio_holder_name = tmp_list[0]
         start_time = tmp_list[1]
         end_time = tmp_list[2]
 
-        # .wav까지 들어가더라고요
-        if audio_holder_name[:-4] == name:
+        if audio_holder_name == name:
             return start_time, end_time
         
     
