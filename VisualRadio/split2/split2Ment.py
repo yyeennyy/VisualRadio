@@ -10,7 +10,7 @@ import torch.nn as nn
 import soundfile as sf
 
 # 로거
-from VisualRadio import CreateLogger
+from __init__ import CreateLogger
 logger = CreateLogger("우리가1등(^o^)b")
 
 # 모델을 미리 다운 받아놓는 클래스를 정의했습니다.

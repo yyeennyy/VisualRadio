@@ -1,4 +1,4 @@
-from VisualRadio import db
+from __init__ import db
 from sqlalchemy import ForeignKey
 from sqlalchemy.dialects.mysql import LONGTEXT
 

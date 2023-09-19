@@ -2,14 +2,13 @@ from spleeter.separator import Separator
 import time
 import numpy as np
 from joblib import Parallel, delayed
-from VisualRadio import CreateLogger
+from __init__ import CreateLogger
 import threading
 import gc
 
 
 class MrRemoverToArray:
     def __init__(self):
-        self.separator = Separator('spleeter:2stems')
         self.split_mrs = []
         self.input_mrs = []
 
@@ -77,12 +76,15 @@ def remove_mr_to_array(audio_holder, duration=int(600/2)):
         name = target[0]
         audio = target[1]
         logger.debug(f"[mr제거] {name}.. 오디오 길이 {len(audio)}")
-        y = mr_remover.separator.separate(audio) # 오래 걸리는 작업
-        vocal = y['vocals'] 
+        try:
+            separator = Separator('spleeter:2stems')
+            y = separator.separate(audio) # 오래 걸리는 작업
+        except:
+            logger.debug("[mr제거] 오류 pass")
+        vocal = y['vocals']
         mono_data = np.mean(vocal, axis=1)
         mr_remover.split_mrs.append([name, mono_data])
-        mr_remover.separator = Separator('spleeter:2stems')
-    del mr_remover.separator
+    del separator
     gc.collect()
     #--------------------------------------------------------------
     

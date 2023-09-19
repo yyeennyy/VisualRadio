@@ -3,7 +3,7 @@ import re
 import utils
 
 # 로거
-from VisualRadio import CreateLogger
+from __init__ import CreateLogger
 logger = CreateLogger("music")
 
 

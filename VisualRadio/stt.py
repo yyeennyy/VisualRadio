@@ -15,11 +15,10 @@ import whisper
 from numba import cuda
 
 # logger
-from VisualRadio import CreateLogger
+from __init__ import CreateLogger
 logger = CreateLogger("STT")
 
-# STT 도구1 : google
-from VisualRadio import db, app
+from __init__ import db, app
 import soundfile as sf
 
 # regex (종결어미)
@@ -66,7 +65,7 @@ def google_stt(start, audio, sample_rate, interval):
     utils.rm(tmp_file)
     return script
 
-from VisualRadio import db, app
+from __init__ import db, app
 
 def speech_to_text(broadcast, name, date, ment_start_end, audio_holder):
     th_q = queue.Queue()

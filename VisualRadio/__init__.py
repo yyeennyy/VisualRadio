@@ -5,7 +5,6 @@ import logging
 import logging.handlers
 from flask_sqlalchemy import SQLAlchemy
 # from flask_socketio import SocketIO
-# from VisualRadio.socket_events import socketio_init
 
 #TODO: 마이그레이션
 # for using alembic! with SQLAlchemy.. 
@@ -63,7 +62,7 @@ def create_app():
     db.init_app(app)
 
     # 블루프린트 인스턴스 가져오기 & flask app에 등록하기
-    from VisualRadio.route import auth
+    from route import auth
     app.register_blueprint(auth, url_prefix='/')
 
     with app.app_context():

@@ -1,8 +1,8 @@
 from flask import Blueprint
 from flask import request, jsonify, send_file, render_template, request, make_response
-from VisualRadio import app, db
+from __init__ import app, db
 import sys
-sys.path.append('./VisualRadio')
+sys.path.append('./')
 import services
 import json
 import os
@@ -25,7 +25,7 @@ auth = Blueprint('auth', __name__)
 
 
 # 로거
-from VisualRadio import CreateLogger
+from __init__ import CreateLogger
 logger = CreateLogger("route")
 
 

@@ -21,10 +21,10 @@ from datetime import timedelta
 import json
 
 # logger
-from VisualRadio import CreateLogger
+from __init__ import CreateLogger
 logger = CreateLogger("services")
 
-from VisualRadio import db, app
+from __init__ import db, app
 
 
 

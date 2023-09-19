@@ -8,7 +8,7 @@ from transformers import BertTokenizerFast
 import settings as settings
 
 # 로거
-from VisualRadio import CreateLogger
+from __init__ import CreateLogger
 logger = CreateLogger("우리가1등(^o^)b")
 
 

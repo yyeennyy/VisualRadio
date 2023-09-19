@@ -1,11 +1,11 @@
 # 전역
-from VisualRadio import db, app
+from __init__ import db, app
 import numpy as np
 from models import Contents
 import settings as settings
 
 # logger
-from VisualRadio import CreateLogger
+from __init__ import CreateLogger
 logger = CreateLogger("paragraph")
 
 import scipy as sp
@@ -199,7 +199,7 @@ def compose_paragraph(script_file):
     
     tokenizer = Okt() # 형태소 분석기 - Okt를 선택 (고유명사를 더 잘 보존)
     vectorizer = TfidfVectorizer(min_df=1, decode_error='ignore') # 벡터화도구
-    model = Word2Vec.load('VisualRadio/ko.bin') # 연관어 추출기 - 현재미사용중
+    # model = Word2Vec.load('ko.bin') # 연관어 추출기 - 현재미사용중
 
     # 작업0: 스크립트 불러오기
     sentences, sentences_time = load_script(script_file)
@@ -295,7 +295,7 @@ import urllib
 from PIL import Image
 
 # 내 api 키
-with open('./VisualRadio/karlo.txt', 'r', encoding='utf-8') as file:
+with open('./karlo.txt', 'r', encoding='utf-8') as file:
     key = file.read()
 REST_API_KEY = key
 

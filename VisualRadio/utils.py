@@ -5,7 +5,7 @@ import settings
 from datetime import timedelta, datetime
 
 # logger
-from VisualRadio import CreateLogger
+from __init__ import CreateLogger
 logger = CreateLogger("Utils")
 
 
