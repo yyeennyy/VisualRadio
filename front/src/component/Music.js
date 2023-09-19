@@ -1,8 +1,9 @@
 import React from "react";
 
+// npm install react-youtube
 import YouTube from 'react-youtube';
 
-function YoutubeIframeAPI({videoId}) {
+function YoutubeIframeAPI({videoId, onEnd}) {
 
   const opts = {
     height: '450',
@@ -13,15 +14,20 @@ function YoutubeIframeAPI({videoId}) {
     },
   };
 
-  return <YouTube videoId={videoId} opts={opts}/>
+  return <YouTube videoId={videoId} opts={opts} onEnd={onEnd}/>
 }
 
 const Music = (props) => {
-    return (
-        <div id = "videoContainer">
-            <YoutubeIframeAPI videoId={props.other}/>
-        </div>
-    );
+
+  const onEnd = () => {
+    props.youtubeStateCheck(true);
+  }
+
+  return (
+      <div id = "videoContainer">
+          <YoutubeIframeAPI videoId={props.other} onEnd={onEnd}/>
+      </div>
+  );
 }
 
 export default Music;

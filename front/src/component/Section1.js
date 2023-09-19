@@ -3,7 +3,6 @@ import Ad from './Ad';
 import Ment from './Ment';
 import Music from './Music';
 
-
 const Section1 = (props) => {
     const content = props.content;
 
@@ -17,7 +16,7 @@ const Section1 = (props) => {
         );
     } else if (content === 'music') {
         return (
-            <Music other={props.other}/>
+            <Music content={props.content} other={props.other} youtubeStateCheck={props.youtubeStateCheck}/>
         );
     }
 }
