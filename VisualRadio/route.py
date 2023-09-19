@@ -196,6 +196,7 @@ def clean_gpu():
         # CPU 모드에서는 정리할 것이 없다
         pass
 
+import gc
 def process_audio_file(broadcast, name, date):
     storage = f"{settings.STORAGE_PATH}/{broadcast}/{name}/{date}/"
     utils.delete_ini_files(storage)
@@ -210,34 +211,34 @@ def process_audio_file(broadcast, name, date):
             # start!
             s_time = time.time()
 
-            # # audio split
-            # services.split(broadcast, name, date, audio_holder)  # audio_holder: sum, splits, sr
-            # process.set_split1()
-            # process.set_sum()
-            # commit(process)
-            # logger.debug("[split1] pass")
-            # # audio_holder.set_audio_info() # split1 건너뛰었을 때 setting하는 부분인데 이제안쓸듯
-            # process.set_sum()
-            # commit(process)
-            # # utils.rm(os.path.join(storage, "raw.wav"))
+            # audio split
+            services.split(broadcast, name, date, audio_holder)  # audio_holder: sum, splits, sr
+            process.set_split1()
+            process.set_sum()
+            commit(process)
+            logger.debug("[split1] pass")
+            # audio_holder.set_audio_info() # split1 건너뛰었을 때 setting하는 부분인데 이제안쓸듯
+            process.set_sum()
+            commit(process)
+            # utils.rm(os.path.join(storage, "raw.wav"))
 
-            # # mr 제거
-            # services.remove_mr(audio_holder)
-            # clean_gpu()
-            # # mr 제거한 음성 대상으로 stt 돌리기
-            # stt.all_stt(audio_holder)
-            # clean_gpu()
-            # # cnn 분류기 돌리기
-            # services.split_cnn(broadcast, name, date, audio_holder)
-            # clean_gpu()
-            # process.set_split2()
-            # commit(process)
-            # # script.json 얻기 (앞 분류기 이후 Wav.radio_section이 등록된 상태)
-            # ment_start_end = stt.get_stt_target(broadcast, name, date)
-            # stt.save_ment_script(broadcast, name, date, audio_holder, ment_start_end)
-            # # 사실 이 부분은 필요 없어지지만, 추후 array와 file을 둘 다 구현해주어 선택할 수 있게 할 예정이므로 남겨둡니다.
-            # # utils.rm(os.path.join(storage, "mr_wav"))
-            # # utils.rm(os.path.join(storage, "tmp_mr_wav"))
+            # mr 제거
+            services.remove_mr(audio_holder)
+            clean_gpu()
+            # mr 제거한 음성 대상으로 stt 돌리기
+            stt.all_stt(audio_holder)
+            clean_gpu()
+            # cnn 분류기 돌리기
+            services.split_cnn(broadcast, name, date, audio_holder)
+            clean_gpu()
+            process.set_split2()
+            commit(process)
+            # script.json 얻기 (앞 분류기 이후 Wav.radio_section이 등록된 상태)
+            ment_start_end = stt.get_stt_target(broadcast, name, date)
+            stt.save_ment_script(broadcast, name, date, audio_holder, ment_start_end)
+            # 사실 이 부분은 필요 없어지지만, 추후 array와 file을 둘 다 구현해주어 선택할 수 있게 할 예정이므로 남겨둡니다.
+            # utils.rm(os.path.join(storage, "mr_wav"))
+            # utils.rm(os.path.join(storage, "tmp_mr_wav"))
 
             # -------------------------------------------------------------------- 이제 script.json이 존재합니다.
             # Contents테이블에 "문단분류 & 키워드 가중치 저장" 테스트
@@ -264,6 +265,9 @@ def process_audio_file(broadcast, name, date):
             paragraphs = paragraph.get_paragraph_info(broadcast, name, date) # 문단 time별 키워드 가져오기
             english_keywords = paragraph.translate_words(paragraphs)         # 키워드를 영어로 전환
             paragraph.generate_image(broadcast, name, date, english_keywords) # 이미지 생성 후 section.json에 저장완료까지 함
+            del paragraphs
+            del english_keywords
+            gc.collect()
 
             # text processing
             # - 기존: split한 wav파일의 duraion을 파악해서 time정보를 직접 계산했음
@@ -295,7 +299,7 @@ def process_audio_file(broadcast, name, date):
                 process.del_error()
             logger.debug("[업로드] 오디오 처리 완료")
             logger.debug(f"[업로드] 소요시간: {(time.time() - s_time)/60} 분")
-            process = None
+            del process
 
         except Exception as e:
             logger.debug(e)
@@ -305,7 +309,8 @@ def process_audio_file(broadcast, name, date):
             traceback_str = traceback.format_exc()
             logger.debug(traceback_str)
 
-    audio_holder = None
+    del audio_holder
+    gc.collect()
     return "ok"
 
 def audio_save(broadcast, program_name, date, audiofile):
