@@ -31,7 +31,7 @@ from VisualRadio import db, app
 def extract_broadcast(script_path):
     parts = script_path.split("/")
     if len(parts) >= 4:
-        return parts[3]  # "VisualRadio/radio_storage/broadcast/radio_name/radio_date/result/script.json"에서 'broadcast' 값 추출
+        return parts[3]  # "./radio_storage/broadcast/radio_name/radio_date/result/script.json"에서 'broadcast' 값 추출
     return None
 def extract_radio_name(script_path):
     parts = script_path.split("/")

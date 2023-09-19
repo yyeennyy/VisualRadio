@@ -127,7 +127,7 @@ def get_process(broadcast, radio_name, radio_date):
 
 @auth.route("/<string:broadcast>/<string:program_name>/<string:date>/check_wav", methods=['GET'])
 def check_wav(broadcast, program_name, date):
-    path = f"VisualRadio/radio_storage/{broadcast}/{program_name}/{date}/raw.wav"
+    path = utils.raw_wav_path(broadcast, program_name, date)
     if os.path.isfile(path):
         # 빠른 업로드! ################
         # 1. 올바른 경로에 raw.wav 미리 넣어두기
@@ -210,34 +210,34 @@ def process_audio_file(broadcast, name, date):
             # start!
             s_time = time.time()
 
-            # audio split
-            services.split(broadcast, name, date, audio_holder)  # audio_holder: sum, splits, sr
-            process.set_split1()
-            process.set_sum()
-            commit(process)
-            logger.debug("[split1] pass")
-            # audio_holder.set_audio_info() # split1 건너뛰었을 때 setting하는 부분인데 이제안쓸듯
-            process.set_sum()
-            commit(process)
-            # utils.rm(os.path.join(storage, "raw.wav"))
+            # # audio split
+            # services.split(broadcast, name, date, audio_holder)  # audio_holder: sum, splits, sr
+            # process.set_split1()
+            # process.set_sum()
+            # commit(process)
+            # logger.debug("[split1] pass")
+            # # audio_holder.set_audio_info() # split1 건너뛰었을 때 setting하는 부분인데 이제안쓸듯
+            # process.set_sum()
+            # commit(process)
+            # # utils.rm(os.path.join(storage, "raw.wav"))
 
-            # mr 제거
-            services.remove_mr(audio_holder)
-            clean_gpu()
-            # mr 제거한 음성 대상으로 stt 돌리기
-            stt.all_stt(audio_holder)
-            clean_gpu()
-            # cnn 분류기 돌리기
-            services.split_cnn(broadcast, name, date, audio_holder)
-            clean_gpu()
-            process.set_split2()
-            commit(process)
-            # script.json 얻기 (앞 분류기 이후 Wav.radio_section이 등록된 상태)
-            ment_start_end = stt.get_stt_target(broadcast, name, date)
-            stt.save_ment_script(broadcast, name, date, audio_holder, ment_start_end)
-            # 사실 이 부분은 필요 없어지지만, 추후 array와 file을 둘 다 구현해주어 선택할 수 있게 할 예정이므로 남겨둡니다.
-            # utils.rm(os.path.join(storage, "mr_wav"))
-            # utils.rm(os.path.join(storage, "tmp_mr_wav"))
+            # # mr 제거
+            # services.remove_mr(audio_holder)
+            # clean_gpu()
+            # # mr 제거한 음성 대상으로 stt 돌리기
+            # stt.all_stt(audio_holder)
+            # clean_gpu()
+            # # cnn 분류기 돌리기
+            # services.split_cnn(broadcast, name, date, audio_holder)
+            # clean_gpu()
+            # process.set_split2()
+            # commit(process)
+            # # script.json 얻기 (앞 분류기 이후 Wav.radio_section이 등록된 상태)
+            # ment_start_end = stt.get_stt_target(broadcast, name, date)
+            # stt.save_ment_script(broadcast, name, date, audio_holder, ment_start_end)
+            # # 사실 이 부분은 필요 없어지지만, 추후 array와 file을 둘 다 구현해주어 선택할 수 있게 할 예정이므로 남겨둡니다.
+            # # utils.rm(os.path.join(storage, "mr_wav"))
+            # # utils.rm(os.path.join(storage, "tmp_mr_wav"))
 
             # -------------------------------------------------------------------- 이제 script.json이 존재합니다.
             # Contents테이블에 "문단분류 & 키워드 가중치 저장" 테스트
@@ -309,11 +309,9 @@ def process_audio_file(broadcast, name, date):
     return "ok"
 
 def audio_save(broadcast, program_name, date, audiofile):
-    path = f"./VisualRadio/radio_storage/{broadcast}/{program_name}/{date}/"
     # 문제점: brunchcafe와 이석훈의브런치카페는 동일한 프로그램임. 추후 이 점 고려해야E 할 것임
     # DB에서 체크하는 방식으로 변경해야 함
-    os.makedirs(path, exist_ok=True)
-    audiofile.save(path + 'raw.wav')
+    audiofile.save(utils.get_path(broadcast, program_name, date) + 'raw.wav')
     logger.debug(f"[업로드] saved - {broadcast} {program_name} {date}")
     return "ok"
 
@@ -414,23 +412,22 @@ def get_listeners(broadcast, name, date):
 # 지정된 회차의 스크립트 요청
 @auth.route('/<string:broadcast>/<string:name>/<string:date>/script', methods=['GET'])
 def get_script(broadcast, name, date):
-    path = f"./VisualRadio/radio_storage/{broadcast}/{name}/{date}"
-    json_data = utils.read_json_file(path + '/result/script.json')
+    json_data = utils.read_json_file(utils.script_path(broadcast, name, date))
     return jsonify(json_data)
 
 
 # 지정된 회차의 섹션 정보 리턴
 # @auth.route('/<string:broadcast>/<string:name>/<string:date>/section', methods=['GET'])
 # def get_sections(broadcast, name, date):
-#     path = f"./VisualRadio/radio_storage/{broadcast}/{name}/{date}"
-#     json_data = read_json_file(path + '/result/section_time.json')
+#     json_data = read_json_file(utils.section_path(broadcast, name, date))
 #     return json_data
 
 
 # 지정된 회차의 이미지들 리턴
+# TODO: 이거 쓰나?
 @auth.route('/<string:broadcast>/<string:name>/<string:date>/images', methods=['GET'])
 def get_images(broadcast, name, date):
-    path = f"./VisualRadio/radio_storage/{broadcast}/{name}/{date}"
+    path = f"./radio_storage/{broadcast}/{name}/{date}"
     file_path = path + '/result/section_image.json'
     data = utils.read_json_file(file_path)
     response = jsonify(data)
@@ -447,7 +444,7 @@ def get_images(broadcast, name, date):
 @auth.route('/<string:broadcast>/<string:name>/<string:date>/wave', methods=['GET'])
 def get_wave(broadcast, name, date):
     # TODO: 섹션을 합쳐서 리턴한다.
-    return send_file(f"radio_storage/{broadcast}/{name}/{date}/sum.wav", mimetype="audio/wav", as_attachment=False)
+    return send_file(utils.sum_wav_path(broadcast, name, date), mimetype="audio/wav", as_attachment=False)
 
 
 @auth.route('/<string:broadcast>/<string:radio_name>/<string:radio_date>/section', methods= ['GET'])
@@ -469,7 +466,7 @@ def load_index_info(broadcast, radio_name, radio_date) :
 # # 고정음성 요청
 # @auth.route('/<string:radio_name>/<string:date>/fixed/<string:name>', methods=['GET'])
 # def get_fixed_wave(broadcast, name, date):
-#     path = f"./VisualRadio/radio_storage/{broadcast}/{name}/{date}"
+#     path = f"./radio_storage/{broadcast}/{name}/{date}"
 #     wav = open(path + '/fixed_wav/' + name, 'rb')
 #     response = send_file(wav, mimetype="audio/wav", as_attachment=False)
 #     return response
@@ -488,7 +485,7 @@ def load_index_info(broadcast, radio_name, radio_date) :
 @auth.route('/ad', methods=['GET'])
 def get_ad():
     # (프로토타입) 고정된 광고 컨텐츠 리턴
-    return open('./VisualRadio/templates/ad.html', encoding='utf-8')
+    return open('./templates/ad.html', encoding='utf-8')
 
 
 @auth.route('/test')

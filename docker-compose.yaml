@@ -36,7 +36,7 @@ services:
       - db-net
     volumes:
       # - ./var/lib/volumes/docker/radio-vol/_data:/app
-      - .:/app
+      - ./VisualRadio:/app
     depends_on:
       - mysql
     environment:

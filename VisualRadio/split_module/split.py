@@ -1,6 +1,6 @@
 import sys
 # sys.path.insert(0, '/app/VisualRadio/split_module')
-sys.path.insert(0, './VisualRadio/split_module')
+sys.path.insert(0, './split_module')
 from recognise import find_time
 import settings
 import sqlite3
@@ -9,7 +9,7 @@ from pydub import AudioSegment
 
 
 def split_about(path, program_name):
-    conn = sqlite3.connect('./VisualRadio/split_module/DB/fix.db')
+    conn = sqlite3.connect('./split_module/DB/fix.db')
     c = conn.cursor()
     c.execute("SELECT start_time, end_time FROM fix_time WHERE program_name = ?", (program_name,))
     result = c.fetchall()
@@ -18,7 +18,7 @@ def split_about(path, program_name):
     real_time = []
     song_info_list = []
     print("result:", result)
-    temp_file_path = "./VisualRadio/split_module/tmp.wav"
+    temp_file_path = "./split_module/tmp.wav"
     for i in range(len(result)):
         start = int(result[i][0])*1000
         end = int(result[i][1])*1000

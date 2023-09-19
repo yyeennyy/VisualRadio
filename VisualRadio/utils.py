@@ -72,6 +72,16 @@ def whisper_script_result_path(broadcast, name, date):
 def script_path(broadcast, name, date):
     return checkdir(f"./{settings.STORAGE_PATH}/{broadcast}/{name}/{date}/result/script.json")
 
+def section_path(broadcast, name, date):
+    return checkdir(f"./{settings.STORAGE_PATH}/{broadcast}/{name}/{date}/result/section.json")
+
+def sum_wav_path(broadcast, name, date):
+    return checkdir(f"./{settings.STORAGE_PATH}/{broadcast}/{name}/{date}/sum.wav")
+
+def raw_wav_path(broadcast, name, date):
+    return checkdir(f"./{settings.STORAGE_PATH}/{broadcast}/{name}/{date}/raw.wav")
+
+
 def checkdir(path):
     directory = os.path.dirname(path)
     if not os.path.exists(directory):
