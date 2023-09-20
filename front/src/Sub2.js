@@ -98,7 +98,7 @@ function Section2(props) {
 
     subtitlesWithTime = script.map(subtitle => ({
       txt: subtitle.txt,
-      time: timeStringToFloat(subtitle.time)
+      time: subtitle.time
     }));
 
     subtitlesWithTime.forEach((subtitle, index) => {
@@ -304,14 +304,15 @@ function Sub2() {
   console.log(`${broadcast} ${radio_name} ${date}`)
 
   useEffect(() => {
-    axios.get(`./radio_storage/${broadcast}/${radio_name}/${date}/result/script.json`)
+    axios.get(`/radio_storage/${broadcast}/${radio_name}/${date}/result/script.json`)
     .then(response => {
       console.log(response.data)
       setScriptData(response.data);
     });
 
-    axios.get(`/dummy/${broadcast}/${radio_name}/${date}//section.json`)
+    axios.get(`/radio_storage/${broadcast}/${radio_name}/${date}/result/section.json`)
     .then(response => {
+      console.log(response.data)
       setSectionData(response.data);
     });
 
@@ -324,6 +325,9 @@ function Sub2() {
     console.log('sectionData는 ', sectionData);
   }, [scriptData, sectionData]);
 
+
+  console.log(scriptData)
+  console.log(sectionData)
   // 현재 재생 시간 반환
   const updateCurrentTime = () => {
     if (audioRef.current) {
