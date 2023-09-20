@@ -382,10 +382,10 @@ def to_sub1():
 
 @auth.route('/<string:broadcast>/<string:radio_name>/img', methods=['GET'])
 def load_main_img(broadcast, radio_name):
-    img_path = f"/static/main_imgs/{broadcast}/{radio_name}/main_img.jpeg"
-    if not os.path.exists("./VisualRadio"+img_path):
-        img_path = "/static/images/default_main.png"
-    return json.dumps({'main_photo':img_path})
+    img_path = f"/main_imgs/{broadcast}/{radio_name}/main_img.jpeg"
+    if not os.path.exists(img_path):
+        img_path = os.path.abspath(os.path.join("static", "images", "default_main.png"))
+    return send_file(img_path, mimetype='image/png')
 
 @auth.route('/<string:broadcast>/<string:radio_name>/<string:year>/<string:month>/all', methods=['GET'])
 def load_month_info(broadcast, radio_name, year, month):
