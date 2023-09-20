@@ -48,16 +48,126 @@ function Data(props) {
   </div>
 }
 
+function timeStringToFloat(time) {
+  const [minutes, seconds] = time.split(':').map(parseFloat);
+  return minutes * 60 + seconds;
+}
+
 // Section2 안에 사연자 보여주는 부분은 구현 X
 function Section2(props) {
+  const script = props.scriptData;
+  const audioRef = props.audioRef;
 
-  const broadcast = 'MBC FM4U';
-  const radio_name = '이석훈의 브런치카페';
-  const date = '2023-06-18';
+  // 초기값 -1로 설정 => 아무것도 강조하지 않도록
+  // const [highlightedIndex, setHighlightedIndex] = useState(-1);
+  let subtitlesWithTime = '';
+  const [highlightedSubtitleIndex, setHighlightedSubtitleIndex] = useState(-1);
+
+  // 자막 클릭 시, 오디오 이동
+  const handleSubtitleClick = (time, index) => {
+    if (props.currentSection.content === 'music') {
+      props.youtubeStateCheck(true);
+    }
+
+    if (props.audioRef.current) {
+      props.audioRef.current.audioEl.current.currentTime = time;
+    }
+
+    setHighlightedSubtitleIndex(index);
+
+    const subtitleContainer = document.getElementById("subtitleContainer");
+    const highlightedSubtitle = subtitleContainer.children[index];
+    const containerTop = subtitleContainer.getBoundingClientRect().top;
+    const highlightedSubtitleTop = highlightedSubtitle.getBoundingClientRect().top - containerTop;
+    const subtitleHeight = highlightedSubtitle.getBoundingClientRect().height;
+    const containerHeight = subtitleContainer.getBoundingClientRect().height;
+  
+    const scrollAmount = highlightedSubtitleTop - containerTop - (containerHeight - subtitleHeight) / 2;
+    subtitleContainer.scrollTo({
+      top: subtitleContainer.scrollTop + scrollAmount,
+      behavior: 'smooth',
+    });
+  };
+
+  useEffect(() => {
+    // scriptData를 사용하여 자막을 화면에 표시
+    const subtitleContainer = document.getElementById("subtitleContainer");
+    subtitleContainer.innerHTML = ''; // 이전 자막을 초기화
+
+    subtitlesWithTime = script.map(subtitle => ({
+      txt: subtitle.txt,
+      time: timeStringToFloat(subtitle.time)
+    }));
+
+    subtitlesWithTime.forEach((subtitle, index) => {
+      const block = document.createElement('div');
+      block.className = 'subtitle';
+      block.innerText = subtitle.txt;
+      block.addEventListener('click', () => {
+        handleSubtitleClick(subtitle.time, index);
+      });
+
+      // if (audioRef.current && audioRef.current.audioEl.current.currentTime + 0.5 >= timeToSeconds(subtitle.time) && audioRef.current.audioEl.current.currentTime - 0.5 <= timeToSeconds(subtitle.time)) {
+      //   block.style.fontWeight = '900';
+      //   setHighlightedIndex(index); // 강조된 라인의 인덱스 업데이트
+      // }
+
+      subtitleContainer.appendChild(block);
+    });
+
+    const audioEl = audioRef.current.audioEl.current;
+    const handleTimeUpdate = () => {
+      const currentTime = audioEl.currentTime;
+      for (let i = 0; i < subtitlesWithTime.length; i++) {
+        const subtitle = subtitlesWithTime[i];
+        const nextSubtitle = subtitlesWithTime[i + 1];
+        if (nextSubtitle && nextSubtitle.time <= currentTime) {
+          continue;
+        }
+        if (subtitle.time <= currentTime) {
+          // Highlight the current subtitle
+          subtitleContainer.children[i].style.fontWeight = 'bold';
+          setHighlightedSubtitleIndex(i);
+        } else {
+          subtitleContainer.children[i].style.fontWeight = 'normal';
+        }
+      }
+      // Reset styles for other subtitles
+      if (highlightedSubtitleIndex !== -1) {
+        for (let i = 0; i < subtitlesWithTime.length; i++) {
+          if (i !== highlightedSubtitleIndex) {
+            subtitleContainer.children[i].style.fontWeight = 'normal';
+          }
+        }
+      }
+
+      if (highlightedSubtitleIndex !== -1) {
+        const highlightedSubtitle = subtitleContainer.children[highlightedSubtitleIndex];
+        const containerTop = subtitleContainer.getBoundingClientRect().top;
+        const highlightedSubtitleTop = highlightedSubtitle.getBoundingClientRect().top - containerTop;
+        const subtitleHeight = highlightedSubtitle.getBoundingClientRect().height;
+        const containerHeight = subtitleContainer.getBoundingClientRect().height;
+    
+        // 스크롤 위치를 계산하여 중앙에 오도록 조정합니다.
+        const scrollAmount = highlightedSubtitleTop - containerTop - (containerHeight - subtitleHeight) / 2;
+        subtitleContainer.scrollTo({
+          top: subtitleContainer.scrollTop + scrollAmount,
+          behavior: 'smooth',
+        });
+      }
+    };
+
+    audioEl.addEventListener('timeupdate', handleTimeUpdate);
+
+    return () => {
+      audioEl.removeEventListener('timeupdate', handleTimeUpdate);
+    };
+  }, [script, audioRef, highlightedSubtitleIndex]);
+
+
 
   return <div id = "section2">
-    <GetScript broadcast={broadcast} radio_name={radio_name} date={date} audioRef={props.audioRef}/>
-    {/* <Routes /> */}
+    <div id = "subtitleContainer">{props.script}</div>
     <div id = "index">
         <img id = "opening" alt="opening_img" src="/static/images/opening.png"/>
         <img id = "part1" alt="part1_img" src="/static/images/part1.png"/>
@@ -66,20 +176,62 @@ function Section2(props) {
   </div>
 }
 
+
 // 자동 재생 + ReactAudioPlayer 커스텀 되는지 확인하기
 // 원래 Audio 컴포넌트 있던 자리
 
-const handleTextClick = (time, audioRef) => {
-  const [minutes, seconds] = time.split(':').map(parseFloat);
-  const totalTimeInSeconds = minutes * 60 + seconds;
+// const handleTextClick = (time, audioRef) => {
+//   // 시간을 분:초 형식에서 초로 변환
+//   const [minutes, seconds] = time.split(':').map(parseFloat);
+//   const totalTimeInSeconds = minutes * 60 + seconds;
 
-  if (audioRef.current) {
-    audioRef.current.audioEl.current.currentTime = totalTimeInSeconds;
-  }
-};
+//   if (audioRef.current) {
+//     audioRef.current.audioEl.current.currentTime = totalTimeInSeconds;
+//   }
+// };
 
-const GetScript = (props) => {
-  const [scriptData, setScriptData] = useState([]);
+// const GetScript = (props) => {
+//   const [scriptData, setScriptData] = useState([]);
+
+//   useEffect(() => {
+//     axios.get(`/dummy/script.json`)
+//       .then(response => {
+//         setScriptData(response.data);
+//       });
+//   }, []);
+
+//   return <div id = "subtitleContainer">{scriptData}</div>;
+// }
+
+  // useEffect(() => {
+  //   // Add a listener to the audio element to track the current time
+  //   const audioEl = props.audioRef.current.audioEl.current;
+    
+  //   const handleTimeUpdate = () => {
+  //     const currentTime = audioEl.currentTime;
+      
+  //     // Find the script line that matches the current time
+  //     const matchedLine = scriptData.find((line) => {
+  //       const [minutes, seconds] = line.time.split(':').map(parseFloat);
+  //       const lineTimeInSeconds = minutes * 60 + seconds;
+  //       return currentTime >= lineTimeInSeconds;
+  //     });
+
+  //     // Scroll to the matched script line
+  //     if (matchedLine) {
+  //       const element = document.getElementById(`line-${matchedLine.time}`);
+  //       if (element) {
+  //         element.scrollIntoView({ behavior: 'smooth' });
+  //       }
+  //     }
+  //   };
+
+  //   audioEl.addEventListener('timeupdate', handleTimeUpdate);
+
+  //   return () => {
+  //     audioEl.removeEventListener('timeupdate', handleTimeUpdate);
+  //   };
+  // }, [scriptData, props.audioRef]);
 
 //   useEffect(() => {
 //     fetch("http://localhost:3000")
@@ -89,28 +241,31 @@ const GetScript = (props) => {
 //     .then(data => {
 //       setScriptData(data);
 //     });
-  axios.get(`/dummy/script.json`)
-    .then(response => {
-      setScriptData(response.data);
-    })
+
+  // axios.get(`/dummy/script.json`)
+  //   .then(response => {
+  //     setScriptData(response.data);
+  //   })
+
 //     .catch(error => {
 //       console.error('Error fetching script data:', error);
 //     });
 // }, [broadcast, radio_name, date]);
 
   // return <div id = "subtitleContainer">{scriptData}</div>
-  return <div id="subtitleContainer">
-      {scriptData.map((line, index) => (
-        <p 
-          key={index}
-          className="scriptLine"
-          onClick={() => handleTextClick(line.time, props.audioRef)}  
-        >
-          {line.txt}
-        </p>
-      ))}
-    </div>
-}
+//   return <div id="subtitleContainer">
+//       {scriptData.map((line, index) => (
+//         <p
+//           key={index}
+//           id={`line-${line.time}`}
+//           className="scriptLine"
+//           onClick={() => handleTextClick(line.time, props.audioRef)}
+//         >
+//           {line.txt}
+//         </p>
+//       ))}
+//     </div>
+// }
 
 
 function Sub2() {
@@ -125,20 +280,21 @@ function Sub2() {
   const radio_name = '이석훈의 브런치카페';
   const date = '2023-06-18';
 
-  // const [mode, setMode] = useState('PLAY');
-
-  // if (mode === 'PLAY') {
-
-  // } else if (mode === 'PAUSE') {
-
-  // }
-
   const [currentSection, setCurrentSection] = useState({ content: '', time_range: [0, 0], other: '' });
   const [currentTime, setCurrentTime] = useState(0);
   const audioRef = useRef(null);
-  const [nextCurrentSection, setNextCurrentSection] = useState({ content: '', time_range: [0, 0], other: '' });
   const [audioPlaying, setAudioPlaying] = useState(false); 
   const [youtubeStateEnd, setYoutubeStateEnd] = useState(true);
+  const [foundSection, setFoundSection] = useState({ content: '', time_range: [0, 0], other: '' });
+
+  const [scriptData, setScriptData] = useState([]);
+
+  useEffect(() => {
+    axios.get(`/dummy/script.json`)
+    .then(response => {
+      setScriptData(response.data);
+    });
+  }, []);
 
   // 현재 재생 시간 반환
   const updateCurrentTime = () => {
@@ -148,6 +304,22 @@ function Sub2() {
       setCurrentTime(newCurrentTime);
     }
   };
+
+  // const handleAudioListen = (e) => {
+  //   console.log('e는 ', e);
+  //   const newCurrentTime = e.target.currentTime;
+  //   console.log('현재 재생 시간은 ', newCurrentTime);
+  //   setCurrentTime(newCurrentTime);
+
+  //   const foundSection = Section.find((section) => {
+  //     const [start, end] = section.time_range;
+  //     return newCurrentTime >= start && newCurrentTime <= end;
+  //   });
+
+  //   if (foundSection) {
+  //     setCurrentSection(foundSection);
+  //   }
+  // };
 
   // ReactAudioPlayer가 재생될 때 호출되는 함수
   const handleAudioPlay = () => {
@@ -161,22 +333,6 @@ function Sub2() {
     // audioRef.current.audioEl.current.pause(); // 이거 잠시 추가
   };
 
-  // currentTime 기준으로 다음 content를 찾아서 반환하는 함수
-  const findNextContent = (currentTime) => {
-    const foundSection = Section.find((section) => {
-      const [start, end] = section.time_range;
-      return currentTime >= start && currentTime <= end;
-    });
-
-    if (foundSection) {
-      const currentIndex = Section.indexOf(foundSection);
-      setNextCurrentSection(Section[currentIndex + 2]);
-      console.log('다음 content는', nextCurrentSection);
-      console.log('다음 content의 시작 시간은 ', nextCurrentSection.time_range[0]);
-      return nextCurrentSection;
-    }
-  };
-
   // 유튜브 영상이 재생 중인지, 아닌지 확인하는 함수
   const youtubeStateCheck = youtubeStateEnd => {
     setYoutubeStateEnd(youtubeStateEnd);
@@ -184,85 +340,49 @@ function Sub2() {
 
   // 유튜브 영상이 끝나면 다음 content 시작 위치로 이동해서 재생
   useEffect(() => {
-    // 유튜브 영상 재생이 끝났다면 ...
+    // 유튜브 영상 재생이 끝났다면 youtubeStateEnd = true
     if (youtubeStateEnd) {
 
-      setCurrentSection(findNextContent(currentTime));
-      console.log('다음 contents', findNextContent(currentTime));
-      // 다음 content를 찾아서
-      // const next = findNextContent(currentTime);
-      // console.log('next는 ', next);
+      setCurrentTime(currentTime + 0.5);
 
-      // 현재 content로 set => 결국 next가 currentSection이 되어 있어야 함
-      // setCurrentSection(next); // 적용이 안됨.. ㅠㅠㅠ
-    
+      setFoundSection(Section.find((section) => {
+        const [start, end] = section.time_range;
+        return currentTime >= start && currentTime <= end;
+      }));
 
-      // setCurrentSection(next, () => {
-      //   console.log('성공?');
-      // });
-      
-      // console.log('currentSection은', currentSection);
-      // useEffect(() => console.log(currentSection), currentSection)
-
-      // 다음 content의 시작 시간으로 ReactAudioPlayer 위치 이동
-      if (findNextContent(currentTime).time_range) {
-        audioRef.current.audioEl.current.currentTime = findNextContent(currentTime).time_range[0];
-        setCurrentTime(findNextContent(currentTime).time_range[0] + 0.5); // 눈물 광광 ...
-      }
-
+      setCurrentSection(foundSection);
+      console.log('1. 현재 currentSection은 ', currentSection);
+      // setCurrentTime(currentSection.time_range[1] + 0.5); // 눈물 광광 ...
+      console.log('2. 현재 current time은 ', currentTime);
+      audioRef.current.audioEl.current.currentTime = currentSection.time_range[1];
+      setCurrentTime(currentSection.time_range[1] + 0.5); // 눈물 광광 ...
+      setFoundSection(Section.find((section) => {
+        const [start, end] = section.time_range;
+        return currentTime >= start && currentTime < end;
+      }));
+      console.log('3. foundSection은 ', foundSection);
+      setCurrentSection(foundSection);
+      console.log('4. 현재 currentSection은 ', currentSection);
+      setCurrentTime(currentSection.time_range[0]);
+      console.log('5. 현재 currentTime은 ', currentTime);
+      setFoundSection(Section.find((section) => {
+        const [start, end] = section.time_range;
+        return currentTime >= start && currentTime <= end;
+      }));
+      console.log('6. 현재 foundSection : ', foundSection);
       setAudioPlaying(true);
       
       // audioRef.current.audioEl.current.play();
-    
+    } else {
+      setFoundSection(Section.find((section) => {
+        const [start, end] = section.time_range;
+        return currentTime >= start && currentTime <= end;
+      }));
+      setCurrentSection(foundSection);
+      audioRef.current.audioEl.current.currentTime = currentSection.time_range[1];
+      setCurrentTime(currentSection.time_range[1] + 0.5); // 눈물 광광 ...
     }
   }, [youtubeStateEnd]);
-
-  // const handleMusicEnd = () => {
-  //   // 유튜브 영상이 끝날 때 호출되는 콜백 함수
-  //   // currentSection을 nextCurrentSection으로 업데이트하고 ReactAudioPlayer를 재생합니다.
-  //   setCurrentSection(nextCurrentSection);
-  //   audioRef.current.audioEl.current.play();
-  // };
-  
-  // useEffect(() => {
-
-  //   const foundSection = Section.find((section) => {
-  //     const [start, end] = section.time_range;
-  //     return currentTime >= start && currentTime <= end;
-  //   });
-
-  //   if (foundSection) {
-  //     console.log('현재 content는 ', foundSection.content);
-  //     // console.log('현재 other은 ', foundSection.other);
-  //     setCurrentSection(foundSection);
-
-  //     if (foundSection.content === 'music') {
-
-  //       const currentIndex = Section.indexOf(foundSection);
-  //       const nextSection = Section[currentIndex + 1];
-
-  //       if (nextSection) {
-  //         // 다음 섹션의 시작 시간을 가져옵니다.
-  //         setNextSectionStartTime(nextSection.time_range[0]);
-  //         console.log('다음 content의 시작 시간은 ', nextSectionStartTime);
-  //       } else {
-  //         console.log('다음 섹션 없음');
-  //       }
-  //       audioRef.current.audioEl.current.pause();
-
-  //       audioRef.current.audioEl.current.currentTime = nextSectionStartTime;
-  //       clearInterval(updateCurrentTime);
-  //     } else {
-  //       audioRef.current.audioEl.current.play();
-  //       const newInterval = setInterval(updateCurrentTime, 1000);
-
-  //       return () => {
-  //         clearInterval(newInterval);
-  //       };
-  //     }
-  //   }
-  // }, [currentTime, nextSectionStartTime]);
-
 
 
   // 해당 과정은 currentTime(현재 재생 시간)과 audioPlaying(오디오 재생 여부)이 바뀔 때마다 실행됨
@@ -272,57 +392,103 @@ function Sub2() {
   // 3. content가 music, ad / ment 중에 어디에 속하는지 비교하여
   // 3-1. music이면, ReactAudioPlayer 정지 + 유튜브 재생 상태 설정 + clearInterval
   // 3-2. ment나 ad이면, ReactAudioPlayer 재생 + setInterval(1초마다 현재 재생시간 반환)
+  // useEffect(() => {
+  //   if (audioPlaying) {
+      
+  //     const foundSection = Section.find((section) => {
+  //       const [start, end] = section.time_range;
+  //       return currentTime >= start && currentTime <= end;
+  //     });
+
+  //     if (foundSection) {
+  //       console.log('현재 content는 ', foundSection.content);
+  //       // console.log('현재 other은 ', foundSection.other);
+  //       setCurrentSection(foundSection);
+
+  //       if (foundSection.content === 'music') {
+
+  //         // const currentIndex = Section.indexOf(foundSection);
+  //         // const nextSection = Section[currentIndex + 1];
+  //         // const nextSection = findNextContent(currentTime);
+
+  //         // if (nextSection) {
+  //         //   setNextCurrentSection(nextSection);
+  //         //   setNextSectionStartTime(nextSection.time_range[0]);
+            
+  //         //   console.log('다음 content는 ', nextCurrentSection.content);
+  //         //   console.log('다음 content의 시작 시간은 ', nextSectionStartTime);
+  //         // } else {
+  //         //   console.log('다음 섹션 없음');
+  //         // }
+
+  //         audioRef.current.audioEl.current.pause();
+  //         setYoutubeStateEnd(false);
+  //         clearInterval(updateCurrentTime);
+  //       } else if (foundSection.content === 'ad' || foundSection.content === 'ment') { 
+  //         audioRef.current.audioEl.current.play();
+  //         const newInterval = setInterval(updateCurrentTime, 1000);
+
+  //         return () => {
+  //           clearInterval(newInterval);
+  //         };
+  //       }
+  //     }
+  //   }
+  // }, [audioPlaying, currentTime]);
+
+  // 아래 코드는 위의 코드를 useEffect 부분과 함수 부분으로 분리한 후 코드 수정 진행함
+  const foundCurrentContent = () => {
+    setFoundSection(Section.find((section) => {
+      const [start, end] = section.time_range;
+      return currentTime >= start && currentTime <= end;
+    }));
+
+    if (foundSection) {
+      console.log('현재 content는 ', foundSection.content);
+      // console.log('현재 other은 ', foundSection.other);
+      setCurrentSection(foundSection);
+
+      if (foundSection.content === 'music') {
+
+        // const currentIndex = Section.indexOf(foundSection);
+        // const nextSection = Section[currentIndex + 1];
+        // const nextSection = findNextContent(currentTime);
+
+        // if (nextSection) {
+        //   setNextCurrentSection(nextSection);
+        //   setNextSectionStartTime(nextSection.time_range[0]);
+          
+        //   console.log('다음 content는 ', nextCurrentSection.content);
+        //   console.log('다음 content의 시작 시간은 ', nextSectionStartTime);
+        // } else {
+        //   console.log('다음 섹션 없음');
+        // }
+
+        audioRef.current.audioEl.current.pause();
+        setYoutubeStateEnd(false);
+        clearInterval(updateCurrentTime);
+      } else if (foundSection.content === 'ad' || foundSection.content === 'ment') { 
+        audioRef.current.audioEl.current.play();
+        const newInterval = setInterval(updateCurrentTime, 1000);
+
+        return () => {
+          clearInterval(newInterval);
+        };
+      }
+    }
+  }
+
   useEffect(() => {
     if (audioPlaying) {
-      // 현재 content(=foundSection) 찾고
-      const foundSection = Section.find((section) => {
-        const [start, end] = section.time_range;
-        return currentTime >= start && currentTime <= end;
-      });
-
-      if (foundSection) {
-        console.log('현재 content는 ', foundSection.content);
-        // console.log('현재 other은 ', foundSection.other);
-        setCurrentSection(foundSection);
-
-        // 현재 content가 music이면
-        // ReactAudioPlayer 정지 + setYoutubeStateEnd(false)
-        if (foundSection.content === 'music') {
-
-          // const currentIndex = Section.indexOf(foundSection);
-          // const nextSection = Section[currentIndex + 1];
-          // const nextSection = findNextContent(currentTime);
-
-          // if (nextSection) {
-          //   setNextCurrentSection(nextSection);
-          //   setNextSectionStartTime(nextSection.time_range[0]);
-            
-          //   console.log('다음 content는 ', nextCurrentSection.content);
-          //   console.log('다음 content의 시작 시간은 ', nextSectionStartTime);
-          // } else {
-          //   console.log('다음 섹션 없음');
-          // }
-
-          audioRef.current.audioEl.current.pause();
-          setYoutubeStateEnd(false);
-          clearInterval(updateCurrentTime);
-        } else if (foundSection.content === 'ad' || foundSection.content === 'ment') { 
-          audioRef.current.audioEl.current.play();
-          const newInterval = setInterval(updateCurrentTime, 1000);
-
-          return () => {
-            clearInterval(newInterval);
-          };
-        }
-      }
+      foundCurrentContent();
     }
   }, [audioPlaying, currentTime]);
 
   return (
     <div className="Sub2">
       <div id = 'wrap'>
-        <Logo></Logo>
-        <Data radio_name = {radio_name} date = {date}></Data>
+        <Logo />
+        <Data radio_name = {radio_name} date = {date}/>
         {/* episode 컴포넌트로 구현하려고 했던 부분_s */}
         <div className="episode">
           <div id = "section1">
@@ -332,7 +498,8 @@ function Sub2() {
               youtubeStateCheck={youtubeStateCheck}
               />
           </div>
-          <Section2 audioRef={audioRef} />
+          <Section2 audioRef={audioRef} scriptData={scriptData} currentTime={currentTime} 
+          currentSection={currentSection} setCurrentSection = {setCurrentSection} youtubeStateCheck={youtubeStateCheck}/>
         </div>
         {/* episode 컴포넌트로 구현하려고 했던 부분_e */}
         {/* <Audio src="audio/sum.wav"></Audio>*/}
@@ -344,6 +511,7 @@ function Sub2() {
           controls
           onPlay={handleAudioPlay}
           onPause={handleAudioPause}
+          // onListen={handleAudioListen}  // 현재 재생 위치 감지
         ></ReactAudioPlayer>
       </div>
     </div>
@@ -351,24 +519,3 @@ function Sub2() {
 }
 
 export default Sub2;
-
-
-
-
-// const GetScript = () => {
-//   const [script, setScript] = useState(null);
-//   useEffect( () => {
-//     axios
-//     .get(`/${broadcast}/${radio_name}/${date}/script`)
-//     .then( (res) => {
-//       setScript(res.data);
-//     })
-//     .catch( (err) => {
-//       console.log('getScript err : ' + err);
-//     });
-//   }, []);
-
-//   return <div id = "subtitleContainer">
-//     {script}
-//   </div>
-// }

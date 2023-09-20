@@ -84,7 +84,7 @@
   line-height: 40px;
 }
 
-.Sub2 /* .episode {
+/* .episode {
   width: 100%;
   height: 550px;
 } */
@@ -112,7 +112,7 @@
   margin: -225px 0 0 -225px;
 }
 
-.Sub2 /* #videoContainer {
+/* #videoContainer {
   display: none;
 }
 
@@ -197,6 +197,7 @@
 
 .Sub2 .episode {
   width: 100%; /* 또는 필요한 너비 설정 */
+  margin-bottom: 20px;
 }
 
 .Sub2 .episode img {
