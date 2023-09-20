@@ -1,0 +1,194 @@
+* {
+    /* text-align: center; */
+    font-size: 15px;
+    color: rgb(154, 48, 174);
+}
+
+#wrap {
+    width: 1100px;
+    height: 832px;
+    margin: 0 auto;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    flex-direction: column;
+    /* border: 1px solid black; */
+}
+
+#logo {
+    width: 350px;
+    height: 87.5px;
+    position: relative;
+    top: 0px;
+    margin: 0 auto;
+    /* border: 1px solid black; */
+}
+
+#logoImg {
+    width: 350px;
+    height: 87.5px;            
+}
+
+#channels {
+    width: 100%;
+    height: 550px;
+    /* border: 1px solid black; */
+    /* overflow-y: scroll; */
+}
+
+.radioBroadcast {
+    width: 100%;
+    height: 200px;
+    background-color: rgba(223, 207, 244, 0.2);
+    /* border: 1px solid black; */
+    position: relative;
+    margin-top: 40px;
+    display: flex;
+}
+
+.radioBroadcastName {
+    text-align: center;
+    font-weight: bolder;
+    color: rgb(154, 48, 174);
+    font-size: 30px;
+    line-height: 40px;
+    background-color: rgb(224, 191, 230);
+    width: 170px;
+    height: 40px;
+    position: absolute;
+    top: -20px;
+    left: 10px;
+}
+
+.content {
+    width: 180px;
+    height: 160px;
+    /* border: 1px solid black; */
+    /* position: absolute; */
+    /* top: 30px; */
+    /* left: 10px; */
+    margin-top: 30px;
+    margin-left: 10px;
+    margin-right: 30px;
+}
+
+.cover_back {
+    width: 135px;
+    height: 135px;
+    background-color: rgb(176, 151, 112);
+    position: relative;
+}
+
+.cover {
+    width: 125px;
+    height: 125px;
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    margin: -62.5px 0 0 -62.5px;
+}
+
+.imgControl {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.like {
+    width: 30px;
+    height: 30px;
+    position: absolute;
+    top: 7px;
+    right: 7px;
+}
+
+.lp {
+    width: 130px;
+    height: 130px;
+    position: absolute;
+    top: 2px;
+    right: -40px;
+}
+
+.program_name {
+    width: 100%;
+    height: 20px;
+    line-height: 20px;
+    color: rgb(154, 48, 174);
+    margin-top: 10px;
+    text-align: left;
+}
+
+.listenerInfo {
+    background-color: rgba(223, 207, 244, 0.2);
+    margin-top: 15px;
+    color:rgb(154, 48, 174);
+    width: 1000px;
+    height: 20px;
+    line-height: 20px;
+}
+
+#searchOptionBox {
+    width: 100%;
+    height: 65px;
+    /* border: 1px solid black; */
+    margin-top: 40px;
+    text-align: center;
+}
+
+#searchInput {
+    height: 30px;
+    line-height: 25px;
+    margin-top: 7px;
+    border: 1px solid rgb(154, 48, 174);
+    border-radius: 10px;
+    padding-left: 10px;
+}
+
+#resultTextTitle {
+    font-size: 20px;
+    font-weight: bold;
+    text-align: center;
+    width: 100%;
+    height: 50px;
+    line-height: 50px;
+    /* border: 1px solid black; */
+    margin-top: 20px;
+}
+
+#resultContainer {
+    width: 100%;
+    height: 1000px;
+    /* border: 1px solid green; */
+    display: flex;
+    justify-content : center;
+}
+
+.check {
+    width: 25px;
+    height: 25px;
+    accent-color: rgb(154, 48, 174);
+}
+
+#searchOption {
+    font-weight: 550;
+    text-align: center;
+    margin: 0 auto;
+}
+
+::placeholder {
+    color: rgb(154, 48, 174);
+}
+
+button {
+    font-weight: 550;
+    background-color: rgb(224, 191, 230);
+    border: 1px solid rgb(154, 48, 174);
+    border-radius: 5px;
+    width: 50px;
+    height: 30px;
+    /* background-image: url("C:\Users\JINJIWON\VisualRadio\VisualRadio\static\images\searchButton.png");
+    background-repeat: no-repeat;
+    background-size: cover; */
+}
+

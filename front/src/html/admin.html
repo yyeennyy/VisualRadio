@@ -2,7 +2,7 @@
 <html>
 <head>
    <title>관리자 페이지</title>
-   <link rel="stylesheet" href="/static/css/admin.css">
+   <link rel="stylesheet" href="./css/admin.css">
    <script>
    function submitForm() {
       var form = document.getElementById("broadcast_form");
@@ -17,7 +17,7 @@
         alert("제출 완료! 일정 시간 후 콘텐츠 제작이 완료됩니다.");
 
         var xhrExistCheck = new XMLHttpRequest();
-        xhrExistCheck.open("GET", `/${b}/${p}/${d}/check_wav`);
+        xhrExistCheck.open("GET", `/api/${b}/${p}/${d}/check_wav`);
 
         xhrExistCheck.onreadystatechange = function() {
             if (xhrExistCheck.readyState === 4 && xhrExistCheck.status === 200) {
@@ -48,7 +48,7 @@
    <div id = "wrap">
       <a href="/">
          <div id = "logo">
-            <img id = "logoImg" src="/static/images/logo.png">
+            <img id = "logoImg" src="./images/logo.png">
          </div>
       </a>
       <div id = "info">방송 정보 입력</div>

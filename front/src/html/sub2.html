@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RADIO_SUB2</title>
+    <link rel="stylesheet" href="/static/css/sub2.css">
+    <script type="module" src="/static/js/sub2.js"></script>
+</head>
+<body>
+    <div id = "wrap">
+        <a href="/">
+            <div id = "logo">
+                <img id = "logoImg" src="./images/logo.png">
+            </div>
+        </a>
+        <div class = "data">
+            <div id = "info"></div>
+            <div class = "search">
+                <input type="text" id = "searchBar" placeholder="키워드 / 사연자 입력">
+                <img id = "searchButton" src="./images/searchButton.png" onclick="findText()">
+            </div>
+        </div>
+        <div class="episode">
+            <img id = 'episode' src=''>
+            <div id = "section1">
+                <div id = "imgContainer">
+                    <img id="main_img">
+                </div>
+            </div>
+            <div id = "section2">
+                <div id = "subtitleContainer"></div>
+                <div id = "index">
+                    <img id = "opening" src="./images/opening.png">
+                    <img id = "part1" src="./images/part1.png">
+                    <img id = "part2" src="./images/part2.png">
+                    <div id="listenerContainer">
+                        <div id="listenerBox" style="visibility: hidden;"></div>
+                        <div id="textAboveListener" style="visibility: hidden;"><span style="font-weight: bold;font-size: 16px;">오늘의 청취자</span></div>
+                      </div>
+                </div>
+            </div>
+        </div>
+        <audio hidden id="audio" src='' autoplay controls>오디오 지원되지 않는 브라우저</audio>
+        <p>
+            <span id="currentTime"></span> <span id='loading'>로딩 중</span> <span id="duration"></span>
+            <div class="progress-bar">
+                <div class="progress"></div>
+            </div>
+        </p>
+        <div id="play-pause-btn"><img class = "btn" id="btn" src="./images/pauseBtn.png"><i class="fa fa-play"></i></div>
+    </div>
+</body>
+</html>

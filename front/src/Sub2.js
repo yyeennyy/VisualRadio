@@ -31,7 +31,7 @@ import Section from './section.json';
 function Logo() {
   return <a href="/">
     <div id = "logo">
-        <img id = "logoImg" alt="logo_img" src="images/logo.png"/>
+        <img id = "logoImg" alt="logo_img" src="/static/images/logo.png"/>
     </div>
   </a>
 }
@@ -41,7 +41,7 @@ function Data(props) {
     <div id = "info">{props.radio_name}   {props.date}</div>
     <div className = "search">
         <input type="text" id = "searchBar" placeholder="키워드/사연자 입력"/>
-        <img id = "searchButton" alt="searchButton_img" src="images/searchButton.png" onClick={() => {
+        <img id = "searchButton" alt="searchButton_img" src="/static/images/searchButton.png" onClick={() => {
           console.log("검색버튼 누름");
         }}/>
     </div>
@@ -59,9 +59,9 @@ function Section2(props) {
     <GetScript broadcast={broadcast} radio_name={radio_name} date={date} audioRef={props.audioRef}/>
     {/* <Routes /> */}
     <div id = "index">
-        <img id = "opening" alt="opening_img" src="images/opening.png"/>
-        <img id = "part1" alt="part1_img" src="images/part1.png"/>
-        <img id = "part2" alt="part2_img" src="images/part2.png"/>
+        <img id = "opening" alt="opening_img" src="/static/images/opening.png"/>
+        <img id = "part1" alt="part1_img" src="/static/images/part1.png"/>
+        <img id = "part2" alt="part2_img" src="/static/images/part2.png"/>
     </div>
   </div>
 }

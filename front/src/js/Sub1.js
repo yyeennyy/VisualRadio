@@ -179,9 +179,9 @@
 //     const heartImage = document.getElementById("imgControl");
 //     const cookieValue = getCookie(broadcast, radio_name);
 //     if (cookieValue === "true") {
-//       heartImage.src = '/static/images/heart.png';
+//       heartImage.src = './images/heart.png';
 //     } else {
-//       heartImage.src = '/static/images/before_heart.png';
+//       heartImage.src = './images/before_heart.png';
 //     }
 //   }
 
@@ -193,9 +193,9 @@
 //     const radio_name = urlParams.get('radio_name');
   
 //     const cookieValue = getCookie(broadcast, radio_name);
-  
+
 //     if (cookieValue === 'true') {
-//       heartImg.src = '/static/images/before_heart.png';
+//       heartImg.src = './images/before_heart.png';
 //     //   const url = `/unlike/${broadcast}/${radio_name}`;
 //     const url = `./unlike.json`;
 //       likeCountElement.innerHTML = parseInt(likeCountElement.innerHTML) - 1;
@@ -213,7 +213,7 @@
 //         console.error('Error:', error);
 //         });
 //     } else {
-//       heartImg.src = '/static/images/heart.png';
+//       heartImg.src = './images/heart.png';
 //       const url = `/like/${broadcast}/${radio_name}`;
 //       likeCountElement.innerHTML = parseInt(likeCountElement.innerHTML) + 1;
 //       setCookie(broadcast, radio_name, 'true', 365);

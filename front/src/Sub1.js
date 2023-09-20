@@ -199,27 +199,38 @@ const Sub1 = () => {
     }
   
     async function fetchData(radio_name, year, month) {
-      // const response = await fetch(`/${broadcast}/${radio_name}/${year}/${month}/all`);
-      const response = await fetch(`./all.json`);
+      const response = await fetch(`/api/${broadcast}/${radio_name}/${year}/${month}/all`);
       const data = await response.json();
-      console.log(data);
+      console.log("가져온 날짜: ", data);
       // 이후에 data 변수를 사용하는 코드를 작성합니다.
       return data;
     }
   
     function showImg(broadcast, radio_name) {
-      // fetch(`/${broadcast}/${radio_name}/img`)
-      fetch(`./img.json`)
-        .then((response) => response.json())
-        .then((data) => {
-          console.log(data)
-          radio_img.setAttribute("src", data.main_photo);
+      const imageUrl = `/api/${broadcast}/${radio_name}/img`;
+    
+      fetch(imageUrl)
+        .then((response) => {
+          if (!response.ok) {
+            throw new Error('이미지를 가져오는 중 오류가 발생했습니다.');
+          }
+          return response.blob(); // 이미지를 Blob 형태로 가져옴
+        })
+        .then((imageBlob) => {
+          // Blob 데이터를 URL로 변환하여 이미지 요소의 src에 설정
+          const mainImgUrl = URL.createObjectURL(imageBlob);
+          const radio_img = document.getElementById('radioImg'); // 이미지를 표시할 img 요소
+          radio_img.src = mainImgUrl;
+        })
+        .catch((error) => {
+          console.error(error);
+          // 오류 처리 로직 추가
         });
     }
-  
+    
+
     function showInfo(radio_name) {
-      // fetch(`/${radio_name}/radio_info`)
-      fetch(`./info.json`)
+      fetch(`/api/${radio_name}/radio_info`)
         .then((response) => response.json())
         .then((data) => {
           console.log(data)
@@ -229,8 +240,7 @@ const Sub1 = () => {
   
     function showLikeCnt(broadcast, radio_name) {
       const likeCountElement = document.getElementById("likecnt");
-      // fetch(`/like-cnt/${broadcast}/${radio_name}`)
-      fetch(`./like.json`)
+      fetch(`/api/like-cnt/${broadcast}/${radio_name}`)
         .then((response) => response.json())
         .then((data) => {
           console.log(data)
@@ -257,8 +267,7 @@ const Sub1 = () => {
   
       if (cookieValue === "true") {
         heartImg.src = "/static/images/before_heart.png";
-        //   const url = `/unlike/${broadcast}/${radio_name}`;
-        const url = `./unlike.json`;
+        const url = `/api/unlike/${broadcast}/${radio_name}`;
         likeCountElement.innerHTML = parseInt(likeCountElement.innerHTML) - 1;
         setCookie(broadcast, radio_name, "false", 365);
   
@@ -275,7 +284,7 @@ const Sub1 = () => {
           });
       } else {
         heartImg.src = "/static/images/heart.png";
-        const url = `/like/${broadcast}/${radio_name}`;
+        const url = `/api/like/${broadcast}/${radio_name}`;
         likeCountElement.innerHTML = parseInt(likeCountElement.innerHTML) + 1;
         setCookie(broadcast, radio_name, "true", 365);
   

@@ -9,9 +9,6 @@ RUN npm install
 RUN npm i react-router-dom
 # RUN npm install --save react-helmet
 
-
-COPY . .
-
 EXPOSE 3000
 
 CMD ["npm", "start"]

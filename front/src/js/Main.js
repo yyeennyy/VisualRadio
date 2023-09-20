@@ -32,13 +32,13 @@
 //     programElement.innerHTML = `
 //     <div className="cover_back">
 //       <div className="lp">
-//         <img className="imgControl" src="/static/images/lp.png">
+//         <img className="imgControl" src="./images/lp.png">
 //       </div>
 //       <div className="cover">
 //         <img className="imgControl" src="${img}">
 //       </div>
 //       <div className="like">
-//         <img className="imgControl" src="/static/images/before_heart.png">
+//         <img className="imgControl" src="./images/before_heart.png">
 //       </div>
 //     </div>
 //     <div className="program_name" broadcast="${broadcast}" radio_name="${radio_class}">${radio_name}</div>
@@ -59,9 +59,9 @@
 
 //       const cookieValue = getCookie(broadcast, radio_name);
 //       if (cookieValue === "true") {
-//         heartImage.src = "/static/images/heart.png";
+//         heartImage.src = "./images/heart.png";
 //       } else {
-//         heartImage.src = "/static/images/before_heart.png";
+//         heartImage.src = "./images/before_heart.png";
 //       }
 //     }
 //   }
@@ -94,7 +94,7 @@
 //               event.stopPropagation(); // 이벤트 전파 중지 => 이거 안하면 부모 요소의 클릭 이벤트가 적용되어 버튼 클릭시 sub1 페이지로 이동됨
 
 //               if (heartImage.src.includes("before_heart.png")) {
-//                 heartImage.src = "/static/images/heart.png";
+//                 heartImage.src = "./images/heart.png";
 
 //                 const radio_name = programElement
 //                   .querySelector(".program_name")
@@ -121,7 +121,7 @@
 //                     console.error("Error:", error);
 //                   });
 //               } else {
-//                 heartImage.src = "/static/images/before_heart.png";
+//                 heartImage.src = "./images/before_heart.png";
 
 //                 const radio_name = programElement
 //                   .querySelector(".program_name")

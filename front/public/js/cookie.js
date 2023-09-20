@@ -40,8 +40,8 @@ window.getCookie = function(broadcast, radio_name) {
 //   const cookieValue = getCookie(broadcast, radio_name); // 쿠키 값 가져오기
 
 //   if (cookieValue !== "") { // 쿠키 값이 이미 존재하는 경우
-//       heartImg.src = "./images/heart.png";
+//       heartImg.src = "/static/images/heart.png";
 //   } else { // 쿠키 값이 존재하지 않는 경우
-//       heartImg.src = "./images/before_heart.png";
+//       heartImg.src = "/static/images/before_heart.png";
 //   }
 // }

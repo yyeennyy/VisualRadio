@@ -1,0 +1,234 @@
+* {
+    text-align: center;
+    font-size: 15px;
+}
+
+body {
+    background-color: rgba(223, 207, 244, 0.2);
+    background-image: url('./sub2_backgroundImage.png');
+    background-size: 1400px 1400px;
+    background-position: center center;
+    background-repeat: no-repeat;
+}
+
+#wrap {
+    width: 1100px;
+    height: 832px;
+    margin: 0 auto;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    flex-direction: column;
+    /* border: 1px solid black; */
+}
+
+#logo {
+    width: 350px;
+    height: 87.5px;
+    position: relative;
+    top: 0px;
+    margin: 0 auto;
+}
+
+#logoImg {
+    width: 350px;
+    height: 87.5px;            
+}
+
+.data {
+    width: 100%;
+    height: 40px;
+    margin: 0;
+    margin-top: -10px;
+    margin-bottom: 10px;
+}
+
+#info {
+    width: 35%;
+    height: 40px;
+    text-align: left;
+    float: left;
+    /* border: 1px dashed black; */
+    margin-left: 25px;
+    color: rgb(154, 48, 174);
+    font-size: 20px;
+    font-weight: bold;
+    line-height: 40px;
+}
+
+.search {
+    position: relative;
+    width: 284px;
+    height: 40px;
+    float: right;
+    margin-right: 40px;
+}
+      
+#searchBar {
+    width: 250px;
+    height: 40px;
+    border-width: 2px;
+    border-style: solid;
+    border-color: rgba(154, 48, 174, 0.7);
+    border-radius: 50px;
+    background-color: white;
+    color: rgb(154, 48, 174);
+}
+      
+#searchButton {
+    position : absolute;
+    width: 30px;
+    height: 30px;
+    margin-top: 5px;
+    margin-left: 2px;
+    line-height: 40px;
+}
+
+.episode {
+    width: 100%;
+    height: 550px;
+}
+
+#episode {
+    border-radius: 30px;
+}
+
+#section1, #section2 {
+    float: left;
+    width: 50%;
+    height: 550px;
+    position: relative;
+    background-color: white;
+    border-radius: 30px;
+}
+
+#imgContainer, #subtitleContainer {
+    width: 450px;
+    height: 450px;
+    /* border: 1px dashed black; */
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    margin: -225px 0 0 -225px;
+}
+
+#index {
+    width: 70px;
+    height: 450px;
+    position: absolute;
+    top: 50%;
+    right: -35px;
+    margin: -225px 0 0 0;
+}
+
+#main_img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+#subtitleContainer {
+    overflow-y: scroll;
+}
+
+#opening, #part1, #part2 {
+    width: 70px;
+    height: 70px;
+}
+
+.progress-bar {
+    position: relative;
+    width: 100%;
+    height: 20px;
+    background-color: white;
+    border-radius: 100px;
+    margin-bottom: 0;
+    margin-top: -15px;
+}
+
+.progress {
+    position: absolute;
+    top: 0;
+    left: 0;
+    height: 100%;
+    border-radius: 100px;
+    background-color: rgb(154, 48, 174);
+    width: 0%;
+    transition: width 0.1s ease-in-out;
+}
+
+p {
+    margin-top: 20px;
+    color: rgb(154, 48, 174);
+    font-size: 25px;
+    font-weight: bold;
+}
+
+#currentTime, #duration {
+    display: inline;
+}
+
+#play-pause-btn {
+    width: 30px;
+    height: 30px;
+    text-align: center;
+    text-decoration: none;
+    display: inline-block;
+    cursor: pointer;
+    margin-top: -30px;
+    margin-bottom: 5px;
+}
+
+.btn {
+    width: 30px;
+    height: 30px;
+    object-fit: cover;
+}
+
+.episode {
+    width: 100%; /* 또는 필요한 너비 설정 */
+  }
+  
+  .episode img {
+    width: 100%; /* 또는 필요한 너비 설정 */
+    height: auto; /* 너비에 맞게 이미지의 높이를 자동으로 조절 */
+  }
+
+#listenerBox {
+    width: 160px;
+    height: 150px;
+    background-color: rgba(255, 255, 255, 0.451);
+    position: absolute;
+    bottom: -50px;
+    right: -150px;
+    border: 2px solid rgba(106, 0, 138, 0.49);
+    border-radius: 20%;
+
+    /* 내용 글씨 정렬 */
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    justify-content: center;
+    padding-left: 12px; 
+}
+
+#textAboveListener{
+    position: absolute;
+    height: 200px;
+    bottom: -70px;
+    right: -115px;
+}
+
+.hover-zoom {
+    cursor: zoom-in;
+    transition: transform 0.2s;
+}
+
+.hover-zoom:hover {
+    transform: scale(1.1);
+    cursor: pointer;
+}
+
+#listenerLine {
+    text-align: left;
+}

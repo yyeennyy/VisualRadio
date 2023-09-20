@@ -90,7 +90,7 @@ const Main = () => {
         }
       
         function getInfo() {
-          return fetch("./radio.json")
+          return fetch("/api/radio")
             .then((response) => response.json())
             .then((data) => {
               console.log(data)

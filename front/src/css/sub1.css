@@ -1,0 +1,133 @@
+* {
+    text-align: center;
+    font-size: 20px;
+    color: rgb(154, 48, 174);
+}
+
+body {
+    background-size: 1400px 1400px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+#wrap {
+    width: 1100px;
+    height: 832px;
+    margin: 0 auto;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    flex-direction: column;
+    padding-top: 20px;
+    /* border: 1px solid black; */
+}
+
+#logo {
+    width: 350px;
+    height: 87.5px;
+    position: relative;
+    top: 0px;
+    margin: 0 auto;
+    margin-bottom: -100px;
+    /* border: 1px solid black; */
+}
+
+#logoImg {
+    width: 350px;
+    height: 87.5px;            
+}
+
+#content {
+    width: 1100px;
+    height: 700px;
+    border: 3px solid rgb(224, 191, 230);
+    border-radius: 15px;
+    margin-top: 50px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+#info {
+    width: 480px;
+    height: 550px;
+    /* border: 1px solid black; */
+    margin-right: 50px;
+}
+
+#image {
+    width: 480px;
+    height: 260px;
+    margin-bottom: 30px;
+    border-radius: 40px;
+    /* border: 1px solid black; */
+    position: relative;
+}
+
+#radioImg {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+}
+
+#radioInfo {
+    width: 480px;
+    height: 250px;
+    /* line-height: 270px; */
+    /* border: 1px solid black; */
+}
+
+#episode {
+    width: 500px;
+    height: 550px;
+    /* border: 1px solid black; */
+    border-radius: 40px;
+    background-color: rgba(223, 207, 244, 0.2);
+    /* display: flex;
+    align-items: center;
+    justify-content: center; */
+}
+
+.calendar {
+    margin: 0 auto;
+}
+
+td {
+    width: 60px;
+    height: 60px;
+}
+
+.calendar > thead > tr:first-child > td {
+    font-weight: bold;
+}
+
+.day {
+    background-image: url("./images/colorLp.png");
+    background-size: 40px 40px;
+    background-position: center center;
+    background-repeat: no-repeat;
+}
+
+#imgControl {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+#like {
+    width: 30px;
+    height: 30px;
+    position: absolute;
+    top: 15px;
+    right: 15px;
+}
+
+#likecnt {
+    width: 30px;
+    height: 20px;
+    font-size: 20px;
+    color: red;
+    font-weight: bold;
+    margin-top: -5px;
+}
