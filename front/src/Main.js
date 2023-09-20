@@ -13,8 +13,6 @@ const Main = () => {
         console.log("he")
         navigate("/subpage");
       }
-
-          
     const goToAdmin = () => {
       console.log("he")
       navigate("/admin");
@@ -205,7 +203,6 @@ const Main = () => {
         //   window.location.href = "/programs";
         // });
         
-
         goAdm.addEventListener("click", function (event) {
           window.location.href = "/admin";
         });

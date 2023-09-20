@@ -214,11 +214,14 @@ def all_stt(audio_holder):
         # audio = audio.to(device)
 
     stt_results = []
+    broadcast = audio_holder.broadcast
+    radio_name = audio_holder.name
+    radio_date = audio_holder.date
     sr = audio_holder.sr
     for data in split_mr:
         name = data[0]
         audio_len = len(data[1]) / sr
-        all_stt_whisper(name, audio_len, stt_results, device)
+        all_stt_whisper(broadcast, radio_name, radio_date, name, audio_len, stt_results, device)
 
     logger.debug(f"[stt] 전체 stt가 생성되었습니다.")
     # ------------------------ stt 작업 완료 --------------------
@@ -269,7 +272,7 @@ def all_stt(audio_holder):
             t = sentence['time']
             start_flag = False
         s += " " + txt
-        if len(s) < 15: # 누적 s가 너무 짧으면 append하지 않는다.
+        if len(s) < 29: # 누적 s가 너무 짧으면 append하지 않는다.
             continue
         else: # 누적 s가 충분히 길면 append한다.
             # 소수점 2자리의 "소수"로 저장
@@ -284,15 +287,16 @@ def all_stt(audio_holder):
     return audio_holder
 
 import torch
-def all_stt_whisper(name, audio_len, stt_results, device):
-    logger.debug(f"[stt] {name}!")
+def all_stt_whisper(broadcast, radio_name, radio_date, sec_name, audio_len, stt_results, device):
+    logger.debug(f"[stt] {sec_name}!")
     model = whisper.load_model(settings.WHISPER_MODEL).to(device)
     logger.debug(f"[stt] transcribe")
 
-    # name 경로에 저장된 "mr제거된 wav파일"을 대상으로 stt합니다. whisper의 timestamp 문제 때문에, 기존 array audio를 일단 stt에서 사용하지 않겠습니다.
-    # 다른 일이 급하니 경로는 일단 name으로 두겠습니다. (:해당 날짜 디렉토리에 굳이 저장 안하겠다는 의미)
-    results = model.transcribe(name, temperature=0.2, word_timestamps=True, condition_on_previous_text=False)
-    # 각각의 element: 작은단위의 stt결과가 담김 (i.e. 문장보다 더 잘게 끊긴 text 변환결과)
+    # 변경: mr제거 안한 음성 사용
+    audio_path = utils.hash_splited_path(broadcast, radio_name, radio_date, sec_name)
+    results = model.transcribe(audio_path, temperature=0.2, word_timestamps=True, condition_on_previous_text=False)
+
+    # 각각의 element: 작은단위의 stt결과가 담김 (i.e. 일반적인 문장보다 더 잘게 끊긴 text 변환결과)
     s = ""
     t = ""
     prev_string = "" # 이전문자열과 중복 파악을 위함
@@ -309,10 +313,6 @@ def all_stt_whisper(name, audio_len, stt_results, device):
             if element != results['segments'][-1]:  # 단, 마지막 요소가 아닐 때만 그냥 넘어가고..
                 # logger.debug(f"중복: {prev_string}")
                 continue
-        if element == results['segments'][-1]: # 만약 마지막 요소인 경우 누적된 문자열을 append하고 종료한다.
-            # logger.debug(f"[check] {name} | {t}")
-            sentences.append([t, make_fine_txt(s)])
-            break
         if len(txt) == 0:
             continue
         if start_flag:
@@ -320,7 +320,7 @@ def all_stt_whisper(name, audio_len, stt_results, device):
             start_flag = False
         # 정규표현식 패턴에 매치되는지 확인
         # 이 txt에서 끊어야 할 경우다. 누적된 문자열을 append한다.
-        if re.search(pattern, txt) or txt[-1]==".":
+        if re.search(pattern, txt) or txt[-1]=="." or element == results['segments'][-1]:  # 마지막 요소인 경우에도 이렇게 끝낸다.
             # logger.debug(f"[check] {name} | {t}")
             sentences.append([t, make_fine_txt(s)])
             s = ""
@@ -328,19 +328,18 @@ def all_stt_whisper(name, audio_len, stt_results, device):
             start_flag = True
 
 
-    stt_data["name"] = name
+    stt_data["name"] = sec_name
     stt_data["duration"] = audio_len
     stt_data["contents"] = sentences
 
     stt_results.append(stt_data)
     return
 
-
 import re
 
 
-# 공백으로 분리된 문자의 반복 제거
-def remove_repeated(text, split_point=" ", threshold=5):
+# 공백으로 분리된 문자의 반복 제거 - 한글자
+def remove_one_repeated(text, split_point=" ", threshold=5):
     word_list = text.split(split_point)
     repeat_cnt = [0] * len(word_list)
     prev = word_list[0]
@@ -367,62 +366,91 @@ def remove_repeated(text, split_point=" ", threshold=5):
 
     return " ".join(new_list)
 
-# 공백으로 분리되지 않은 글자(한글자) 반복 제거
-def remove_repeated_one_letter(text, threshold=5):
+
+# 공백으로 분리된 문자의 반복 제거 - 여러글자
+def remove_more_repeated(text, cnt_threshold=6):
+    words = text.split()
+
+    word_counts = {}
+    dup_word = {}
+    for word in words:
+        word_counts[word] = word_counts.get(word, 0) + 1
+        if word_counts[word] > cnt_threshold:
+            dup_word[word] = 1
+    
+    target_string = ' '.join(dup_word).strip()
+    if len(target_string) == 1 or target_string == '' or len(target_string) == 0:
+        return text
+    
+    # k개 이상 연속된 패턴을 찾아 삭제
+    pattern = re.compile(rf'\b\s*({re.escape(target_string)})\s*(?:\1\s*){{{cnt_threshold - 1},}}\1\s*\b')
+    result_text = pattern.sub('', text)
+
+    return result_text
+
+
+# 공백으로 분리되지 않은 글자 반복 제거
+def remove_repeated_no_space(text, threshold=5):
     word_list = text.split(" ")
+
     new_list = []
     for word in word_list:
-        word
         prev = ""
+        prev2 = ""
+        prev3 = ""
         target = ""
+        target2 = ""
         cnt = 0
+        cnt2 = 0
         dup_flag = False
         for letter in word:
+            # 한글자 반복 감지 코드
             if letter == prev:
                 target = letter
                 cnt += 1
+            else:
+                target = None
+                cnt = 0
             if cnt >= threshold:
-                word = word.replace(target, "")  #과감히 삭제
+                print(target)
+                # 연속된 target 문자열을 찾아서 대체
+                pattern = f'({re.escape(target)}){{{cnt},}}'
+                result_text = re.sub(pattern, '', text)
                 if not len(word) == 0:
-                    new_list.append(word)
+                    new_list.append(result_text)
                 dup_flag = True
                 break;
+
+            # 두글자 반복 감지 코드
+            if letter == prev2 and prev3 == prev:
+                target2 = prev + letter
+                cnt2 += 1
+            else:
+                target2 = None
+                cnt2 = 0
+            if cnt2 >= threshold:
+                print(target2)
+                pattern = f'({re.escape(target2)}){{{cnt},}}'
+                result_text = re.sub(pattern, '', text)
+                if not len(word) == 0:
+                    new_list.append(result_text)
+                dup_flag = True
+                break;
+
+            # 갱신
+            prev3 = prev2
+            prev2 = prev
             prev = letter
+        
+        # 반복이 감지되지 않았다면, 그냥 원본 그대로 유지!
         if not dup_flag:
             new_list.append(word)
         
-    return " ".join(new_list)
-
-# 공백으로 분리된 문자의 반복 제거
-def remove_repeated(text, split_point=" ", threshold=5):
-    word_list = text.split(split_point)
-    repeat_cnt = [0] * len(word_list)
-    prev = word_list[0]
-    cnt = 0
-    for i, word in enumerate(word_list[1:]):
-        idx = i + 1
-        if word == prev:
-            cnt += 1
-            continue
-        repeat_cnt[idx-1] = cnt + 1
-        prev = word
-        cnt = 0
-    new_list = []
-    for idx, dup in enumerate(repeat_cnt):
-        if dup == 0:
-            if idx == len(repeat_cnt) - 1:
-                new_list.append(word_list[idx])
-                break 
-            continue
-        if dup >= threshold:
-            new_list.append(word_list[idx])
-        else:
-            new_list.extend(word_list[idx-dup+1:idx+1])
-
-    return " ".join(new_list)
+    return " ".join(new_list).strip()
 
 # "중복 없는" 괜찮은 텍스트를 만들기
 def make_fine_txt(txt):
-    fine_txt = remove_repeated(txt)
-    fine_txt = remove_repeated_one_letter(fine_txt)
+    removed1 = remove_one_repeated(txt)
+    removed2 = remove_more_repeated(removed1)
+    fine_txt = remove_repeated_no_space(removed2)
     return fine_txt
