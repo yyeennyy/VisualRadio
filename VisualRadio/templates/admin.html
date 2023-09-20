@@ -17,7 +17,7 @@
         alert("제출 완료! 일정 시간 후 콘텐츠 제작이 완료됩니다.");
 
         var xhrExistCheck = new XMLHttpRequest();
-        xhrExistCheck.open("GET", `/${b}/${p}/${d}/check_wav`);
+        xhrExistCheck.open("GET", `/api/${b}/${p}/${d}/check_wav`);
 
         xhrExistCheck.onreadystatechange = function() {
             if (xhrExistCheck.readyState === 4 && xhrExistCheck.status === 200) {
@@ -35,7 +35,7 @@
    }
    function sendForm(formData) {
       var xhr = new XMLHttpRequest();
-      xhr.open("POST", "/admin-update");
+      xhr.open("POST", "/api/admin-update");
       xhr.onreadystatechange = function() {
          if (xhr.readyState === 4 && xhr.status === 200) {
          }

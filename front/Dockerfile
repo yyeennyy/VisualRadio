@@ -7,6 +7,8 @@ COPY package.json .
 # 명령어 실행 (의존성 설치)
 RUN npm install
 RUN npm i react-router-dom
+RUN npm install axios
+
 # RUN npm install --save react-helmet
 
 EXPOSE 3000

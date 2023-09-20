@@ -1,11 +1,11 @@
-#admin_wrap * {
+* {
     font-size: 15px;
     color: rgb(154, 48, 174);
     margin: 0 auto;
 }
 
 
-#admin_wrap  {
+#admin_wrap{
     width: 500px;
     height: 600px;
     margin: 0 auto;

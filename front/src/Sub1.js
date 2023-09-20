@@ -110,8 +110,9 @@ const Sub1 = () => {
       }
   
       fetchData(radio_name, year, month).then((data) => {
-        // let dateOk = JSON.parse(data);
-        let dateOk = data;
+        let dateOk = JSON.parse(data);
+        // console.log(data);
+        // let dateOk = data;
         for (
           let nowDay = firstDate;
           nowDay <= lastDate;
@@ -126,9 +127,10 @@ const Sub1 = () => {
             year + "-" + leftPad(month) + "-" + leftPad(nowDay.getDate())
           );
           let date = nowDay.getDate();
+          // console.log(dateOk[0])
           for (let i = 0; i < dateOk.length; i++) {
-            console.log(date)
-            console.log(dateOk[i].date)
+            // console.log(dateOk[0])
+            // console.log(dateOk[i].date)
             if (dateOk[i].date == date) {
               console.log("match!!")
               nowColumn.setAttribute("className", "day")

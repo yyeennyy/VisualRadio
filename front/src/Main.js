@@ -22,19 +22,19 @@ const Main = () => {
         // var urlParams = new URLSearchParams(window.location.search);
         // var broadcast = urlParams.get("broadcast");
         // var radio_name = urlParams.get("radio_name");
-        let broadcast = "MBC FM4U"
-        let radio_name = "이석훈의 브런치카페"
-        getCookie(broadcast, radio_name);
-        setLikeImage(broadcast, radio_name);
+        // let broadcast = "MBC FM4U"
+        // let radio_name = "이석훈의 브런치카페"
+        // getCookie(broadcast, radio_name);
+        // setLikeImage(broadcast, radio_name);
       
-        if (broadcast !== null && radio_name !== null) {
-          broadcast = broadcast.replace(/\/$/, "");
-          getCookie(broadcast, radio_name);
-          setLikeImage(broadcast, radio_name);
-        }
+        // if (broadcast !== null && radio_name !== null) {
+        //   broadcast = broadcast.replace(/\/$/, "");
+        //   getCookie(broadcast, radio_name);
+        //   setLikeImage(broadcast, radio_name);
+        // }
       
         const channelsElement = document.querySelector("#channels");
-        console.log(channelsElement)
+        // console.log(channelsElement)
       
         function createRadioBroadcast(broadcast) {
           const radioBroadcastElement = document.createElement("div");
@@ -73,16 +73,21 @@ const Main = () => {
           return programElement;
         }
       
-        function setLikeImage(broadcast, radio_name) {
-          const programElement = document.querySelector(
-            `.program_name[broadcast="${broadcast}"][radio_name="${radio_name}"]`
-          );
-      
-          if (programElement) {
-            const likeElement = programElement
-              .closest(".content")
-              .querySelector(".like");
-            const heartImage = likeElement.querySelector(".imgControl");
+        function setLikeImage(programElement, broadcast, radio_name) {
+          // console.log(document.querySelector(".App"))
+          // console.log(
+          //   document.querySelector("[class = 'cover_back']")
+          //   )
+          // const programElement = document.querySelector(
+          //   `.program_name[broadcast="${broadcast}"][radio_name="${radio_name}"]`
+          // );
+          // console.log(11)
+            // console.log(programElement)
+          // if (programElement) {
+            const likeElement = programElement.querySelector("[className = 'like']");
+            // console.log(likeElement)
+              // .querySelector(".like");
+            const heartImage = likeElement.querySelector("[className = 'imgControl']");
       
             const cookieValue = getCookie(broadcast, radio_name);
             if (cookieValue === "true") {
@@ -90,19 +95,20 @@ const Main = () => {
             } else {
               heartImage.src = "/static/images/before_heart.png";
             }
-          }
+          // }
         }
       
         function getInfo() {
           return fetch("/api/radio")
             .then((response) => response.json())
             .then((data) => {
-              console.log(data)
+              // console.log(data)
               data.forEach(({ broadcast, programs }) => {
                 const radioBroadcastElement = createRadioBroadcast(broadcast);
                 programs.forEach((program) => {
+                  // console.log(`${broadcast} ${program}`)
                   const programElement = createProgramElement(program, broadcast);
-                  console.log(programElement);
+                  // console.log(programElement);
                   radioBroadcastElement.appendChild(programElement);
       
                   // 클릭 이벤트 추가
@@ -117,9 +123,9 @@ const Main = () => {
                 //   const likeElement = programElement.querySelector('[className = "like"]');
                 const likeElement = programElement.querySelector('[className = "like"]');
                 //   const likeElement1 = programElement.querySelector(".like");
-                  console.log(likeElement)
+                  // console.log(likeElement)
                 //   console.log(likeElement1)
-                  const heartImage = likeElement.querySelector(".imgControl");
+                const heartImage = likeElement.querySelector("[className = 'imgControl']");
                   likeElement.addEventListener("click", function (event) {
                     event.stopPropagation(); // 이벤트 전파 중지 => 이거 안하면 부모 요소의 클릭 이벤트가 적용되어 버튼 클릭시 sub1 페이지로 이동됨
       
@@ -127,17 +133,16 @@ const Main = () => {
                       heartImage.src = "/static/images/heart.png";
       
                       const radio_name = programElement
-                        .querySelector(".program_name")
+                        .querySelector("[className = 'program_name']")
                         .getAttribute("radio_name");
                       const broadcast = programElement
-                        .querySelector(".program_name")
+                        .querySelector("[className = 'program_name']")
                         .getAttribute("broadcast");
                       const url = `/like/${broadcast}/${radio_name}`;
-      
                       // 쿠키 생성
                       setCookie(broadcast, radio_name, "true", 365);
                       const cookieValue = getCookie(broadcast, radio_name);
-                      console.log(cookieValue);
+                      // console.log(cookieValue);
       
                       fetch(url)
                         .then((response) => {
@@ -154,10 +159,10 @@ const Main = () => {
                       heartImage.src = "/static/images/before_heart.png";
       
                       const radio_name = programElement
-                        .querySelector(".program_name")
+                      .querySelector("[className = 'program_name']")
                         .getAttribute("radio_name");
                       const broadcast = programElement
-                        .querySelector(".program_name")
+                      .querySelector("[className = 'program_name']")
                         .getAttribute("broadcast");
                       const unlikeUrl = `/unlike/${broadcast}/${radio_name}`;
       
@@ -183,6 +188,7 @@ const Main = () => {
                   const radio_name = programElement
                     .querySelector("[className = 'program_name']")
                     .getAttribute("radio_name");
+                  // console.log(2)
                   setLikeImage(programElement, broadcast, radio_name);
                 });
                 channelsElement.appendChild(radioBroadcastElement);
@@ -281,7 +287,7 @@ const Main = () => {
           </div>
           </div>
           <div id="channels"></div>
-          <div id='goAdmin' onclick={goToAdmin}>goAdmin!!!</div>
+          <div id='goAdmin' onClick={goToAdmin}>goAdmin!!!</div>
           {/* <div id='goPrograms'>goPrograms!!</div> */}
       </>
   );

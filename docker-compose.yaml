@@ -48,6 +48,20 @@ services:
           - driver: nvidia
             count: 1
             capabilities: [gpu]
+  front:
+    container_name: front
+    build: ./front
+    ports: 
+      - 3000:3000
+    networks:
+      - db-net
+    volumes:
+      # - ./var/lib/volumes/docker/radio-vol/_data:/app
+      - ./front:/app
+    depends_on:
+      - visual-radio  
+    environment:
+      - TZ=Asia/Seoul
   nginx:
     container_name: nginx
     image: nginx:mainline-alpine3.18-slim
