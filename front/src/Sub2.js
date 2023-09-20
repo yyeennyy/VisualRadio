@@ -50,10 +50,10 @@ function Data(props) {
   </div>
 }
 
-function timeStringToFloat(time) {
-  const [minutes, seconds] = time.split(':').map(parseFloat);
-  return minutes * 60 + seconds;
-}
+// function timeStringToFloat(time) {
+//   const [minutes, seconds] = time.split(':').map(parseFloat);
+//   return minutes * 60 + seconds;
+// }
 
 // Section2 안에 사연자 보여주는 부분은 구현 X
 function Section2(props) {
@@ -84,7 +84,7 @@ function Section2(props) {
     const subtitleHeight = highlightedSubtitle.getBoundingClientRect().height;
     const containerHeight = subtitleContainer.getBoundingClientRect().height;
   
-    const scrollAmount = highlightedSubtitleTop - containerTop - (containerHeight - subtitleHeight) / 2;
+    const scrollAmount = highlightedSubtitleTop + containerTop;
     subtitleContainer.scrollTo({
       top: subtitleContainer.scrollTop + scrollAmount,
       behavior: 'smooth',
@@ -108,11 +108,6 @@ function Section2(props) {
       block.addEventListener('click', () => {
         handleSubtitleClick(subtitle.time, index);
       });
-
-      // if (audioRef.current && audioRef.current.audioEl.current.currentTime + 0.5 >= timeToSeconds(subtitle.time) && audioRef.current.audioEl.current.currentTime - 0.5 <= timeToSeconds(subtitle.time)) {
-      //   block.style.fontWeight = '900';
-      //   setHighlightedIndex(index); // 강조된 라인의 인덱스 업데이트
-      // }
 
       subtitleContainer.appendChild(block);
     });
@@ -144,16 +139,17 @@ function Section2(props) {
       }
 
       if (highlightedSubtitleIndex !== -1) {
+        const subtitleContainer = document.getElementById("subtitleContainer");
+        const containerHeight = subtitleContainer.clientHeight;
         const highlightedSubtitle = subtitleContainer.children[highlightedSubtitleIndex];
-        const containerTop = subtitleContainer.getBoundingClientRect().top;
-        const highlightedSubtitleTop = highlightedSubtitle.getBoundingClientRect().top - containerTop;
-        const subtitleHeight = highlightedSubtitle.getBoundingClientRect().height;
-        const containerHeight = subtitleContainer.getBoundingClientRect().height;
-    
-        // 스크롤 위치를 계산하여 중앙에 오도록 조정합니다.
-        const scrollAmount = highlightedSubtitleTop - containerTop - (containerHeight - subtitleHeight) / 2;
+        const subtitleHeight = highlightedSubtitle.clientHeight;
+
+        // 자막을 중앙에 위치시키기 위한 스크롤 위치 계산
+        const scrollAmount = highlightedSubtitle.offsetTop - (containerHeight - subtitleHeight) / 2;
+
+        // 현재 강조 중인 자막을 중앙에 위치시키기 위해 스크롤 조정
         subtitleContainer.scrollTo({
-          top: subtitleContainer.scrollTop + scrollAmount,
+          top: scrollAmount,
           behavior: 'smooth',
         });
       }
@@ -179,103 +175,10 @@ function Section2(props) {
 }
 
 
-// 자동 재생 + ReactAudioPlayer 커스텀 되는지 확인하기
-// 원래 Audio 컴포넌트 있던 자리
-
-// const handleTextClick = (time, audioRef) => {
-//   // 시간을 분:초 형식에서 초로 변환
-//   const [minutes, seconds] = time.split(':').map(parseFloat);
-//   const totalTimeInSeconds = minutes * 60 + seconds;
-
-//   if (audioRef.current) {
-//     audioRef.current.audioEl.current.currentTime = totalTimeInSeconds;
-//   }
-// };
-
-// const GetScript = (props) => {
-//   const [scriptData, setScriptData] = useState([]);
-
-//   useEffect(() => {
-//     axios.get(`/dummy/script.json`)
-//       .then(response => {
-//         setScriptData(response.data);
-//       });
-//   }, []);
-
-//   return <div id = "subtitleContainer">{scriptData}</div>;
-// }
-
-  // useEffect(() => {
-  //   // Add a listener to the audio element to track the current time
-  //   const audioEl = props.audioRef.current.audioEl.current;
-    
-  //   const handleTimeUpdate = () => {
-  //     const currentTime = audioEl.currentTime;
-      
-  //     // Find the script line that matches the current time
-  //     const matchedLine = scriptData.find((line) => {
-  //       const [minutes, seconds] = line.time.split(':').map(parseFloat);
-  //       const lineTimeInSeconds = minutes * 60 + seconds;
-  //       return currentTime >= lineTimeInSeconds;
-  //     });
-
-  //     // Scroll to the matched script line
-  //     if (matchedLine) {
-  //       const element = document.getElementById(`line-${matchedLine.time}`);
-  //       if (element) {
-  //         element.scrollIntoView({ behavior: 'smooth' });
-  //       }
-  //     }
-  //   };
-
-  //   audioEl.addEventListener('timeupdate', handleTimeUpdate);
-
-  //   return () => {
-  //     audioEl.removeEventListener('timeupdate', handleTimeUpdate);
-  //   };
-  // }, [scriptData, props.audioRef]);
-
-//   useEffect(() => {
-//     fetch("http://localhost:3000")
-//     .then(response => {
-//       return response.json();
-//     })
-//     .then(data => {
-//       setScriptData(data);
-//     });
-
-  // axios.get(`/dummy/script.json`)
-  //   .then(response => {
-  //     setScriptData(response.data);
-  //   })
-
-//     .catch(error => {
-//       console.error('Error fetching script data:', error);
-//     });
-// }, [broadcast, radio_name, date]);
-
-  // return <div id = "subtitleContainer">{scriptData}</div>
-//   return <div id="subtitleContainer">
-//       {scriptData.map((line, index) => (
-//         <p
-//           key={index}
-//           id={`line-${line.time}`}
-//           className="scriptLine"
-//           onClick={() => handleTextClick(line.time, props.audioRef)}
-//         >
-//           {line.txt}
-//         </p>
-//       ))}
-//     </div>
-// }
-
-
 function Sub2() {
   // const location = useLocation();
   // const searchParams = new URLSearchParams(location.search);
   let searchParams = new URLSearchParams(window.location.search);
-  // const location = useLocation();
-  // const searchParams = new URLSearchParams(location.search);
 
   const broadcast = searchParams.get('broadcast');
   const radio_name = searchParams.get('radio_name');
