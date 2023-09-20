@@ -271,14 +271,15 @@ function Section2(props) {
 function Sub2() {
   // const location = useLocation();
   // const searchParams = new URLSearchParams(location.search);
+  let searchParams = new URLSearchParams(window.location.search);
 
-  // const broadcast = searchParams.get('broadcast');
-  // const radio_name = searchParams.get('radio_name');
-  // const date = searchParams.get('date');
+  const broadcast = searchParams.get('broadcast');
+  const radio_name = searchParams.get('radio_name');
+  const date = searchParams.get('date');
 
   // const broadcast = 'MBC FM4U';
-  const radio_name = '이석훈의 브런치카페';
-  const date = '2023-06-18';
+  // const radio_name = '이석훈의 브런치카페';
+  // const date = '2023-06-18';
 
   const [currentSection, setCurrentSection] = useState({ content: '', time_range: [0, 0], other: '' });
   const [currentTime, setCurrentTime] = useState(0);
@@ -289,12 +290,20 @@ function Sub2() {
 
   const [scriptData, setScriptData] = useState([]);
 
+  const [wavData, setWavData] = useState(`/radio_storage/${broadcast}/${radio_name}/${date}/sum.wav`);
+
+
+
+  console.log(`${broadcast} ${radio_name} ${date}`)
+
   useEffect(() => {
-    axios.get(`/dummy/script.json`)
+    axios.get(`./radio_storage/${broadcast}/${radio_name}/${date}/result/script.json`)
     .then(response => {
+      console.log(response.data)
       setScriptData(response.data);
     });
   }, []);
+
 
   // 현재 재생 시간 반환
   const updateCurrentTime = () => {
@@ -505,7 +514,7 @@ function Sub2() {
         {/* <Audio src="audio/sum.wav"></Audio>*/}
         <ReactAudioPlayer
           ref={audioRef}
-          src="audio/sum.wav" // !!! : 여기 경로 수정해야 함
+          src={wavData} // !!! : 여기 경로 수정해야 함
           // autoPlay
           // muted
           controls
