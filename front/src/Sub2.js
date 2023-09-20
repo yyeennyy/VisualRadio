@@ -5,7 +5,9 @@ import './Sub2.css';
 
 // npm install --save react-audio-player
 import ReactAudioPlayer from 'react-audio-player';
-// import { useLocation } from 'react-router-dom';
+
+// npm install react-router-dom
+import { useLocation } from 'react-router-dom';
 
 // npm i axios
 import axios from 'axios'; 
@@ -16,7 +18,7 @@ import axios from 'axios';
 // import ScriptData from "./script.json";
 
 import Section1 from './component/Section1';
-import Section from './section.json';
+// import Section from './section.json';
 
 // npm i -s react-router-dom
 
@@ -269,16 +271,16 @@ function Section2(props) {
 
 
 function Sub2() {
-  // const location = useLocation();
-  // const searchParams = new URLSearchParams(location.search);
+  const location = useLocation();
+  const searchParams = new URLSearchParams(location.search);
 
-  // const broadcast = searchParams.get('broadcast');
-  // const radio_name = searchParams.get('radio_name');
-  // const date = searchParams.get('date');
+  const broadcast = searchParams.get('broadcast');
+  const radio_name = searchParams.get('radio_name');
+  const date = searchParams.get('date');
 
   // const broadcast = 'MBC FM4U';
-  const radio_name = '이석훈의 브런치카페';
-  const date = '2023-06-18';
+  // const radio_name = '이석훈의 브런치카페';
+  // const date = '2023-06-18';
 
   const [currentSection, setCurrentSection] = useState({ content: '', time_range: [0, 0], other: '' });
   const [currentTime, setCurrentTime] = useState(0);
@@ -287,12 +289,22 @@ function Sub2() {
   const [youtubeStateEnd, setYoutubeStateEnd] = useState(true);
   const [foundSection, setFoundSection] = useState({ content: '', time_range: [0, 0], other: '' });
 
+
   const [scriptData, setScriptData] = useState([]);
+  const [sectionData, setSectionData] = useState([]);
+  const sectionArray = '';
 
   useEffect(() => {
-    axios.get(`/dummy/script.json`)
+    axios.get(`/dummy/${broadcast}/${radio_name}/${date}/script.json`)
     .then(response => {
       setScriptData(response.data);
+    });
+
+   
+    axios.get(`/dummy/${broadcast}/${radio_name}/${date}/section.json`)
+    .then(response => {
+      setSectionData(response.data);
+      sectionArray = Array.from(sectionData);
     });
   }, []);
 
@@ -340,12 +352,12 @@ function Sub2() {
 
   // 유튜브 영상이 끝나면 다음 content 시작 위치로 이동해서 재생
   useEffect(() => {
+    
     // 유튜브 영상 재생이 끝났다면 youtubeStateEnd = true
     if (youtubeStateEnd) {
-
       setCurrentTime(currentTime + 0.5);
 
-      setFoundSection(Section.find((section) => {
+      setFoundSection(sectionArray.find((section) => {
         const [start, end] = section.time_range;
         return currentTime >= start && currentTime <= end;
       }));
@@ -356,7 +368,7 @@ function Sub2() {
       console.log('2. 현재 current time은 ', currentTime);
       audioRef.current.audioEl.current.currentTime = currentSection.time_range[1];
       setCurrentTime(currentSection.time_range[1] + 0.5); // 눈물 광광 ...
-      setFoundSection(Section.find((section) => {
+      setFoundSection(sectionArray.find((section) => {
         const [start, end] = section.time_range;
         return currentTime >= start && currentTime < end;
       }));
@@ -365,7 +377,7 @@ function Sub2() {
       console.log('4. 현재 currentSection은 ', currentSection);
       setCurrentTime(currentSection.time_range[0]);
       console.log('5. 현재 currentTime은 ', currentTime);
-      setFoundSection(Section.find((section) => {
+      setFoundSection(sectionArray.find((section) => {
         const [start, end] = section.time_range;
         return currentTime >= start && currentTime <= end;
       }));
@@ -374,7 +386,7 @@ function Sub2() {
       
       // audioRef.current.audioEl.current.play();
     } else {
-      setFoundSection(Section.find((section) => {
+      setFoundSection(sectionArray.find((section) => {
         const [start, end] = section.time_range;
         return currentTime >= start && currentTime <= end;
       }));
@@ -438,7 +450,7 @@ function Sub2() {
 
   // 아래 코드는 위의 코드를 useEffect 부분과 함수 부분으로 분리한 후 코드 수정 진행함
   const foundCurrentContent = () => {
-    setFoundSection(Section.find((section) => {
+    setFoundSection(sectionArray.find((section) => {
       const [start, end] = section.time_range;
       return currentTime >= start && currentTime <= end;
     }));
