@@ -288,11 +288,11 @@ function Sub2() {
   const [audioPlaying, setAudioPlaying] = useState(false); 
   const [youtubeStateEnd, setYoutubeStateEnd] = useState(true);
   const [foundSection, setFoundSection] = useState({ content: '', time_range: [0, 0], other: '' });
-
-
+  
   const [scriptData, setScriptData] = useState([]);
   const [sectionData, setSectionData] = useState([]);
-  const sectionArray = '';
+  const [setting, setSetting] = useState(false);
+
 
   useEffect(() => {
     axios.get(`/dummy/${broadcast}/${radio_name}/${date}/script.json`)
@@ -300,13 +300,19 @@ function Sub2() {
       setScriptData(response.data);
     });
 
-   
-    axios.get(`/dummy/${broadcast}/${radio_name}/${date}/section.json`)
+    axios.get(`/dummy/${broadcast}/${radio_name}/${date}//section.json`)
     .then(response => {
       setSectionData(response.data);
-      sectionArray = Array.from(sectionData);
     });
+
+    setSetting(true);
+   
   }, []);
+
+  useEffect(() => {
+    console.log('scriptData는 ', scriptData);
+    console.log('sectionData는 ', sectionData);
+  }, [scriptData, sectionData]);
 
   // 현재 재생 시간 반환
   const updateCurrentTime = () => {
@@ -336,6 +342,7 @@ function Sub2() {
   // ReactAudioPlayer가 재생될 때 호출되는 함수
   const handleAudioPlay = () => {
     setAudioPlaying(true); // 오디오 재생 중 상태로 설정
+    // foundCurrentContent();
     // audioRef.current.audioEl.current.play(); // 이거 잠시 추가
   };
 
@@ -357,7 +364,8 @@ function Sub2() {
     if (youtubeStateEnd) {
       setCurrentTime(currentTime + 0.5);
 
-      setFoundSection(sectionArray.find((section) => {
+      setFoundSection(sectionData.find((section) => {
+
         const [start, end] = section.time_range;
         return currentTime >= start && currentTime <= end;
       }));
@@ -368,7 +376,9 @@ function Sub2() {
       console.log('2. 현재 current time은 ', currentTime);
       audioRef.current.audioEl.current.currentTime = currentSection.time_range[1];
       setCurrentTime(currentSection.time_range[1] + 0.5); // 눈물 광광 ...
-      setFoundSection(sectionArray.find((section) => {
+
+      setFoundSection(sectionData.find((section) => {
+
         const [start, end] = section.time_range;
         return currentTime >= start && currentTime < end;
       }));
@@ -377,7 +387,9 @@ function Sub2() {
       console.log('4. 현재 currentSection은 ', currentSection);
       setCurrentTime(currentSection.time_range[0]);
       console.log('5. 현재 currentTime은 ', currentTime);
-      setFoundSection(sectionArray.find((section) => {
+
+      setFoundSection(sectionData.find((section) => {
+
         const [start, end] = section.time_range;
         return currentTime >= start && currentTime <= end;
       }));
@@ -386,7 +398,9 @@ function Sub2() {
       
       // audioRef.current.audioEl.current.play();
     } else {
-      setFoundSection(sectionArray.find((section) => {
+
+      setFoundSection(sectionData.find((section) => {
+
         const [start, end] = section.time_range;
         return currentTime >= start && currentTime <= end;
       }));
@@ -450,7 +464,8 @@ function Sub2() {
 
   // 아래 코드는 위의 코드를 useEffect 부분과 함수 부분으로 분리한 후 코드 수정 진행함
   const foundCurrentContent = () => {
-    setFoundSection(sectionArray.find((section) => {
+    setFoundSection(sectionData.find((section) => {
+
       const [start, end] = section.time_range;
       return currentTime >= start && currentTime <= end;
     }));
@@ -486,6 +501,8 @@ function Sub2() {
         return () => {
           clearInterval(newInterval);
         };
+      } else {
+        console.log('해당 하는 컨텐츠가 없습니다.');
       }
     }
   }
@@ -494,12 +511,12 @@ function Sub2() {
     if (audioPlaying) {
       foundCurrentContent();
     }
-  }, [audioPlaying, currentTime]);
+  }, [audioPlaying, currentTime, setting]);
 
   return (
     <div className="Sub2">
       <div id = 'wrap'>
-        <Logo />
+        <Logo/>
         <Data radio_name = {radio_name} date = {date}/>
         {/* episode 컴포넌트로 구현하려고 했던 부분_s */}
         <div className="episode">
