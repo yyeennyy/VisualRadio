@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RADIO_SUB1</title>
+    <link rel="stylesheet" href="/static/css/sub1.css">
+    <script type="module" src="/static/js/cookie.js"></script>
+    <script type="module" src="/static/js/sub1.js"></script>
+</head>
+<body>
+    <div id = "wrap">
+        <a href="/">
+            <div id = "logo">
+                <img id = "logoImg" src="/static/images/logo_opacity0.jpeg">
+            </div>
+        </a>
+        <div id = "content">
+            <div id = "info">
+                <div id = "image">
+                    <!-- 라디오 이미지 -->
+                    <img id = "radioImg" src="">
+                    <div id = "like">
+                        <img id="imgControl" src="/static/images/heart.png">
+                        <span id = "likecnt"></span>
+                    </div>
+                </div>
+                <!-- 라디오 소개글 -->
+                <div id = "radioInfo"></div>
+            </div>
+            <div id = "episode">
+                <table class="calendar">
+                    <thead>
+                        <tr>
+                            <td id = "prevCal" style="cursor:pointer;">&#60;</td>
+                            <td colspan="5">
+                                <span id="calYear"></span>년
+                                <span id="calMonth"></span>월
+                            </td>
+                            <td id = "nextCal" style="cursor:pointer;">&#62;</td>
+                        </tr>
+                        <tr>
+                            <td>일</td>
+                            <td>월</td>
+                            <td>화</td>
+                            <td>수</td>
+                            <td>목</td>
+                            <td>금</td>
+                            <td>토</td>
+                        </tr>
+                    </thead>
+                    <tbody>
+                    </tbody>
+                </table>                
+            </div>
+        </div>
+</body>
+</html>

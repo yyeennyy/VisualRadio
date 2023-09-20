@@ -1,0 +1,399 @@
+* {
+    /* text-align: center; */
+    font-size: 15px;
+    color: rgb(154, 48, 174);
+}
+
+#wrap{
+    width: 1050px;
+    height: auto;
+    /* height: 832px; */
+    margin: 0 auto;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    flex-direction: column;
+    /* border: 1px solid black; */
+}
+
+#logo {
+    width: 350px;
+    height: 87.5px;
+    position: relative;
+    /* top: 0px; */
+    margin: 0 auto;
+    margin-top: 20px;
+}
+
+#logoImg {
+    width: 350px;
+    height: 87.5px;            
+}
+
+/* #menu {
+    width: 100%;
+    height: 30px;
+    margin-bottom: 40px;
+    margin-left: -400px;
+} */
+
+ul {
+    width: 1000px;
+    height: 40px;
+    background-color: rgba(224, 191, 230, 0.7);
+    /* border: 3px dashed red; */
+    border-radius: 10px;
+    margin-top: 30px;
+    display: none;
+    text-align: left;
+    font-weight: 550;
+}
+
+/* ul {
+    width: 100%;
+    height: 30px;
+    text-align: left;
+    font-weight: 550;
+    border: 1px solid black;
+} */
+
+li {
+    list-style: none;
+    /* border: 1px solid blue; */
+    color: rgb(154, 48, 174);
+    float: left;
+    margin-right: 50px;
+    font-size: 20px;
+    line-height: 40px;
+}
+
+#channels {
+    width: 100%;
+    /* height: auto; */
+    height: 800px;
+    margin-top: 50px;
+    /* border: 1px solid black; */
+    /* overflow-y: scroll; */
+    /* display: none; */
+}
+
+#resultchannels {
+    width: 100%;
+    /* height: auto; */
+    height: 550px;
+    /* border: 1px solid black; */
+    /* overflow-y: scroll; */
+}
+
+[className = 'radioBroadcast'] {
+    width: 100%;
+    height: 200px;
+    background-color: rgba(223, 207, 244, 0.2);
+    position: relative;
+    margin-bottom: 30px;
+    display: flex;
+}
+
+[className = 'radioBroadcastName'] {
+    text-align: center;
+    font-weight: bolder;
+    color: rgb(154, 48, 174);
+    font-size: 30px;
+    line-height: 40px;
+    background-color: rgb(224, 191, 230);
+    width: 170px;
+    height: 40px;
+    position: absolute;
+    top: -20px;
+    left: 10px;
+}
+
+[className = 'content'] {
+    width: 180px;
+    height: 160px;
+    /* border: 1px solid black; */
+    /* position: absolute; */
+    /* top: 30px; */
+    /* left: 10px; */
+    margin-top: 30px;
+    margin-left: 10px;
+    margin-right: 30px;
+}
+
+[className = 'cover_back'] {
+    width: 135px;
+    height: 135px;
+    background-color: rgb(176, 151, 112);
+    position: relative;
+}
+
+[className = 'cover'] {
+    width: 125px;
+    height: 125px;
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    margin: -62.5px 0 0 -62.5px;
+}
+
+[className = 'imgControl'] {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+[className = 'like'] {
+    width: 30px;
+    height: 30px;
+    position: absolute;
+    top: 7px;
+    right: 7px;
+}
+
+[className = 'lp'] {
+    width: 130px;
+    height: 130px;
+    position: absolute;
+    top: 2px;
+    right: -40px;
+}
+
+[className = 'program_name'] {
+    width: 100%;
+    height: 20px;
+    line-height: 20px;
+    color: rgb(154, 48, 174);
+    margin-top: 10px;
+    text-align: left;
+}
+
+[className = 'listenerInfo'] {
+    background-color: rgba(223, 207, 244, 0.2);
+    margin-top: 15px;
+    color:rgb(154, 48, 174);
+    width: 1000px;
+    height: 20px;
+    line-height: 20px;
+}
+
+#searchOptionBox {
+    width: 100%;
+    height: 50px;
+    /* border: 1px solid black; */
+    margin-top: 60px;
+    text-align: center;
+}
+
+#searchInput {
+    width: 90%;
+    height: 30px;
+    transition: height 0.4s;
+    line-height: 25px;
+    margin-top: 7px;
+    border: 1px solid rgb(154, 48, 174);
+    border-radius: 10px;
+    padding-left: 10px;
+    color: rgb(48, 0, 74); /* 원하는 입력 텍스트 색상을 지정합니다. */
+    font-size: 16px; /* 원하는 입력 텍스트 크기를 지정합니다. */
+}
+#searchInput:focus {
+    height: 45px; /* 활성화되면 크기가 커지는 스타일을 정의합니다. */
+}
+
+#resultTextTitle {
+    font-size: 20px;
+    font-weight: bold;
+    text-align: center;
+    width: 100%;
+    height: 40px;
+    line-height: 40px;
+    /* border: 1px solid black; */
+    /* margin-top: 10px; */
+    display: none;
+}
+
+#resultContainer {
+    width: 100%;
+    /* height: auto; */
+    height: 800px;
+    /* border: 1px solid green;  */
+    display: none;
+    /* justify-content : center; */
+    /* padding-top: 40px; */
+    text-align: center;
+}
+
+[className = 'check'] {
+    width: 25px;
+    height: 25px;
+    accent-color: rgb(154, 48, 174);
+}
+
+/* #searchOption {
+    font-weight: 550;
+    text-align: center;
+    margin: 0 auto;
+} */
+
+::placeholder {
+    color: rgb(154, 48, 174);
+}
+
+button {
+    font-weight: 550;
+    background-color: rgb(224, 191, 230);
+    border: 1px solid rgb(154, 48, 174);
+    border-radius: 5px;
+    width: 50px;
+    height: 30px;
+    /* background-image: url("C:\Users\JINJIWON\VisualRadio\VisualRadio\static\images\searchButton.png");
+    background-repeat: no-repeat;
+    background-size: cover; */
+}
+
+[className = 'resultBox'] {
+    width: 100%;
+    /* height: auto; */
+    height: 215px;
+    position: relative;
+    /* border: 3px dashed red; */
+    margin-bottom: 30px;
+    /* display: none; */
+}
+
+[className = 'resultTitle'] {
+    font-size: 25px;
+    font-weight: bolder;
+    text-align: left;
+    width: 98%;
+    /* height: auto; */
+    height: 25px;
+    /* border: 1px solid black; */
+    position: absolute;
+    top: 5px;
+    left: 5px;
+}
+
+#h, #r {
+    background-color: rgb(224, 191, 230);
+    width: 100%;
+    height: 5px;
+    margin: 20px 0;
+    border: 0px;
+    display: none;
+}
+
+#resultPrograms {
+    width: 98%;
+    /* height: auto; */
+    height: 180px;
+    /* border: 1px solid red; */
+    margin-top: 20px;
+    position: absolute;
+    left: 5px;
+    top: 30px;
+    font-size: 30px;
+}
+
+[className = 'resultProgram'] {
+    width: 320px;
+    height: 160px;
+    /* border: 3px solid orange; */
+    margin-right: 30px;
+    background-color: rgba(223, 207, 244, 0.5);
+}
+
+[className = 'section1'] {
+    width: 150px;
+    height: 160px;
+    text-align: center;
+    /* border: 10px solid black; */
+    float: left;
+}
+
+[className = 'section2'] {
+    width: 150px;
+    height: 160px;
+    text-align: center;
+    /* border: 1px solid black; */
+    float: left;
+}
+
+[className = 'resultProgramSet'] {
+    width: 130px;
+    height: 135px;
+    text-align: left;
+    display: inline-block;
+    /* border: 1px solid black; */
+    margin-left: 50px;
+    margin-top: 7.5px;
+    /* font-size: 30px; */
+    font-weight: 550;
+}
+
+
+[className = 'tmp'] {
+    width: 100%;
+    height: 45px;
+    line-height: 45px;
+}
+
+[className = 'median'] {
+    margin-top: 7.5px;
+    display: inline-block;
+    /* border: 3px solid blue; */
+}
+
+[className = 'resultUsers'],  [className = 'resultContents'] {
+    background-color: rgba(223, 207, 244, 0.5);
+    width: 90%;
+    height: 150px;
+    margin-top: 20px;
+    position: absolute;
+    left: 5px;
+    top: 30px;
+    text-align: center;
+}
+
+#goAdmin{
+    display: inline-block;
+    position: fixed;
+    left: 5px;
+    top: 5px;
+}
+
+#goPrograms{
+    display: inline-block;
+    position: fixed;
+    left: 5px;
+    top: 20px;
+}
+
+[className = 'resultUser_user'] {
+    font-size: 25px;
+    font-weight: 550;
+    width: 120px;
+}
+
+[className = 'resultUser_broadcast'], [className = 'resultUser_radioName'], [className = 'resultContents_broadcast'], [className = 'resultContents_radioName']{
+    border-right: 1px solid rgb(154, 48, 174);;
+}
+
+td {
+    width: 150px;
+}
+
+table {
+    text-align: center;
+}
+
+[className = 'resultUser_preView'], [className = 'resultContents_preView'] {
+    margin-top: 20px;
+    padding-left: 30px;
+    /* border: 3px solid purple; */
+    text-align: left;
+}
+
+[className = 'contentsTable'] {
+    margin-top: 10px;
+}

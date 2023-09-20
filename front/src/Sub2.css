@@ -1,9 +1,9 @@
-* {
+.Sub2 * {
   text-align: center;
   font-size: 15px;
 }
 
-body {
+.Sub2 body {
   background-color: rgba(223, 207, 244, 0.2);
   background-image: url("../public/images/sub2_backgroundImage.png");
   background-size: 1400px 1400px;
@@ -11,7 +11,7 @@ body {
   background-repeat: no-repeat;
 }
 
-#wrap {
+.Sub2 #wrap {
   width: 1100px;
   height: 832px;
   margin: 0 auto;
@@ -22,7 +22,7 @@ body {
   /* border: 1px solid black; */
 }
 
-#logo {
+.Sub2 #logo {
   width: 350px;
   height: 87.5px;
   position: relative;
@@ -30,12 +30,12 @@ body {
   margin: 0 auto;
 }
 
-#logoImg {
+.Sub2 #logoImg {
   width: 350px;
   height: 87.5px;            
 }
 
-.data {
+.Sub2 .data {
   width: 100%;
   height: 40px;
   margin: 0;
@@ -43,7 +43,7 @@ body {
   margin-bottom: 10px;
 }
 
-#info {
+.Sub2 #info {
   width: 35%;
   height: 40px;
   text-align: left;
@@ -56,7 +56,7 @@ body {
   line-height: 40px;
 }
 
-.search {
+.Sub2 .search {
   position: relative;
   width: 284px;
   height: 40px;
@@ -64,7 +64,7 @@ body {
   margin-right: 40px;
 }
     
-#searchBar {
+.Sub2 #searchBar {
   width: 250px;
   height: 40px;
   border-width: 2px;
@@ -75,7 +75,7 @@ body {
   color: rgb(154, 48, 174);
 }
     
-#searchButton {
+.Sub2 #searchButton {
   position : absolute;
   width: 30px;
   height: 30px;
@@ -84,16 +84,16 @@ body {
   line-height: 40px;
 }
 
-/* .episode {
+.Sub2 /* .episode {
   width: 100%;
   height: 550px;
 } */
 
-#episode {
+.Sub2 #episode {
   border-radius: 30px;
 }
 
-#section1, #section2 {
+.Sub2 #section1, #section2 {
   float: left;
   width: 550px;
   height: 550px;
@@ -102,7 +102,7 @@ body {
   border-radius: 30px;
 }
 
-#imgContainer, #subtitleContainer, #videoContainer {
+.Sub2 #imgContainer, #subtitleContainer, #videoContainer {
   width: 450px;
   height: 450px;
   /* border: 1px dashed black; */
@@ -112,17 +112,17 @@ body {
   margin: -225px 0 0 -225px;
 }
 
-/* #videoContainer {
+.Sub2 /* #videoContainer {
   display: none;
 }
 
-#youtubeIframe {
+.Sub2 #youtubeIframe {
   width: 100%;
   height: 100%;
   object-fit: cover;
 } */
 
-#index {
+.Sub2 #index {
   width: 70px;
   height: 450px;
   position: absolute;
@@ -131,22 +131,22 @@ body {
   margin: -225px 0 0 0;
 }
 
-#main_img {
+.Sub2 #main_img {
   width: 100%;
   height: 100%;
   object-fit: cover;
 }
 
-#subtitleContainer {
+.Sub2 #subtitleContainer {
   overflow-y: scroll;
 }
 
-#opening, #part1, #part2 {
+.Sub2 #opening, #part1, #part2 {
   width: 70px;
   height: 70px;
 }
 
-.progress-bar {
+.Sub2 .progress-bar {
   position: relative;
   width: 100%;
   height: 20px;
@@ -156,7 +156,7 @@ body {
   margin-top: 10px;
 }
 
-.progress {
+.Sub2 .progress {
   position: absolute;
   top: 0;
   left: 0;
@@ -167,18 +167,18 @@ body {
   transition: width 0.1s ease-in-out;
 }
 
-p {
+.Sub2 p {
   margin-top: 20px;
   color: rgb(154, 48, 174);
   font-size: 20px;
   font-weight: bold;
 }
 
-#currentTime, #duration {
+.Sub2 #currentTime, #duration {
   display: inline;
 }
 
-#play-pause-btn {
+.Sub2 #play-pause-btn {
   width: 30px;
   height: 30px;
   text-align: center;
@@ -189,22 +189,22 @@ p {
   margin-bottom: 5px;
 }
 
-.btn {
+.Sub2 .btn {
   width: 30px;
   height: 30px;
   object-fit: cover;
 }
 
-.episode {
+.Sub2 .episode {
   width: 100%; /* 또는 필요한 너비 설정 */
 }
 
-.episode img {
+.Sub2 .episode img {
   width: 100%; /* 또는 필요한 너비 설정 */
   height: auto; /* 너비에 맞게 이미지의 높이를 자동으로 조절 */
 }
 
-#listenerBox {
+.Sub2 #listenerBox {
   width: 160px;
   height: 150px;
   background-color: rgba(255, 255, 255, 0.451);
@@ -222,23 +222,23 @@ p {
   padding-left: 12px; 
 }
 
-#textAboveListener{
+.Sub2 #textAboveListener{
   position: absolute;
   height: 200px;
   bottom: -70px;
   right: -115px;
 }
 
-.hover-zoom {
+.Sub2 .hover-zoom {
   cursor: zoom-in;
   transition: transform 0.2s;
 }
 
-.hover-zoom:hover {
+.Sub2 .hover-zoom:hover {
   transform: scale(1.1);
   cursor: pointer;
 }
 
-#listenerLine {
+.Sub2 #listenerLine {
   text-align: left;
 }
