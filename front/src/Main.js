@@ -13,6 +13,10 @@ const Main = () => {
         console.log("he")
         navigate("/subpage");
       }
+    const goToAdmin = () => {
+      console.log("he")
+      navigate("/admin");
+    }
     window.onload = () => {
     
         // var urlParams = new URLSearchParams(window.location.search);
@@ -191,13 +195,14 @@ const Main = () => {
       
         getInfo();
       
-        const goPro = document.querySelector("#goPrograms");
+        // const goPro = document.querySelector("#goPrograms");
         const goAdm = document.getElementById("goAdmin");
       
-        console.log(goPro);
-        goPro.addEventListener("click", function (event) {
-          window.location.href = "/programs";
-        });
+        // console.log(goPro);
+        // goPro.addEventListener("click", function (event) {
+        //   window.location.href = "/programs";
+        // });
+        
         goAdm.addEventListener("click", function (event) {
           window.location.href = "/admin";
         });
@@ -276,7 +281,8 @@ const Main = () => {
           </div>
           </div>
           <div id="channels"></div>
-          <div id='goAdmin'>goAdmin!!!</div><div id='goPrograms'>goPrograms!!</div>
+          <div id='goAdmin' onclick={goToAdmin}>goAdmin!!!</div>
+          {/* <div id='goPrograms'>goPrograms!!</div> */}
       </>
   );
 };

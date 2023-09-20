@@ -1,0 +1,102 @@
+import React from 'react';
+import "./Admin.css";
+import { useNavigate } from "react-router-dom";
+// import "./js/Main.js";
+
+
+
+const Admin = () => {
+
+    const navigate = useNavigate();
+    
+    const goToSUb = () => {
+        console.log("he")
+        navigate("/");
+      }
+
+    function submitForm() {
+        var form = document.getElementById("broadcast_form");
+        var formData = new FormData(form);
+        var b = formData.get('broadcast');
+        var p = formData.get('program_name');
+        var d = formData.get('date');
+        if (b.length==0 | p.length==0 | d.length==0){
+           alert("방송사, 프로그램이름, 날짜는 필수값입니다.");
+           return
+        } else {
+          alert("제출 완료! 일정 시간 후 콘텐츠 제작이 완료됩니다.");
+  
+          var xhrExistCheck = new XMLHttpRequest();
+          xhrExistCheck.open("GET", `/${b}/${p}/${d}/check_wav`);
+  
+          xhrExistCheck.onreadystatechange = function() {
+              if (xhrExistCheck.readyState === 4 && xhrExistCheck.status === 200) {
+                  var response = JSON.parse(xhrExistCheck.responseText);
+                  var wavExists = response.wav === 'true';
+                  if (wavExists) {
+                      console.log("[주의!] 서버에 이미 존재하는 wav를 사용합니다.")
+                      formData.delete('audio_file');
+                  }
+                  sendForm(formData);
+              }
+          };
+          xhrExistCheck.send();
+        }
+     }
+     function sendForm(formData) {
+        var xhr = new XMLHttpRequest();
+        xhr.open("POST", "/admin-update");
+        xhr.onreadystatechange = function() {
+           if (xhr.readyState === 4 && xhr.status === 200) {
+           }
+        };
+        xhr.send(formData);
+     }  
+
+  return (
+<div id = "admin_wrap">
+      <a href="/">
+         <div id = "logo">
+            <img id = "logoImg" src="/static/images/logo.png" />
+         </div>
+      </a>
+      <div id = "info">방송 정보 입력</div>
+      <form id="broadcast_form" enctype="multipart/form-data" method="POST">
+         <table>
+            <tr>
+               <td class = "st"><label for="broadcast">방송사</label></td>
+               <td class = "nd"><input class="input" type="text" id="broadcast" name="broadcast" size="20"/></td>
+            </tr>
+            <tr>
+               <td class = "st"><label for="program_name">프로그램 이름</label></td>
+               <td class = "nd"><input class="input" type="text" id="program_name" name="program_name" size="20" /></td>
+            </tr>
+            <tr>
+               <td class = "st"><label for="program_info">프로그램 정보</label></td>
+               <td class = "nd"><input class="input" type="text" id="program_info" name="program_info" size="20" /></td>
+            </tr>
+            <tr>
+               <td class = "st"><label for="date">날짜</label></td>
+               <td class = "nd"><input class="input" type="date" id="date" name="date" /></td>
+            </tr>
+            <tr>
+               <td class = "st"><label for="guest_info">게스트 정보</label></td>
+               <td class = "nd"><input class="input" type="text" id="guest_info" name="guest_info" size="20" /></td>
+            </tr>
+            <tr>
+               <td class = "st"><label for="audio_file">음성 파일</label></td>
+               <td class = "nd"><input type="file" id="audio_file" name="audio_file" size="20" /></td>
+            </tr>
+         </table>
+         <button type="button" onclick={submitForm}>제출</button>
+
+      </form>
+      <a id = "home" onclick={goToSUb}>홈으로 돌아가기</a>
+   </div>
+  );
+};
+
+
+
+  
+export default Admin;

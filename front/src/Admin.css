@@ -1,10 +1,11 @@
-* {
+#admin_wrap * {
     font-size: 15px;
     color: rgb(154, 48, 174);
     margin: 0 auto;
 }
 
-#wrap {
+
+#admin_wrap  {
     width: 500px;
     height: 600px;
     margin: 0 auto;
@@ -15,7 +16,7 @@
     /* border: 1px solid black; */
 }
 
-#logo {
+#admin_wrap #logo {
     width: 350px;
     height: 87.5px;
     position: relative;
@@ -23,23 +24,23 @@
     margin: 0 auto;
 }
 
-#logoImg {
+#admin_wrap #logoImg {
     width: 350px;
     height: 87.5px;            
 }
 
-#info {
+#admin_wrap #info {
     font-weight: bold;
     font-size: 20px;
     margin-top: 30px;
     margin-bottom: 15px;
 }
 
-table {
+#admin_wrap table {
     margin-bottom: 20px;
 }
 
-.st {
+#admin_wrap .st {
     width: 130px;
     height: 30px;
     line-height: 30px;
@@ -47,18 +48,18 @@ table {
     font-weight: bold;
 }
 
-.nd {
+#admin_wrap .nd {
     width: 150px;
     height: 30px;
     line-height: 30px;
     padding-left: 15px;
 }
 
-.input {
+#admin_wrap .input {
     border: 1px solid rgb(154, 48, 174);
 }
 
-button {
+#admin_wrap button {
     font-weight: 550;
     background-color: rgb(224, 191, 230);
     border: 1px solid rgb(154, 48, 174);
@@ -73,6 +74,6 @@ button {
     background-size: cover; */
 }
 
-#home {
+#admin_wrap #home {
     margin-top: 20px;
 }
