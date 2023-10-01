@@ -294,7 +294,7 @@ def all_stt_whisper(broadcast, radio_name, radio_date, sec_name, audio_len, stt_
 
     # 변경: mr제거 안한 음성 사용
     audio_path = utils.hash_splited_path(broadcast, radio_name, radio_date, sec_name)
-    results = model.transcribe(audio_path, temperature=0.2, word_timestamps=True, condition_on_previous_text=False)
+    results = model.transcribe(audio_path, temperature=0.0, word_timestamps=True, condition_on_previous_text=False)
 
     # 각각의 element: 작은단위의 stt결과가 담김 (i.e. 일반적인 문장보다 더 잘게 끊긴 text 변환결과)
     s = ""
@@ -306,6 +306,7 @@ def all_stt_whisper(broadcast, radio_name, radio_date, sec_name, audio_len, stt_
     for element in results['segments']:
         time = element['start']
         txt = element['text'].strip()
+        logger.debug(f"whisper txt: {txt}")
         if prev_string != txt: # 중복되지 않을 경우 문자열을 누적한다.
             s += " " + txt
             prev_string = txt
@@ -322,6 +323,8 @@ def all_stt_whisper(broadcast, radio_name, radio_date, sec_name, audio_len, stt_
         # 이 txt에서 끊어야 할 경우다. 누적된 문자열을 append한다.
         if re.search(pattern, txt) or txt[-1]=="." or element == results['segments'][-1]:  # 마지막 요소인 경우에도 이렇게 끝낸다.
             # logger.debug(f"[check] {name} | {t}")
+            if txt[-1] != ".":
+                s += "."
             sentences.append([t, make_fine_txt(s)])
             s = ""
             t = ""
