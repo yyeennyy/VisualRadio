@@ -302,7 +302,7 @@ def get_paragraph_info(broadcast, name, date):
     ########################## 이미지 생성 모드 ####
     ############## mode==1: 키워드 기반           #
     ############## mode==2: 문단 기반             #
-    mode = 2
+    mode = 1
     ##############################################
     with app.app_context():
         result = (
