@@ -88,14 +88,13 @@ def extract_keywords(sentences, sentences_time, vectorizer, tokenizer):
             if word[1] in target and word[0] not in stop_words: 
                 line += ' ' + word[0]
         if len(line) == 0:
-            # print(f"[형태소 없음] {row}")
+            # logger.debug(f"[형태소 없음] {row}")
             continue
         document.append(line.strip()) 
 
     vectorized = vectorizer.fit_transform(document)
 
     num_of_sentences = vectorized.shape[0]
-    visit = [False] * len(sentences)
     chunks = []
     chunks_time = []
     chunk = ''
@@ -105,53 +104,51 @@ def extract_keywords(sentences, sentences_time, vectorizer, tokenizer):
     while i < num_of_sentences:
         if len(chunk) == 0:
             chunks_time.append(sentences_time[i])
-        if not visit[i]:
-            chunk += " ▶ " + sentences[i]
 
         now = vectorized.getrow(i)
 
         if i+1 < num_of_sentences:
             next1 = vectorized.getrow(i+1)
             d1 = distance_of_vectors(now, next1)
+        else:
+            chunk += " " + sentences[i]
+            logger.debug("문단 완성!")
+            logger.debug(chunk)
+            chunks.append(chunk)
+            break
+            
         if i+2 < num_of_sentences:
             next2 = vectorized.getrow(i+2)
             d2 = distance_of_vectors(now, next2)
-        if i+3 < num_of_sentences:
-            next3 = vectorized.getrow(i+3)
-            d3 = distance_of_vectors(now, next3)
-
-        if i+3 < num_of_sentences:
-            if d1 < th and d3 > th-0.1:
-                chunk += " ▶ " + sentences[i+1]
-                visit[i+1] = True
-                i += 1
-            elif d2 < th and d3 > th-0.1:
-                chunk += " ▶ " + sentences[i+1]
-                chunk += " ▶ " + sentences[i+2]
-                visit[i+1] = True
-                visit[i+2] = True
-                i += 2
-            else:
-                if d3 <= th-0.1:
-                    chunk += " ▶ " + sentences[i+1]
-                    chunk += " ▶ " + sentences[i+2]
-                    chunk += " ▶ " + sentences[i+3]
-                    visit[i+1] = True
-                    visit[i+2] = True
-                    visit[i+3] = True
-                    i += 3
-                    continue
-                chunks.append(chunk)
-                chunk = ''
-                i += 1
         else:
+            chunk += " " + sentences[i] + sentences[i+1]
+            logger.debug("문단 완성!")
+            logger.debug(chunk)
             chunks.append(chunk)
-            chunks.append(" ▶ ".join(sentences[-3:]))
-            chunks_time.append(sentences_time[i])
-            chunk = ''
             break
+            
+        if d1 < th and d2 > th:
+            logger.debug("문장합침1")
+            chunk += " " + sentences[i]
+            chunk += " " + sentences[i+1]
+            i += 2
+        elif d2 < th or d1 < th and d2 < th:
+            logger.debug("문장합침2")
+            chunk += " " + sentences[i]
+            chunk += " " + sentences[i+1]
+            chunk += " " + sentences[i+2]
+            i += 3
+        else:
+            chunk += " " + sentences[i]
+            logger.debug("문단 완성")
+            logger.debug(chunk)
+            chunks.append(chunk)
+            chunk = ''
+            i += 1
+
 
     return chunks, chunks_time
+
 
 def extract_tfidf_keywords(chunks, vectorizer):
     tokenizer = Okt()
@@ -166,7 +163,7 @@ def extract_tfidf_keywords(chunks, vectorizer):
             if word[1] in target and word[0] not in stop_words: 
                 line += ' ' + word[0]
         if len(line) == 0:
-            print(f"[형태소 없음] {row}")
+            logger.debug(f"[형태소 없음] {row}")
             line = ''
         new_chunks.append(line.strip()) 
 
@@ -202,7 +199,7 @@ def compose_paragraph(script_file):
     # model = Word2Vec.load('ko.bin') # 연관어 추출기 - 현재미사용중
 
     # 작업0: 스크립트 불러오기
-    sentences, sentences_time = load_script(script_file)
+    sentences, sentences_time = load_script(script_file)  # TODO: 앵간히 짧은 문장들은 합쳐줘야 결과가 잘 나올텐데..ㅠ
     # 작업3: 문장의 벡터화
     chunks, chunks_time = extract_keywords(sentences, sentences_time, vectorizer, tokenizer)
     # 작업4: 문단 인식 및 키워드 추출
@@ -212,6 +209,7 @@ def compose_paragraph(script_file):
     logger.debug(f"[compose_paragraph] 만들어진 문단은 {len(chunks)}개 입니다.")
     logger.debug(f"[개수체크] keywords: {len(keywords)}")
     logger.debug(f"[개수체크] chunks_time: {len(chunks_time)}")
+    logger.debug(chunks)
 
     # 결과물
     return chunks, keywords, chunks_time
@@ -301,22 +299,35 @@ REST_API_KEY = key
 
 # 1: Contents 테이블에서 문단별 time, keyword 가져오기
 def get_paragraph_info(broadcast, name, date):
+    ########################## 이미지 생성 모드 ####
+    ############## mode==1: 키워드 기반           #
+    ############## mode==2: 문단 기반             #
+    mode = 2
+    ##############################################
     with app.app_context():
         result = (
-            db.session.query(Contents.time, Contents.keyword)
+            db.session.query(Contents.time, Contents.keyword, Contents.content)
             .filter(Contents.broadcast == broadcast, Contents.radio_name == name, Contents.radio_date == date)
             .group_by(Contents.time, Contents.keyword)
             .all()
         )
-        # 결과를 원하는 형식으로 가공
+
+    if mode == 1:
         paragraphs = {}
         for row in result:
             time = row[0]
-            keyword = row[1]
+            prompt = row[1]
             if time not in paragraphs:
                 paragraphs[time] = []
+                paragraphs[time].append(prompt)
             else:
-                paragraphs[time].append(keyword)
+                paragraphs[time].append(prompt)
+    elif mode == 2:
+        paragraphs = {}
+        for row in result:
+            time = row[0]
+            prompt = row[2]
+            paragraphs[time] = [prompt]
 
     # 결과 예시: time이 키고 keyword리스트가 값인 딕셔너리
     # paragraphs = {454.33:["가족", "선물", "참여", "퀴즈"], 594.355:["헬스장", "몸", "거울", "방해물"]}
@@ -389,7 +400,7 @@ def generate_image(broadcast, name, date, english_keywords):
             logger.debug(f"[키 없음] {keys}")
             continue
         prompt = data["keys"] + ", illustration style, drawing, painting"
-        negative_prompt = "letter, speech bubble, out of frame, text, watermark, duplicate, pattern, cropped, reality"
+        negative_prompt = "letter, speech bubble, out of frame, signature, text, watermark, duplicate, pattern, cropped, reality, human"
 
         # 이미지 생성하기 by Kalro
         response = t2i(prompt, negative_prompt)
@@ -397,14 +408,17 @@ def generate_image(broadcast, name, date, english_keywords):
         logger.debug(f"[image] 이미지 생성 완료 {round(cnt/len(english_keywords)*100, 2)}% --- {time}")
 
         # 응답의 첫 번째 이미지 생성 결과
+        if response.get("images") == None:
+            continue
+        
         result = Image.open(urllib.request.urlopen(response.get("images")[0].get("image")))
         # result.show()
-        result.save(utils.checkdir(utils.get_path(broadcast, name, date) + f"para_img/{time}_{prompt}.jpg"))
+        result.save(utils.checkdir(utils.get_path(broadcast, name, date) + f"para_img/{time}.jpg"))
 
         # 기존의 radio_section.json 데이터 생성
         content = "ment"
         time_range = f"[{time}:{time+10}]"  # 현상황: 문단 time은 start_time만 있고 end_time은 저장 안하는 상태임. 그런데, script에는 end_time이 없음. 일단 임의로 end_time 넣고 나중에 완성하고 생각하자. 그럼 sub2 로직도 검토해야 할 것임. 
-        other = f"/section/info/{broadcast}/{name}/{date}/{time}"  # 이 경로는 이미지요청 라우트함수로, 새로 구현해야 한다. | 라우트함수의 리턴 이미지: /radio_storage/broadcast/name/date/time.jpg
+        other = f"/radio_storage/{broadcast}/{name}/{date}/para_img/{time}.jpg"  # 이 경로는 이미지요청 라우트함수로, 새로 구현해야 한다. | 라우트함수의 리턴 이미지: /radio_storage/broadcast/name/date/time.jpg
         done.append({"content":content, "time_range":time_range, "other":other})
     
     file_path = utils.get_path(broadcast, name, date) + "result/section.json"
