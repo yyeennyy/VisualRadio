@@ -57,13 +57,10 @@ const Sub1 = () => {
     console.log(radio_img);
     let radio_info = document.getElementById("radioInfo");
     const heartImg = document.getElementById("imgControl");
-    let nowMonth = new Date(); // 현재 달을 페이지를 로드한 날의 달로 초기화
-    console.log(nowMonth);
     let today = new Date(); // 페이지를 로드한 날짜를 저장
     today.setHours(0, 0, 0, 0); // 비교 편의를 위해 today의 시간을 초기화
   
-    let year = String(nowMonth.getFullYear());
-    let month = nowMonth.getMonth() + 1; // getMonth()는 0부터 시작하므로 1을 더해서 실제 월 값을 얻습니다.
+    let nowMonth = new Date(); // 현재 달을 페이지를 로드한 날의 달로 초기화
   
     console.log(radio_name, broadcast);
     buildCalendar(broadcast, radio_name);
@@ -77,7 +74,10 @@ const Sub1 = () => {
   
     // 달력 생성 : 해당 달에 맞춰 테이블을 만들고, 날짜를 채워 넣음
     function buildCalendar(broadcast, radio_name) {
-      console.log(nowMonth);
+      let month = nowMonth.getMonth() + 1; // getMonth()는 0부터 시작하므로 1을 더해서 실제 월 값을 얻습니다.
+      console.log("현재 월" + nowMonth);
+      console.log("월 파라미터" + month);
+
       let firstDate = new Date(nowMonth.getFullYear(), nowMonth.getMonth(), 1); // 이번달 1일
       let lastDate = new Date(nowMonth.getFullYear(), nowMonth.getMonth() + 1, 0); // 이번달 마지막날
   
