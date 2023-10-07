@@ -2,11 +2,13 @@ import React from "react";
 import { useState } from "react";
 import "./Sub1.css";
 import { useNavigate } from "react-router-dom";
+import { useEffect } from "react";
 
 const Sub1 = () => {
   const today = new Date();
   const [year, setYear] = useState(today.getFullYear());
   const [month, setMonth] = useState(today.getMonth() + 1);
+  const [change, setChange] = useState(false);
 
   const navigate = useNavigate();
     
@@ -37,14 +39,16 @@ const Sub1 = () => {
   const handlePrevCalClick = () => {
     // 클릭 시 calMonth 값을 1 감소시킴
     setMonth(month - 1);
+    setChange(true);
   };
 
   const handleNextCalClick = () => {
     // 클릭 시 calMonth 값을 1 증가시킴
     setMonth(month + 1);
+    setChange(true);
   };
 
-  window.onload = () => {
+  useEffect(() => {
     
     let urlParams = new URLSearchParams(window.location.search);
     let broadcast = urlParams.get('broadcast').replace(/\/$/, '');
@@ -325,7 +329,7 @@ const Sub1 = () => {
   
       return null;
     }
-  };
+  }, change);
 
 
 
