@@ -3,46 +3,6 @@
 <head>
    <title>관리자 페이지</title>
    <link rel="stylesheet" href="./css/admin.css">
-   <script>
-   function submitForm() {
-      var form = document.getElementById("broadcast_form");
-      var formData = new FormData(form);
-      var b = formData.get('broadcast');
-      var p = formData.get('program_name');
-      var d = formData.get('date');
-      if (b.length==0 | p.length==0 | d.length==0){
-         alert("방송사, 프로그램이름, 날짜는 필수값입니다.");
-         return
-      } else {
-        alert("제출 완료! 일정 시간 후 콘텐츠 제작이 완료됩니다.");
-
-        var xhrExistCheck = new XMLHttpRequest();
-        xhrExistCheck.open("GET", `/api/${b}/${p}/${d}/check_wav`);
-
-        xhrExistCheck.onreadystatechange = function() {
-            if (xhrExistCheck.readyState === 4 && xhrExistCheck.status === 200) {
-                var response = JSON.parse(xhrExistCheck.responseText);
-                var wavExists = response.wav === 'true';
-                if (wavExists) {
-                    console.log("[주의!] 서버에 이미 존재하는 wav를 사용합니다.")
-                    formData.delete('audio_file');
-                }
-                sendForm(formData);
-            }
-        };
-        xhrExistCheck.send();
-      }
-   }
-   function sendForm(formData) {
-      var xhr = new XMLHttpRequest();
-      xhr.open("POST", "/admin-update");
-      xhr.onreadystatechange = function() {
-         if (xhr.readyState === 4 && xhr.status === 200) {
-         }
-      };
-      xhr.send(formData);
-   }  
-   </script>
 </head>
 <body>
    <div id = "wrap">

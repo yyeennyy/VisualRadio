@@ -337,7 +337,7 @@ const Sub1 = () => {
     <div id="sub1_wrap">
       <a href="/">
         <div id="logo">
-          <img id="logoImg" src="/static/images/logo_opacity0.jpeg" />
+          <img id="logoImg" src="/static/images/logo_opacity0.jpg" />
         </div>
       </a>
       <div id="content">

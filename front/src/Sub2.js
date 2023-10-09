@@ -200,20 +200,20 @@ function Sub2() {
   const [setting, setSetting] = useState(false);
 
 
-  const [wavData, setWavData] = useState(`/radio_storage/${broadcast}/${radio_name}/${date}/sum.wav`);
+  const [wavData, setWavData] = useState(`/static/radio_storage/${broadcast}/${radio_name}/${date}/sum.wav`);
 
 
 
   console.log(`${broadcast} ${radio_name} ${date}`)
 
   useEffect(() => {
-    axios.get(`/radio_storage/${broadcast}/${radio_name}/${date}/result/script.json`)
+    axios.get(`/static/radio_storage/${broadcast}/${radio_name}/${date}/result/script.json`)
     .then(response => {
       console.log(response.data)
       setScriptData(response.data);
     });
 
-    axios.get(`/radio_storage/${broadcast}/${radio_name}/${date}/result/section.json`)
+    axios.get(`/static/radio_storage/${broadcast}/${radio_name}/${date}/result/section.json`)
     .then(response => {
       console.log(response.data)
       setSectionData(response.data);
@@ -392,6 +392,7 @@ function Sub2() {
       // console.log('현재 other은 ', foundSection.other);
       setCurrentSection(foundSection);
 
+      console.log(foundSection)
       if (foundSection.content === 'music') {
 
         // const currentIndex = Section.indexOf(foundSection);
