@@ -16,7 +16,7 @@ var urlParams = new URLSearchParams(window.location.search);
 var broadcast = urlParams.get('broadcast').replace(/\/$/, '');
 var radio_name = urlParams.get('radio_name');
 
-
+console.log("현재 월:" + nowMonth);
 let nowMonth = new Date();  // 현재 달을 페이지를 로드한 날의 달로 초기화
 let today = new Date();     // 페이지를 로드한 날짜를 저장
 today.setHours(0,0,0,0);    // 비교 편의를 위해 today의 시간을 초기화
