@@ -58,6 +58,7 @@ services:
     volumes:
       # - ./var/lib/volumes/docker/radio-vol/_data:/app
       - ./front:/app
+      - ./VisualRadio/radio_storage:/app/public/static/radio_storage
     depends_on:
       - visual-radio  
     environment:
