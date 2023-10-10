@@ -400,7 +400,7 @@ def generate_image(broadcast, name, date, english_keywords):
             logger.debug(f"[키 없음] {keys}")
             continue
         prompt = data["keys"] + ", illustration style, drawing, painting"
-        negative_prompt = "letter, speech bubble, out of frame, signature, text, watermark, duplicate, pattern, cropped, reality, human"
+        negative_prompt = "letter, speech bubble, out of frame, signature, text, watermark, duplicate, pattern, cropped, reality, human, in the buff, naked"
 
         # 이미지 생성하기 by Kalro
         response = t2i(prompt, negative_prompt)
