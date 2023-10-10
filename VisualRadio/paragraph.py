@@ -417,8 +417,8 @@ def generate_image(broadcast, name, date, english_keywords):
 
         # 기존의 radio_section.json 데이터 생성
         content = "ment"
-        time_range = f"[{time}:{time+10}]"  # 현상황: 문단 time은 start_time만 있고 end_time은 저장 안하는 상태임. 그런데, script에는 end_time이 없음. 일단 임의로 end_time 넣고 나중에 완성하고 생각하자. 그럼 sub2 로직도 검토해야 할 것임. 
-        other = f"/radio_storage/{broadcast}/{name}/{date}/para_img/{time}.jpg"  # 이 경로는 이미지요청 라우트함수로, 새로 구현해야 한다. | 라우트함수의 리턴 이미지: /radio_storage/broadcast/name/date/time.jpg
+        time_range = [time, time+10]  # 현상황: 문단 time은 start_time만 있고 end_time은 저장 안하는 상태임. 그런데, script에는 end_time이 없음. 일단 임의로 end_time 넣고 나중에 완성하고 생각하자. 그럼 sub2 로직도 검토해야 할 것임. 
+        other = f"/static/radio_storage/{broadcast}/{name}/{date}/para_img/{time}.jpg" 
         done.append({"content":content, "time_range":time_range, "other":other})
     
     file_path = utils.get_path(broadcast, name, date) + "result/section.json"
