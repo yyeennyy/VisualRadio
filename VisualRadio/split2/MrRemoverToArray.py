@@ -84,7 +84,6 @@ def remove_mr_to_array(audio_holder, duration=int(600/2)):
         vocal = y['vocals']
         mono_data = np.mean(vocal, axis=1)
         mr_remover.split_mrs.append([name, mono_data])
-    del separator
     gc.collect()
     #--------------------------------------------------------------
     

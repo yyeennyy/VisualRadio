@@ -8,6 +8,7 @@ COPY package.json .
 RUN npm install
 RUN npm i react-router-dom
 RUN npm install axios
+RUN npm install --save react-audio-player
 
 # RUN npm install --save react-helmet
 

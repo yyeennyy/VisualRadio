@@ -79,7 +79,7 @@ def search_programs(search):
         for j in dict_list[i]['programs']:
             radio_name = j['radio_name']
             img_path = f"/static/main_imgs/{broadcast}/{radio_name}/main_img.jpeg"
-            if os.path.exists("./VisualRadio"+img_path):
+            if os.path.exists(img_path):
                 j['img'] = img_path
             else:
                 j['img'] = "/static/images/default_main.png"
@@ -139,12 +139,13 @@ def get_all_radio():
             broadcast = dict_list[i]['broadcast']
             for j in dict_list[i]['programs']:
                 radio_name = j['radio_name']
-                img_path = f"/static/main_imgs/{broadcast}/{radio_name}/main_img.jpeg"
-                if os.path.isfile("./VisualRadio" + img_path):
-                    j['img'] = img_path
-                else:
-                    j['img'] = "/static/images/default_main.png"
+                # img_path = f"./static/main_imgs/{broadcast}/{radio_name}/main_img.jpeg"
+                # if os.path.isfile(img_path):
+                    # j['img'] = img_path
+                # else:
+                j['img'] = "./static/images/default_main.png"
         json_data = json.dumps(dict_list)
+        logger.debug(f"[main page] all radio: {json_data}")
         return json_data
 
 
@@ -170,7 +171,7 @@ def all_date_of(broadcast, radio_name, year, month):
         date_list = [{'date': day} for day in only_day_list]
         date_json = json.dumps(date_list)
         
-        logger.debug(date_json)
+        # logger.debug(date_json)
 
         return date_json
 

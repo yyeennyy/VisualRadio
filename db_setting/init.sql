@@ -1,1 +1,0 @@
-insert into radio(broadcast, radio_name, start_time, record_len) values("MBCfm4u", "brunchcafe", "11:00", 3600);

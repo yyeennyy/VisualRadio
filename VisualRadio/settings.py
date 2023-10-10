@@ -89,7 +89,7 @@ SAVE_PATH = 'result/script.json'
 IMAGE_PATH = 'result/section_image.json'
 
 # -----------------
-WHISPER_MODEL = 'tiny'
+WHISPER_MODEL = 'medium'
 
 #-------------------------------------------------------------------------------------------------------------
 
