@@ -164,7 +164,8 @@ li {
     line-height: 20px;
     color: rgb(154, 48, 174);
     margin-top: 10px;
-    text-align: left;
+    /* text-align: center; */
+    margin-left: 10px;
 }
 
 [className = 'listenerInfo'] {
