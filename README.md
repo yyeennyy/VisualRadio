@@ -29,6 +29,7 @@
 
 ## 웹 서비스 아키텍처  
 <img src=".github/IMAGES/architecture.png" width="550" align="center"/>  
+<h3>시연영상 URL : https://www.youtube.com/watch?v=ODWMcz5iefM&t=3s&ab_channel=%EC%8B%A0%EA%B2%BD%EC%A4%80</h3>
 
 <br>
 <br>
