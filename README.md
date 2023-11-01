@@ -18,7 +18,6 @@
 
 <img src=".github/IMAGES/sub2.png" width="800" align="center"/>  
 <br>
-<br>
 
 ### 시연영상 URL : https://www.youtube.com/watch?v=ODWMcz5iefM&t=3s&ab_channel=%EC%8B%A0%EA%B2%BD%EC%A4%80 ###
 
