@@ -17,6 +17,9 @@
 라디오 음성 데이터 실시간 수집으로 시작하여, Shazam 알고리즘을 활용한 오디오 분할, STT(Speech To Text), 라디오 포맷(멘트, 노래, 광고) 분류, 최종 시청각 컨텐츠까지 일련의 과정을 자동화하여 제공하고 있습니다.  
 
 <img src=".github/IMAGES/sub2.png" width="800" align="center"/>  
+<br>
+
+### 시연영상 URL : https://www.youtube.com/watch?v=ODWMcz5iefM&t=3s&ab_channel=%EC%8B%A0%EA%B2%BD%EC%A4%80 ###
 
 <br>
 <br>
