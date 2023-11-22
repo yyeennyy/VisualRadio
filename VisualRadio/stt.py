@@ -230,8 +230,7 @@ def all_stt(audio_holder):
     # --------------- 전체 script 제작 시작 ------------------
     # whisper stt_results의 text는 "."을 기준 text를 나누어놓았다.
     # 다만, 한단위의 문장보다 잘게 쪼개진 상태다.
-    # 문장으로 어느정도 합쳐주어야 스크립트라고 볼 수 있다.
-    # 길이 제한을 두자. 적어도 15글자 이상 어때? 할게!
+    # 문장으로 어느정도 합쳐주어야 스크립트라고 볼 수 있다. (so 최소 길이 제한을 둠)
     # -------------------------------------------------------
     # step0) stt["name"]값을 기준으로 natsorted!
     from natsort import natsorted
@@ -282,11 +281,10 @@ def all_stt(audio_holder):
             start_flag = True
     audio_holder.jsons = final_script
     audio_holder.jsons.append({"time":round(float(cumulative_time), 2), "txt": ""})
-    logger.debug(f"[stt] 전체 stt를 audio_holder.jsons 등록했습니다.")  # 변수명 jsons 대신에 whole_stt 어때요? 하고싶은대로 하셔요 <- ㅋㅋㅋㅋㅋㅋ 냅둘래!!
+    logger.debug(f"[stt] 전체 stt를 audio_holder.jsons 등록했습니다.")
     logger.debug(f"[stt] {audio_holder.jsons}")
     return audio_holder
 
-import torch
 def all_stt_whisper(broadcast, radio_name, radio_date, sec_name, audio_len, stt_results, device):
     logger.debug(f"[stt] {sec_name}!")
     model = whisper.load_model(settings.WHISPER_MODEL).to(device)
@@ -294,7 +292,7 @@ def all_stt_whisper(broadcast, radio_name, radio_date, sec_name, audio_len, stt_
 
     # 변경: mr제거 안한 음성 사용
     audio_path = utils.hash_splited_path(broadcast, radio_name, radio_date, sec_name)
-    results = model.transcribe(audio_path, temperature=0.0, word_timestamps=True, condition_on_previous_text=False, initial_prompt="this is radio program's greeting")
+    results = model.transcribe(audio_path, temperature=0.0, word_timestamps=True, condition_on_previous_text=False, initial_prompt="this is radio program's greeting", logprob_threshold=0.0, no_speech_threshold=0.4)
 
     # 각각의 element: 작은단위의 stt결과가 담김 (i.e. 일반적인 문장보다 더 잘게 끊긴 text 변환결과)
     s = ""
@@ -321,9 +319,9 @@ def all_stt_whisper(broadcast, radio_name, radio_date, sec_name, audio_len, stt_
             start_flag = False
         # 정규표현식 패턴에 매치되는지 확인
         # 이 txt에서 끊어야 할 경우다. 누적된 문자열을 append한다.
-        if re.search(pattern, txt) or txt[-1]=="." or element == results['segments'][-1]:  # 마지막 요소인 경우에도 이렇게 끝낸다.
+        if re.search(pattern, txt) or txt[-1] in (".", "?") or element == results['segments'][-1]:  # 마지막 요소인 경우에도 이렇게 끝낸다.
             # logger.debug(f"[check] {name} | {t}")
-            if txt[-1] != ".":
+            if txt[-1] != "." and txt[-1] != "?":
                 s += "."
             sentences.append([t, make_fine_txt(s) + "\n"])
             s = ""
