@@ -294,7 +294,7 @@ def all_stt_whisper(broadcast, radio_name, radio_date, sec_name, audio_len, stt_
 
     # 변경: mr제거 안한 음성 사용
     audio_path = utils.hash_splited_path(broadcast, radio_name, radio_date, sec_name)
-    results = model.transcribe(audio_path, temperature=0.0, word_timestamps=True, condition_on_previous_text=False)
+    results = model.transcribe(audio_path, temperature=0.0, word_timestamps=True, condition_on_previous_text=False, initial_prompt="this is radio program's greeting")
 
     # 각각의 element: 작은단위의 stt결과가 담김 (i.e. 일반적인 문장보다 더 잘게 끊긴 text 변환결과)
     s = ""
@@ -325,7 +325,7 @@ def all_stt_whisper(broadcast, radio_name, radio_date, sec_name, audio_len, stt_
             # logger.debug(f"[check] {name} | {t}")
             if txt[-1] != ".":
                 s += "."
-            sentences.append([t, make_fine_txt(s)])
+            sentences.append([t, make_fine_txt(s) + "\n"])
             s = ""
             t = ""
             start_flag = True

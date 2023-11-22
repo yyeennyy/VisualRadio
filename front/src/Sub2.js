@@ -7,7 +7,7 @@ import './Sub2.css';
 import ReactAudioPlayer from 'react-audio-player';
 
 // npm install react-router-dom
-import { useLocation } from 'react-router-dom';
+// import { useLocation } from 'react-router-dom';
 
 // npm i axios
 import axios from 'axios'; 
@@ -197,15 +197,14 @@ function Sub2() {
   
   const [scriptData, setScriptData] = useState([]);
   const [sectionData, setSectionData] = useState([]);
-  const [setting, setSetting] = useState(false);
+  const [setting, setSetting] = useState(false); // script.json과 section.json이 불러와졌는지 체크. 기본값 false
 
 
   const [wavData, setWavData] = useState(`/static/radio_storage/${broadcast}/${radio_name}/${date}/sum.wav`);
 
-
-
   console.log(`${broadcast} ${radio_name} ${date}`)
 
+  // 마운팅 될 때만 실행 => 231122 마운팅 될 때만 실행되는 거 확인 완료!
   useEffect(() => {
     axios.get(`/static/radio_storage/${broadcast}/${radio_name}/${date}/result/script.json`)
     .then(response => {
@@ -219,18 +218,19 @@ function Sub2() {
       setSectionData(response.data);
     });
 
-    setSetting(true);
-   
+    setSetting(true); // script.json과 section.json이 불러와짐.
+  
   }, []);
 
   useEffect(() => {
     console.log('scriptData는 ', scriptData);
     console.log('sectionData는 ', sectionData);
   }, [scriptData, sectionData]);
+  
+  // 얘네는 필요없는 거 같은데...?!
+  // console.log(scriptData)
+  // console.log(sectionData)
 
-
-  console.log(scriptData)
-  console.log(sectionData)
   // 현재 재생 시간 반환
   const updateCurrentTime = () => {
     if (audioRef.current) {
@@ -409,10 +409,12 @@ function Sub2() {
         //   console.log('다음 섹션 없음');
         // }
 
+        setAudioPlaying(false); // 231122 이거 추가함
         audioRef.current.audioEl.current.pause();
         setYoutubeStateEnd(false);
         clearInterval(updateCurrentTime);
       } else if (foundSection.content === 'ad' || foundSection.content === 'ment') { 
+        setAudioPlaying(true); // 231122 이거 추가함
         audioRef.current.audioEl.current.play();
         const newInterval = setInterval(updateCurrentTime, 1000);
 
@@ -429,8 +431,8 @@ function Sub2() {
     if (audioPlaying) {
       foundCurrentContent();
     }
-  }, [audioPlaying, currentTime, setting]);
-
+  // }, [audioPlaying, currentTime, setting]);
+  }, [currentTime, setting]); // 231122 이거 변경함
   return (
     <div className="Sub2">
       <div id = 'wrap'>
