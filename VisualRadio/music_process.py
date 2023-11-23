@@ -152,3 +152,66 @@ def get_youtube_search_words(broadcast, name, date):
     logger.debug(f"[scan_music] {youtube_search_words}")
     # return format: [{"time":~~(초형식)~~, "txt":~~~~}, ...]
     return youtube_search_words
+
+
+from googleapiclient.discovery import build
+
+def add_to_section_json(new_entries, broadcast, name, date):
+    # section.json 파일 읽기
+    with open(utils.script_path(broadcast, name, date), 'r', encoding='utf-8') as section_file:
+        section_data = json.load(section_file)
+
+    # 새로운 항목 추가
+    section_data.extend(new_entries)
+
+    # section.json 파일에 쓰기
+    with open(utils.script_path(broadcast, name, date), 'w', encoding='utf-8') as section_file:
+        json.dump(section_data, section_file, ensure_ascii=False, indent=2)
+
+
+def get_music_links(youtube_search_words, broadcast, name, date):
+    result_list = []
+    for youtube_search_word in youtube_search_words:
+        time = youtube_search_word['time']
+        front_cut = youtube_search_word['front_cut']
+        back_cut = youtube_search_word['back_cut']
+
+        music_link = get_music_link(front_cut+"의 "+ back_cut)
+
+        transformed_entry = {
+            "content": "music",
+            "time_range": [time, time + 10],  # 예시로 10초간격으로 설정
+            "other": music_link
+        }
+
+        result_list.append(transformed_entry)
+
+    return add_to_section_json(result_list, broadcast, name, date)
+
+
+def get_music_link(music_name):
+    # 내가 발급받은 키!!
+    DEVELOPER_KEY = "AIzaSyBs569DvvdHwqmhdAomwc1qka6repVwgI0"
+    YOUTUBE_API_SERVICE_NAME = "youtube"
+    YOUTUBE_API_VERSION = "v3"
+    youtube = build(YOUTUBE_API_SERVICE_NAME, YOUTUBE_API_VERSION, developerKey=DEVELOPER_KEY)
+
+    search_response = youtube.search().list(
+        q=music_name + " M/V",
+        order="relevance",
+        part="snippet",
+        maxResults=30
+    ).execute()
+
+    base = 'https://www.youtube.com/watch?v='
+
+    # API 응답에서 첫 번째 항목의 링크 가져오기
+    link = search_response['items'][0]['id']['videoId']
+    youtube_link = base + link
+
+    return youtube_link
+
+
+def put_music_section(broadcast, name, date):
+    youtube_search_words = get_youtube_search_words(broadcast, name, date)
+    get_music_links(youtube_search_words, broadcast, name, date)

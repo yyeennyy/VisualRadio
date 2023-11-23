@@ -197,6 +197,7 @@ def clean_gpu():
         pass
 
 import gc
+import music_process
 def process_audio_file(broadcast, name, date):
     storage = f"{settings.STORAGE_PATH}/{broadcast}/{name}/{date}/"
     utils.delete_ini_files(storage)
@@ -221,14 +222,17 @@ def process_audio_file(broadcast, name, date):
             # mr 제거
             services.remove_mr(audio_holder)
             clean_gpu()
+
             # mr 제거한 음성 대상으로 stt 돌리기
             stt.all_stt(audio_holder)
             clean_gpu()
+
             # cnn 분류기 돌리기
             services.split_cnn(broadcast, name, date, audio_holder)
             clean_gpu()
             process.set_split2()
             commit(process)
+
             # script.json 얻기 (앞 분류기 이후 Wav.radio_section이 등록된 상태)
             ment_start_end = stt.get_stt_target(broadcast, name, date)
             stt.save_ment_script(broadcast, name, date, audio_holder, ment_start_end)
@@ -264,6 +268,9 @@ def process_audio_file(broadcast, name, date):
             del paragraphs
             del english_keywords
             gc.collect()
+
+            music_process.put_music_section(broadcast, name, date)
+
 
             # text processing
             # - 기존: split한 wav파일의 duraion을 파악해서 time정보를 직접 계산했음
