@@ -221,16 +221,22 @@ def process_audio_file(broadcast, name, date):
             # mr 제거
             services.remove_mr(audio_holder)
             clean_gpu()
-            # mr 제거한 음성 대상으로 stt 돌리기
+            
             stt.all_stt(audio_holder)
             clean_gpu()
+
             # cnn 분류기 돌리기
             services.split_cnn(broadcast, name, date, audio_holder)
             clean_gpu()
+            time.sleep(5)
+
             process.set_split2()
             commit(process)
             # script.json 얻기 (앞 분류기 이후 Wav.radio_section이 등록된 상태)
             ment_start_end = stt.get_stt_target(broadcast, name, date)
+            clean_gpu()
+
+            del audio_holder.sum_mrs
             stt.save_ment_script(broadcast, name, date, audio_holder, ment_start_end)
             # 사실 이 부분은 필요 없어지지만, 추후 array와 file을 둘 다 구현해주어 선택할 수 있게 할 예정이므로 남겨둡니다.
             # utils.rm(os.path.join(storage, "mr_wav"))

@@ -52,6 +52,9 @@ def find_voice(audio, sr, sec=0.5, threshold=0.009):
   return ment_range
 
 from numba import cuda
+import gc
+
+
 def model_predict(audio, sr, ment_range, split_ment, isPrint=False, sec = 1):
     
     # 이 부분에서, 모델을 로드하지 않고 클래스에서 꺼내오는 방식으로 사용합니다.
@@ -117,7 +120,10 @@ def model_predict(audio, sr, ment_range, split_ment, isPrint=False, sec = 1):
         
         if(torch.mean(predicted_labels.float()) <= 0.5):
             real_ment.append(i)
-            
+
+    del model
+    gc.collect()
+    torch.cuda.empty_cache()
     return real_ment
 
 def seconds_to_time_format(seconds):

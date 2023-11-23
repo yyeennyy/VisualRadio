@@ -253,7 +253,7 @@ def remove_mr(audio_holder):
 
 import numpy as np
 from natsort import natsorted 
-
+import torch
 
 def split_cnn(broadcast, name, date, audio_holder):
     logger.debug(f"[split_cnn] 구간정보(멘트/광고/노래) 파악 시작")
@@ -313,9 +313,9 @@ def split_cnn(broadcast, name, date, audio_holder):
 
         section_start_time_summary[sec_name] = ment_start_times
 
-
-    del audio_holder.sum_mrs # 앞으로 쓰지않을 sum_mrs를 제거
+    del split_ment
     gc.collect()
+    torch.cuda.empty_cache()
     
     with app.app_context():
         wav = Wav.query.filter_by(broadcast=broadcast, radio_name=name, radio_date=str(date)).first()

@@ -47,7 +47,7 @@ RUN pip install gensim==3.4.0
 RUN pip install transformers
 RUN pip install google-api-python-client
 RUN pip install googletrans==4.0.0-rc1
-
+RUN pip install faster-whisper
 
 # 두 번째 스테이지: 최종 이미지 설정
 FROM python:3.8.17-slim-buster

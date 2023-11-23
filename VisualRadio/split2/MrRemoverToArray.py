@@ -52,6 +52,8 @@ def cutting_audio(duration, audio_holder):
 
 logger = CreateLogger("services")
 
+import torch
+
 def remove_mr_to_array(audio_holder, duration=int(600/2)):
     logger.debug("[mr제거] 시작")
 
@@ -84,6 +86,7 @@ def remove_mr_to_array(audio_holder, duration=int(600/2)):
         vocal = y['vocals']
         mono_data = np.mean(vocal, axis=1)
         mr_remover.split_mrs.append([name, mono_data])
+    
     gc.collect()
     #--------------------------------------------------------------
     
@@ -106,7 +109,9 @@ def remove_mr_to_array(audio_holder, duration=int(600/2)):
 
         audio_holder.sum_mrs.append([direct, x])
         name_list.append(direct)
-    
-    mr_remover = None
+
+    del mr_remover
     gc.collect()
+    torch.cuda.empty_cache()
+
     return

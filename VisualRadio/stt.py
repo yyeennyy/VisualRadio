@@ -201,6 +201,13 @@ def is_ment(time, ment_start_end):
 
 # --------------------------------------------------------------------------
 
+import librosa
+
+def get_wav_duration(file_path):
+    audio_data, _ = librosa.load(file_path, sr=None)
+    duration = librosa.get_duration(y=audio_data)
+    return duration
+
 # stt작업과 script과정을 분리하지 않은 상태입니다.
 # 필요하면 나중에 분리할게요!
 def all_stt(audio_holder):
@@ -218,10 +225,16 @@ def all_stt(audio_holder):
     radio_name = audio_holder.name
     radio_date = audio_holder.date
     sr = audio_holder.sr
-    for data in split_mr:
-        name = data[0]
-        audio_len = len(data[1]) / sr
+    files = get_all_files_in_directory(utils.hash_splited_path(broadcast, radio_name, radio_date))
+    
+    for name in files:
+        audio_len = get_wav_duration(utils.hash_splited_path(broadcast, radio_name, radio_date, name))
         all_stt_whisper(broadcast, radio_name, radio_date, name, audio_len, stt_results, device)
+
+    # for data in split_mr:
+    #     name = data[0]
+    #     audio_len = len(data[1]) / sr
+    #     all_stt_whisper(broadcast, radio_name, radio_date, name, audio_len, stt_results, device, option)
 
     logger.debug(f"[stt] 전체 stt가 생성되었습니다.")
     # ------------------------ stt 작업 완료 --------------------
@@ -285,14 +298,35 @@ def all_stt(audio_holder):
     logger.debug(f"[stt] {audio_holder.jsons}")
     return audio_holder
 
+import torch
+from faster_whisper import WhisperModel
+
+def get_all_files_in_directory(path):
+    file_list = []
+    for root, dirs, files in os.walk(path):
+        for file in files:
+            file_path = os.path.join(root, file)
+            file_name = os.path.basename(file_path)
+            file_list.append(file_name)
+    return file_list
+
+
 def all_stt_whisper(broadcast, radio_name, radio_date, sec_name, audio_len, stt_results, device):
     logger.debug(f"[stt] {sec_name}!")
-    model = whisper.load_model(settings.WHISPER_MODEL).to(device)
+    # logger.debug(f"[stt] {settings.WHISPER_MODEL}!")
+    # logger.debug(f"[stt] {device}!")
+    model_size = "small"
+    model = WhisperModel(model_size, device="cpu")
+    # model = whisper.load_model(settings.WHISPER_MODEL).to(device)
     logger.debug(f"[stt] transcribe")
 
     # 변경: mr제거 안한 음성 사용
     audio_path = utils.hash_splited_path(broadcast, radio_name, radio_date, sec_name)
-    results = model.transcribe(audio_path, temperature=0.0, word_timestamps=True, condition_on_previous_text=False, initial_prompt="this is radio program's greeting", logprob_threshold=0.0, no_speech_threshold=0.4)
+    results, _ = model.transcribe(audio_path, temperature=0.0, word_timestamps=True, condition_on_previous_text=False, initial_prompt="this is radio program's greeting", no_speech_threshold=0.3, vad_filter=True)
+
+    del model
+    torch.cuda.empty_cache()
+    gc.collect()
 
     # 각각의 element: 작은단위의 stt결과가 담김 (i.e. 일반적인 문장보다 더 잘게 끊긴 text 변환결과)
     s = ""
@@ -301,15 +335,18 @@ def all_stt_whisper(broadcast, radio_name, radio_date, sec_name, audio_len, stt_
     sentences = []
     start_flag = True
     stt_data = {}
-    for element in results['segments']:
-        time = element['start']
-        txt = element['text'].strip()
+
+    results = list(results)
+    for element in results:
+    # for element in results['segments']:
+        time = element.start
+        txt = element.text
         logger.debug(f"whisper txt: {txt}")
         if prev_string != txt: # 중복되지 않을 경우 문자열을 누적한다.
             s += " " + txt
             prev_string = txt
         else: # 중복될 경우, 다음 txt로 넘어간다.
-            if element != results['segments'][-1]:  # 단, 마지막 요소가 아닐 때만 그냥 넘어가고..
+            if element != results[-1]:  # 단, 마지막 요소가 아닐 때만 그냥 넘어가고..
                 # logger.debug(f"중복: {prev_string}")
                 continue
         if len(txt) == 0:
@@ -319,7 +356,7 @@ def all_stt_whisper(broadcast, radio_name, radio_date, sec_name, audio_len, stt_
             start_flag = False
         # 정규표현식 패턴에 매치되는지 확인
         # 이 txt에서 끊어야 할 경우다. 누적된 문자열을 append한다.
-        if re.search(pattern, txt) or txt[-1] in (".", "?") or element == results['segments'][-1]:  # 마지막 요소인 경우에도 이렇게 끝낸다.
+        if re.search(pattern, txt) or txt[-1] in (".", "?") or element == results[-1]:  # 마지막 요소인 경우에도 이렇게 끝낸다.
             # logger.debug(f"[check] {name} | {t}")
             if txt[-1] != "." and txt[-1] != "?":
                 s += "."
