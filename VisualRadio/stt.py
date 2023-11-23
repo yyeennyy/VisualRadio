@@ -220,21 +220,29 @@ def all_stt(audio_holder):
         # audio = torch.tensor(audio, dtype=torch.float32)
         # audio = audio.to(device)
 
-    stt_results = []
+    # stt_results = []
     broadcast = audio_holder.broadcast
     radio_name = audio_holder.name
     radio_date = audio_holder.date
     sr = audio_holder.sr
     files = get_all_files_in_directory(utils.hash_splited_path(broadcast, radio_name, radio_date))
     
+
+    # 변경: mr제거 안한 음성 사용
+    
+    num_workers = 8
+    model_size = "small"
+    model = WhisperModel(model_size, device="cpu", num_workers=num_workers, cpu_threads=2)
+
+    args = []
     for name in files:
         audio_len = get_wav_duration(utils.hash_splited_path(broadcast, radio_name, radio_date, name))
-        all_stt_whisper(broadcast, radio_name, radio_date, name, audio_len, stt_results, device)
+        args.append((model, broadcast, radio_name, radio_date, name, audio_len))
 
-    # for data in split_mr:
-    #     name = data[0]
-    #     audio_len = len(data[1]) / sr
-    #     all_stt_whisper(broadcast, radio_name, radio_date, name, audio_len, stt_results, device, option)
+    with concurrent.futures.ThreadPoolExecutor(num_workers) as executor:
+        stt_results = executor.map(all_stt_whisper, *zip(*args))
+
+    logger.debug(stt_results)
 
     logger.debug(f"[stt] 전체 stt가 생성되었습니다.")
     # ------------------------ stt 작업 완료 --------------------
@@ -301,6 +309,8 @@ def all_stt(audio_holder):
 import torch
 from faster_whisper import WhisperModel
 
+import concurrent.futures
+
 def get_all_files_in_directory(path):
     file_list = []
     for root, dirs, files in os.walk(path):
@@ -311,16 +321,10 @@ def get_all_files_in_directory(path):
     return file_list
 
 
-def all_stt_whisper(broadcast, radio_name, radio_date, sec_name, audio_len, stt_results, device):
+def all_stt_whisper(model, broadcast, radio_name, radio_date, sec_name, audio_len):
     logger.debug(f"[stt] {sec_name}!")
-    # logger.debug(f"[stt] {settings.WHISPER_MODEL}!")
-    # logger.debug(f"[stt] {device}!")
-    model_size = "small"
-    model = WhisperModel(model_size, device="cpu")
-    # model = whisper.load_model(settings.WHISPER_MODEL).to(device)
     logger.debug(f"[stt] transcribe")
 
-    # 변경: mr제거 안한 음성 사용
     audio_path = utils.hash_splited_path(broadcast, radio_name, radio_date, sec_name)
     results, _ = model.transcribe(audio_path, temperature=0.0, word_timestamps=True, condition_on_previous_text=False, initial_prompt="this is radio program's greeting", no_speech_threshold=0.3, vad_filter=True)
 
@@ -370,8 +374,7 @@ def all_stt_whisper(broadcast, radio_name, radio_date, sec_name, audio_len, stt_
     stt_data["duration"] = audio_len
     stt_data["contents"] = sentences
 
-    stt_results.append(stt_data)
-    return
+    return stt_data
 
 import re
 
