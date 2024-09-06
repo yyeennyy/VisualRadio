@@ -16,7 +16,8 @@
 
 라디오 음성 데이터 실시간 수집으로 시작하여, Shazam 알고리즘을 활용한 오디오 분할, STT(Speech To Text), 라디오 포맷(멘트, 노래, 광고) 분류, 최종 시청각 컨텐츠까지 일련의 과정을 자동화하여 제공하고 있습니다.  
 
-<img src=".github/IMAGES/sub2.png" width="800" align="center"/>  
+![ㅇㄻㄹ](https://github.com/user-attachments/assets/89102788-bc44-4514-80ec-32277efa73bd)
+<img src=".github/IMAGES/sub2.png" align="center"/>  
 <br>
 
 ## 📖 정보과학회
@@ -30,7 +31,11 @@ https://www.youtube.com/watch?v=ODWMcz5iefM&t=3s&ab_channel=%EC%8B%A0%EA%B2%BD%E
 <br>
 
 ## 전체 오디오 프로세싱 과정  
+1. 논문ver
 ![image](https://github.com/user-attachments/assets/cd956ce5-1bd5-49ee-bcbf-a22e4b252a17)  
+2. 발표ver
+![image](https://github.com/user-attachments/assets/406f6d5e-40e7-45af-9ca5-1cf9cfd92d64)
+
 
 <br>
 <br>
@@ -124,3 +129,10 @@ whisper는 word-level로 시간정보를 얻기 때문에 STT 결과는 문장 �
 업로드 직후 오디오 프로세싱 작업이 자동으로 이루어집니다.
 
 <img src=".github/IMAGES/adminpage.png" width="400" align="center"/>  
+
+<br>
+<br>
+
+# 2023 Engineering Fair 발표 포스터
+![2023-프로젝트-페어-포스터-1](https://github.com/user-attachments/assets/e27dc0ab-7e2d-444a-a01e-5720424d2f39)
+
