@@ -136,5 +136,6 @@ whisper는 word-level로 시간정보를 얻기 때문에 STT 결과는 문장 �
 # 2023 CNU Engineering Fair 발표 포스터
 
 ![2023-프로젝트-페어-포스터-1](https://github.com/user-attachments/assets/e27dc0ab-7e2d-444a-a01e-5720424d2f39)
-![image](https://github.com/user-attachments/assets/e98e2cba-67d8-4443-9e92-0ef4ee015a2b)
+![image](https://github.com/user-attachments/assets/64446f35-ae3f-43db-99b8-45ad87986b18)
+
 
