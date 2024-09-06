@@ -30,7 +30,7 @@ https://www.youtube.com/watch?v=ODWMcz5iefM&t=3s&ab_channel=%EC%8B%A0%EA%B2%BD%E
 <br>
 
 ## 전체 오디오 프로세싱 과정  
-![image](https://github.com/yyeennyy/VisualRadio/assets/69946286/96a37d2c-eed9-4f71-8e4a-e772efa1cc3e)  
+![image](https://github.com/user-attachments/assets/cd956ce5-1bd5-49ee-bcbf-a22e4b252a17)  
 
 <br>
 <br>
