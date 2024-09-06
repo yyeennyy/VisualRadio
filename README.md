@@ -19,7 +19,12 @@
 <img src=".github/IMAGES/sub2.png" width="800" align="center"/>  
 <br>
 
-### 시연영상 URL : https://www.youtube.com/watch?v=ODWMcz5iefM&t=3s&ab_channel=%EC%8B%A0%EA%B2%BD%EC%A4%80 ###
+## 📖 정보과학회
+**진지원, 김예은, 신경준. (2023-12-20). Boodio: 라디오의 시청각 콘텐츠 자동 변환 기법. 한국정보과학회 학술발표논문집, 부산.**
+https://www.dbpia.co.kr/journal/articleDetail?nodeId=NODE11705565  
+
+## 🎥 시연영상
+https://www.youtube.com/watch?v=ODWMcz5iefM&t=3s&ab_channel=%EC%8B%A0%EA%B2%BD%EC%A4%80 ###
 
 <br>
 <br>
